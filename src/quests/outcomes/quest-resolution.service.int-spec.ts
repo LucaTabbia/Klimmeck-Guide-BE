@@ -700,7 +700,13 @@ describe('QuestResolutionService.resolveStandard with an equipped companion (rep
         await expect(resolve(subject)).resolves.toBe('resolved');
 
         expect(await rawOwnedPetsOf(subject)).toEqual([
-            { pet: pet._id, xp: COMPANION_SHARE, currentLifePoints: 7 },
+            // voce legacy: letta piena al massimo, poi scritta col livello (D-23, D-38)
+            {
+                pet: pet._id,
+                xp: COMPANION_SHARE,
+                currentLifePoints: 40,
+                level: 1,
+            },
         ]);
         const result = await resultOf(subject);
         expect(result.petXpGained).toBe(COMPANION_SHARE);
@@ -722,13 +728,19 @@ describe('QuestResolutionService.resolveStandard with an equipped companion (rep
         await expect(resolve(first)).resolves.toBe('resolved');
 
         expect(await rawOwnedPetsOf(first)).toEqual([
-            { pet: wolf._id, xp: COMPANION_SHARE, currentLifePoints: 10 },
+            {
+                pet: wolf._id,
+                xp: COMPANION_SHARE,
+                currentLifePoints: 40,
+                level: 1,
+            },
         ]);
         expect(await rawOwnedPetsOf(second)).toEqual([
             {
                 pet: owl._id,
                 xp: 300 + COMPANION_SHARE,
-                currentLifePoints: 10,
+                currentLifePoints: 49,
+                level: 5,
             },
         ]);
         expect((await resultOf(first)).petXpGained).toBe(COMPANION_SHARE);
@@ -771,8 +783,9 @@ describe('QuestResolutionService.resolveStandard with an equipped companion (rep
 
         await expect(resolve(subject)).resolves.toBe('resolved');
 
+        // il compagno ha combattuto: nessun xp, ma la voce legacy si scrive piena e col livello (D-23, D-38)
         expect(await rawOwnedPetsOf(subject)).toEqual([
-            { pet: pet._id, xp: 12, currentLifePoints: 10 },
+            { pet: pet._id, xp: 12, currentLifePoints: 40, level: 1 },
         ]);
         const result = await resultOf(subject);
         expect(result.outcome).toBe('failure');

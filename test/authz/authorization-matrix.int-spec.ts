@@ -289,8 +289,8 @@ describe('Authorization matrix (real boot)', () => {
             ]);
 
             expect(httpRows(EXPECTED_INNKEEPER_HANDLERS)).toHaveLength(18);
-            expect(httpRows(EXPECTED_OWNERSHIP_HANDLERS)).toHaveLength(17);
-            expect(httpRows(EXPECTED_OWNER_ONLY_HANDLERS)).toHaveLength(7);
+            expect(httpRows(EXPECTED_OWNERSHIP_HANDLERS)).toHaveLength(18);
+            expect(httpRows(EXPECTED_OWNER_ONLY_HANDLERS)).toHaveLength(8);
             expect([...subscriptions]).toHaveLength(3);
         });
     });

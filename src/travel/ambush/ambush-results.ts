@@ -8,6 +8,7 @@ import type {
     ConsumableUsage,
     QuestEnemyDraft,
 } from 'src/quests/outcomes/outcome-plan';
+import type { CompanionOutcomeDraft } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { AmbushCity, AmbushReportDraft } from './ambush-plan';
 
 export interface AmbushResultDraft {
@@ -16,7 +17,12 @@ export interface AmbushResultDraft {
     user: Types.ObjectId;
     kind: QuestResultKind.ambush;
     quest: null;
-    ambush: { at: Date; nearCity: AmbushCity; reachedCity: AmbushCity | null };
+    ambush: {
+        at: Date;
+        nearCity: AmbushCity;
+        onFoot: boolean;
+        reachedCity: AmbushCity | null;
+    };
     outcome: AmbushReportDraft['outcome'];
     resolvedAt: Date;
     acknowledgedAt: null;
@@ -41,6 +47,7 @@ export interface AmbushResultDraft {
     stagesCleared: null;
     stagesTotal: null;
     rescuedCharacters: [];
+    companion: CompanionOutcomeDraft | null;
 }
 
 const byAmbushInstant = (a: AmbushReportDraft, b: AmbushReportDraft): number =>
@@ -48,6 +55,7 @@ const byAmbushInstant = (a: AmbushReportDraft, b: AmbushReportDraft): number =>
     compareIds(a.resultId.toHexString(), b.resultId.toHexString());
 
 // report → QuestResult kind ambush (D-13, D-14): resolvedAt = at, i report precedono i risultati di quest dello stesso arrivo
+// dopo la Phase 23 l'imboscata scrive subito il risultato: questa consegna serve solo ai viaggi in volo al deploy (Pitfall 9)
 export function ambushResultDraftsOf(
     reports: readonly AmbushReportDraft[],
     characterId: Types.ObjectId,
@@ -70,6 +78,8 @@ function resultDraftOf(
         ambush: {
             at: report.at,
             nearCity: report.nearCity,
+            // i report trattenuti prima della Phase 23 non lo portano (D-28)
+            onFoot: report.onFoot ?? false,
             reachedCity: report.reachedCity,
         },
         outcome: report.outcome,
@@ -98,5 +108,7 @@ function resultDraftOf(
         stagesCleared: null,
         stagesTotal: null,
         rescuedCharacters: [],
+        // i report trattenuti prima della Phase 23 non hanno il campo (Pitfall 9)
+        companion: report.companion ?? null,
     };
 }

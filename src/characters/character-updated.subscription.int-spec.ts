@@ -201,6 +201,7 @@ describe('characterUpdated subscription (wire)', () => {
         return { cavalloId: String(cavallo._id), gattoId: String(gatto._id) };
     }
 
+    // voci legacy (senza livello né ancora) servite piene al massimo del compagno (Phase 23 D-23, D-38): base 10, xp 12 → livello 3, 11
     function expectedPetsAssets(cavalloId: string, gattoId: string) {
         return {
             pet: {
@@ -217,7 +218,7 @@ describe('characterUpdated subscription (wire)', () => {
                         sellable: null,
                     },
                     xp: 12,
-                    currentLifePoints: 80,
+                    currentLifePoints: 11,
                 },
                 {
                     pet: {
@@ -578,7 +579,8 @@ describe('characterUpdated subscription (wire)', () => {
                                     sellable: null,
                                 },
                                 xp: 12,
-                                currentLifePoints: 80,
+                                // voce legacy piena al massimo del compagno (Phase 23 D-23, D-38)
+                                currentLifePoints: 11,
                             },
                         ],
                     },
@@ -621,10 +623,11 @@ describe('characterUpdated subscription (wire)', () => {
             speedModifier: null,
             sellable: null,
         });
+        // voci legacy piene al massimo del compagno (Phase 23 D-23, D-38): base 10, livelli 1, 3 e 10
         return [
-            { pet: served(cavallo, 'Cavallo'), xp: 0, currentLifePoints: 80 },
-            { pet: served(gatto, 'Gatto'), xp: 12, currentLifePoints: 0 },
-            { pet: served(gufo, 'Gufo'), xp: 120, currentLifePoints: 0 },
+            { pet: served(cavallo, 'Cavallo'), xp: 0, currentLifePoints: 10 },
+            { pet: served(gatto, 'Gatto'), xp: 12, currentLifePoints: 11 },
+            { pet: served(gufo, 'Gufo'), xp: 120, currentLifePoints: 20 },
         ];
     }
 

@@ -25,7 +25,6 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { sameId } from 'src/mongo/document-id';
 import { ownersOf } from 'src/mongo/owners-of';
-import { ambushDefeat } from 'src/push/push-events';
 import { PushService } from 'src/push/push.service';
 import { readEnemyCandidates } from 'src/quests/generation/enemy-candidate';
 import type { ComposedEnemy } from 'src/quests/generation/quest-composition';
@@ -66,6 +65,8 @@ import {
     type AmbushCharacterSnapshot,
     type AmbushCity,
     type AmbushOutcomePlan,
+    type AmbushPlanInput,
+    type AmbushReportDraft,
     type AmbushTravelSnapshot,
     type DetourDraft,
     planAmbushOutcome,
@@ -73,6 +74,8 @@ import {
 import { AmbushPlanner } from './ambush-planner.service';
 import { nearestPoi, pointAtFraction } from './ambush-point';
 import { composeAmbushEnemies } from './ambush-enemies';
+import { ambushPushFactsOf, ambushPushOf } from './ambush-push';
+import { ambushResultDraftsOf } from './ambush-results';
 import { ambushFilter, ambushSkipUpdate } from './ambush.updates';
 
 export type AmbushOutcome = 'won' | 'lost' | 'skipped' | 'stale';
@@ -110,6 +113,7 @@ interface Fight {
     nearCity: AmbushCity;
     next: DrawnAmbush | null;
     detour: DetourDraft;
+    ambushPoint: AmbushPlanInput['ambushPoint'];
     userId: Types.ObjectId;
     now: Date;
 }
@@ -290,6 +294,7 @@ export class AmbushResolutionService {
             nearCity: place.nearCity,
             next,
             detour: await this.detourOf(snapshot, place, place.nearCity, jobId),
+            ambushPoint: { point: place.point, segment: place.segment },
             userId,
             now,
         });
@@ -479,8 +484,10 @@ export class AmbushResolutionService {
                     nearCity: fight.nearCity,
                     nextAmbush: fight.next,
                     detour: fight.detour,
+                    ambushPoint: fight.ambushPoint,
                     spellRecoveryTimes: catalog.recoveryTimes,
                     petMaxXp: catalog.petMaxXp,
+                    petCatalog: catalog.pets,
                     now,
                 });
                 await this.writer.writeCharacterUpdate(
@@ -488,9 +495,18 @@ export class AmbushResolutionService {
                     plan.update,
                     session,
                 );
-                if (battle.verdict === 'failure') {
+                // la deviazione per fame lascia la quest come una sconfitta (D-16)
+                if (battle.verdict === 'failure' || plan.redirected) {
                     await this.abandonLane(inSession, session);
                 }
+                // il risultato nasce all'istante dell'imboscata; questResultReceived parte dal change stream dopo il commit (D-15, D-28)
+                await this.writer.writeResult(
+                    ambushResultDraftsOf(
+                        [plan.report],
+                        identity.characterId,
+                    )[0],
+                    session,
+                );
                 if (plan.coinsDelta > 0) {
                     await this.wallet.applyCharacterCoinsDelta(
                         identity.characterId,
@@ -517,20 +533,39 @@ export class AmbushResolutionService {
                 ),
             );
         }
-        await this.writer.deliver({
-            ...emptyCommitted(),
-            spellRecoveries: outcome.plan.spellRecoveries,
-        });
         if (outcome.plan.report.outcome === QuestOutcome.failure) {
             return this.afterDefeat(fight, outcome.plan);
         }
-        await this.afterCommit(
-            identity.characterId,
-            outcome.plan.travelAfter,
-            now,
-        );
-        this.logger.log(`Imboscata ${jobId} risolta: won`);
+        if (outcome.plan.travelAfter.rewritten) {
+            await this.moveTravelJobs(identity, outcome.plan.travelAfter);
+        } else {
+            await this.afterCommit(
+                identity.characterId,
+                outcome.plan.travelAfter,
+                now,
+            );
+        }
+        await this.deliverAndNotify(fight, outcome.plan);
+        this.logger.log(this.wonMessageOf(fight, outcome.plan));
         return 'won';
+    }
+
+    // consegna e push dopo i job del viaggio: un invio lento non trattiene il percorso di correttezza (D-14, D-30)
+    private async deliverAndNotify(
+        fight: Fight,
+        plan: AmbushOutcomePlan,
+    ): Promise<void> {
+        await this.writer.deliver({
+            ...emptyCommitted(),
+            spellRecoveries: plan.spellRecoveries,
+        });
+        await this.notifyAmbush(fight.userId, plan.report);
+    }
+
+    private wonMessageOf(fight: Fight, plan: AmbushOutcomePlan): string {
+        const won = `Imboscata ${fight.jobId} risolta: won`;
+        if (!plan.redirected) return won;
+        return `${won}, ridiretto verso ${fight.detour.reachedCity.name}`;
     }
 
     // D-11: abandonQuest non vale in viaggio (il suo filtro vuole arrivedAt); party sciolto = corsia già vuota, niente da fare
@@ -562,25 +597,48 @@ export class AmbushResolutionService {
         plan: AmbushOutcomePlan,
     ): Promise<AmbushOutcome> {
         const { identity, jobId, detour } = fight;
-        await this.push.sendToUser(
-            fight.userId,
-            ambushDefeat(
-                identity.characterId.toHexString(),
-                detour.reachedCity.name,
-            ),
-        );
-        await this.scheduler.cancel(identity.characterId, identity.startTime);
-        await this.scheduler.schedule(identity.characterId, plan.travelAfter);
+        await this.moveTravelJobs(identity, plan.travelAfter);
+        await this.deliverAndNotify(fight, plan);
         this.logger.log(
             `Imboscata ${jobId} risolta: lost verso ${detour.reachedCity.name}`,
         );
         return 'lost';
     }
 
+    // viaggio riscritto a piedi con un startTime nuovo: i job del vecchio sono stantii (D-13, Pitfall 5)
+    private async moveTravelJobs(
+        identity: AmbushIdentity,
+        travel: AmbushOutcomePlan['travelAfter'],
+    ): Promise<void> {
+        await this.scheduler.cancel(identity.characterId, identity.startTime);
+        await this.scheduler.schedule(identity.characterId, travel);
+        if (travel.ambush) {
+            await this.scheduler.scheduleAmbush(
+                identity.characterId,
+                travel.startTime,
+                travel.ambush.at,
+            );
+        }
+    }
+
+    // ogni imboscata risolta, vinta o persa, al solo proprietario e dopo il commit (D-14, D-30)
+    private async notifyAmbush(
+        userId: Types.ObjectId,
+        report: AmbushReportDraft,
+    ): Promise<void> {
+        await this.push.sendToUser(
+            userId,
+            ambushPushOf(ambushPushFactsOf(report)),
+        );
+    }
+
     // la prossima imboscata, oppure il completamento già scaduto che il filtro aveva fatto aspettare (Pitfall 1)
     private async afterCommit(
         characterId: Types.ObjectId,
-        travel: AmbushOutcomePlan['travelAfter'],
+        travel: Pick<
+            AmbushOutcomePlan['travelAfter'],
+            'startTime' | 'endTime' | 'ambush'
+        >,
         now: Date,
     ): Promise<void> {
         if (travel.ambush) {

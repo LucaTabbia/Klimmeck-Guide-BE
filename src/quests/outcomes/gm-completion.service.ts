@@ -30,6 +30,7 @@ import {
     OutcomeWriter,
     StaleResolution,
 } from './outcome-writer.service';
+import type { CompanionCatalogEntry } from './pets/companion-after-fight';
 import { questUpdateOf } from './quest-outcome-plan';
 import {
     type ResolutionCharacter,
@@ -51,6 +52,7 @@ export interface GmCommitPlan {
     request: GmRequest;
     recoveryTimes: ReadonlyMap<string, number>;
     petMaxXp: ReadonlyMap<string, number>;
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     now: Date;
     // in sessione, sugli snapshot riletti nell'ordine dei posti; un errore abortisce la transazione
     outcomesOf(
@@ -94,16 +96,16 @@ export class GmCompletionService {
         assertNoBusyParticipant(
             request.seats.map(({ character }) => character),
         );
-        // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74)
-        validateOverrides(
-            input.outcomes,
-            request.seats.map(({ character }) =>
-                overrideParticipantOf(character),
-            ),
-        );
         const catalog = await this.loader.readCatalog(
             request.quest,
             request.seats.map(({ character }) => character),
+        );
+        // override validati prima di ogni scrittura: un rifiuto non lascia side effect (T-09-74); i limiti del compagno vengono dal catalogo dei pet (D-33)
+        validateOverrides(
+            input.outcomes,
+            request.seats.map(({ character }) =>
+                overrideParticipantOf(character, catalog.pets),
+            ),
         );
         const recoveryTimes = new Map([
             ...catalog.recoveryTimes,
@@ -113,11 +115,14 @@ export class GmCompletionService {
             request,
             recoveryTimes,
             petMaxXp: catalog.petMaxXp,
+            petCatalog: catalog.pets,
             now: this.clock.now(),
             outcomesOf: (snapshots) => {
                 const battles = validateOverrides(
                     input.outcomes,
-                    snapshots.map(overrideParticipantOf),
+                    snapshots.map((snapshot) =>
+                        overrideParticipantOf(snapshot, catalog.pets),
+                    ),
                 );
                 // un tiro dei premi per posto, nell'ordine dei posti: le spec a seme fisso pinnano la sequenza
                 return new Map(
@@ -218,6 +223,7 @@ export class GmCompletionService {
                         aid: null,
                         spellRecoveryTimes: plan.recoveryTimes,
                         petMaxXp: plan.petMaxXp,
+                        petCatalog: plan.petCatalog,
                         now: plan.now,
                     });
                     await this.writer.writeParticipant(participant, session);

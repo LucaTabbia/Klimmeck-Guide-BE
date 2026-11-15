@@ -5,6 +5,7 @@ import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
 import { CoinsSchema, Coins, CoinsInput } from './common/coins.model';
 import { RarityType } from './enums/rarity-type.enum';
 import { Lore } from './lore.model';
+import { MAX_RECOVERY_VALUE } from './loot-item.model';
 
 @ObjectType()
 @Schema()
@@ -67,6 +68,20 @@ export class Pet {
     @Field(() => RarityType, { nullable: true })
     @Prop({ type: String, enum: Object.values(RarityType), default: null })
     rarity?: RarityType | null;
+
+    // tempo dal minimo alla vita piena in millisecondi (D-01, D-25): curato a DB, null = recupero istantaneo finché non è curato
+    @Field(() => Int, { nullable: true })
+    @Prop({
+        type: Number,
+        default: null,
+        min: 1,
+        max: MAX_RECOVERY_VALUE,
+        validate: {
+            validator: (v: unknown) => v === null || Number.isInteger(v),
+            message: 'recoveryTime deve essere un intero',
+        },
+    })
+    recoveryTime?: number | null;
 
     // legame col nemico corrispondente (Phase 19 D-28): solo Mongoose, guida i pet in premio delle quest generate
     @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Enemy', default: null })

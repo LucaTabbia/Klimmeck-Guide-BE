@@ -281,7 +281,7 @@ describe('planCombatant', () => {
         expect(plan.result.rescuedCharacters).toEqual([id('a9')]);
         expect(plan.result.petXpGained).toBe(9);
         expect(plan.update.$set['assets.ownedPets']).toEqual([
-            { pet: COMPANION_ID, xp: 14, currentLifePoints: 10 },
+            { pet: COMPANION_ID, xp: 14, currentLifePoints: 10, level: 1 },
         ]);
     });
 

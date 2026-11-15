@@ -1304,7 +1304,7 @@ describe('ShopTransactionService (replSet)', () => {
             expect(after?.status.coins).toEqual(coins(1, 0, 0));
             expect(after?.assets.ownedPets).toEqual([
                 buildOwnedPet(idOf(camel)),
-                buildOwnedPet(idOf(horse)),
+                buildOwnedPet(idOf(horse), { level: 1 }),
             ]);
             expect(after?.assets.pet).toBeNull();
         });
@@ -1336,7 +1336,12 @@ describe('ShopTransactionService (replSet)', () => {
 
             expect((await raw(id))?.assets.ownedPets).toEqual([
                 { pet: idOf(camel), xp: 40, currentLifePoints: 6 },
-                { pet: idOf(drake), xp: 0, currentLifePoints: 300 },
+                {
+                    pet: idOf(drake),
+                    xp: 0,
+                    currentLifePoints: 300,
+                    level: 1,
+                },
             ]);
         });
 
@@ -1392,7 +1397,7 @@ describe('ShopTransactionService (replSet)', () => {
                 const after = await raw(id);
                 expect(after?.status.unlockedLore).toEqual([tale, page]);
                 expect(after?.assets.ownedPets).toEqual([
-                    buildOwnedPet(idOf(drake)),
+                    buildOwnedPet(idOf(drake), { level: 1 }),
                 ]);
             });
 
@@ -1426,7 +1431,7 @@ describe('ShopTransactionService (replSet)', () => {
                 const after = await raw(id);
                 expect(after?.status.unlockedLore).toEqual([tale]);
                 expect(after?.assets.ownedPets).toEqual([
-                    buildOwnedPet(idOf(horse)),
+                    buildOwnedPet(idOf(horse), { level: 1 }),
                 ]);
             });
         });
@@ -1690,7 +1695,7 @@ describe('ShopTransactionService (replSet)', () => {
             }
             const after = await raw(id);
             expect(after?.assets.ownedPets).toEqual([
-                buildOwnedPet(idOf(horse)),
+                buildOwnedPet(idOf(horse), { level: 1 }),
             ]);
             expect(after?.status.coins).toEqual(coins(4, 0, 0));
         });

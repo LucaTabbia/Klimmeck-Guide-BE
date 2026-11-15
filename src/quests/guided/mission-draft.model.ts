@@ -100,10 +100,38 @@ export class MissionFightEffectsRecord {
 
     @Prop({ type: [MissionSpellUsageRecordSchema], default: [] })
     spellsUsed: MissionSpellUsageRecord[];
+
+    // vita del compagno dopo lo scontro (D-17); null = nessun compagno, anche sulle bozze aperte prima della fase (D-33)
+    @Prop({ type: Number, default: null })
+    companionLifeAfter?: number | null;
 }
 
 export const MissionFightEffectsRecordSchema = SchemaFactory.createForClass(
     MissionFightEffectsRecord,
+);
+
+// compagno a inizio scontro (D-17, D-38): massimo del suo livello, nome mostrato fotografato alla simulazione
+@Schema({ _id: false })
+export class MissionCompanionRecord {
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Pet.name,
+        required: true,
+    })
+    pet: Types.ObjectId;
+
+    @Prop({ type: String, required: true })
+    name: string;
+
+    @Prop({ type: Number, required: true })
+    lifeBefore: number;
+
+    @Prop({ type: Number, required: true })
+    maxLifePoints: number;
+}
+
+export const MissionCompanionRecordSchema = SchemaFactory.createForClass(
+    MissionCompanionRecord,
 );
 
 @Schema({ _id: false })
@@ -126,6 +154,10 @@ export class MissionFightOutcomeRecord {
 
     @Prop({ type: [MissionSpellUsageRecordSchema], default: [] })
     spellsAvailable: MissionSpellUsageRecord[];
+
+    // null = nessun compagno in questo scontro, anche dopo una sconfitta in uno precedente (D-12, D-26) o su una bozza aperta prima della fase (D-33)
+    @Prop({ type: MissionCompanionRecordSchema, default: null })
+    companion?: MissionCompanionRecord | null;
 
     @Prop({ type: MissionFightEffectsRecordSchema, default: null })
     simulated: MissionFightEffectsRecord | null;

@@ -16,6 +16,8 @@ export interface AmbushFood {
     hpRaw: number | null | undefined;
     progress: FoodSettlement | null;
     defeat: FoodSettlement | null;
+    // la dispensa letta in sessione: ripianifica il resto della strada a piedi (Phase 23 D-13)
+    catalog: readonly FoodCatalogEntry[];
 }
 
 export interface AmbushFoodInput {
@@ -58,6 +60,7 @@ export function ambushFoodOf(input: AmbushFoodInput): AmbushFood | null {
         hpRaw: snapshot.status.currentLifePoints,
         progress,
         defeat,
+        catalog,
     };
 }
 

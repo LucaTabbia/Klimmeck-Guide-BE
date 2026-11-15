@@ -82,6 +82,8 @@ export const CHARACTER_SPELL_RECOVERIES_INDEX = 'character_spell_recoveries';
 export const CHARACTER_ACTIVE_TRAVEL_AMBUSH_INDEX =
     'character_active_travel_ambush';
 export const CHARACTER_IMPRISONED_UNTIL_INDEX = 'character_imprisoned_until';
+export const CHARACTER_OWNED_PETS_DEFEATED_UNTIL_INDEX =
+    'character_owned_pets_defeated_until';
 export const CHARACTER_ACTIVE_TRAVEL_FOOD_INDEX =
     'character_active_travel_food';
 
@@ -114,6 +116,11 @@ CharacterSchema.index(
 CharacterSchema.index(
     { deletedAt: 1, 'status.imprisonedUntil': 1 },
     { name: CHARACTER_IMPRISONED_UNTIL_INDEX },
+);
+// sweep della push «in forze» (D-24): multikey, una chiave per voce con la data di fine sconfitta
+CharacterSchema.index(
+    { deletedAt: 1, 'assets.ownedPets.defeatedUntil': 1 },
+    { name: CHARACTER_OWNED_PETS_DEFEATED_UNTIL_INDEX },
 );
 // serve lo sweep della fame (Phase 20 D-15, pattern D-17b)
 CharacterSchema.index(

@@ -50,6 +50,7 @@ import { PlaceholderCombatResolver } from 'src/quests/outcomes/combat/placeholde
 import { QuestResolutionService } from 'src/quests/outcomes/quest-resolution.service';
 import { QuestResolutionSweeper } from 'src/quests/outcomes/quest-resolution.sweeper';
 import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
+import { PetRecoverySweeper } from 'src/characters/pets/pet-recovery.sweeper';
 import { QuestResultMaintenance } from 'src/quests/results/quest-result-maintenance';
 import { CharacterUpdatesPublisher } from 'src/characters/character-updates.publisher';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
@@ -78,11 +79,11 @@ const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
 const CATALOGUE_PET_BLOCK =
-    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  recoveryTime: Int\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
 const RARITY_TYPE_BLOCK =
     'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
 const OWNED_PET_BLOCK =
-    'type OwnedPet {\n  currentLifePoints: Int!\n  pet: Pet!\n  xp: Int!\n}';
+    'type OwnedPet {\n  currentLifePoints: Int!\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  level: Int!\n  lifeAsOf: DateTime\n  maxLifePoints: Int!\n  name: String\n  pet: Pet!\n  potionRecoveryUntil: DateTime\n  xp: Int!\n}';
 const CHARACTER_STATUS_BLOCK =
     'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  guidedMissionInProgress: Boolean!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  missionInProgress: Boolean!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
@@ -99,12 +100,14 @@ const MISSION_DRAFT_BLOCKS: Record<string, string> = {
         'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  teleport\n}',
     'type MissionFight':
         'type MissionFight {\n  enemies: [MissionFightEnemy!]!\n  outcomes: [MissionFightOutcome!]!\n  verdict: MissionFightVerdict\n}',
+    'type MissionCompanion':
+        'type MissionCompanion {\n  lifeBefore: Int!\n  maxLifePoints: Int!\n  name: String!\n  pet: ID!\n}',
     'type MissionFightEffects':
-        'type MissionFightEffects {\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
+        'type MissionFightEffects {\n  companionLifeAfter: Int\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
     'type MissionFightEnemy':
         'type MissionFightEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
     'type MissionFightOutcome':
-        'type MissionFightOutcome {\n  character: ID!\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
+        'type MissionFightOutcome {\n  character: ID!\n  companion: MissionCompanion\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
     'enum MissionFightVerdict':
         'enum MissionFightVerdict {\n  failure\n  success\n}',
     'type MissionItemUsage':
@@ -724,9 +727,22 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the useItem contract of the FE Phase 18 into the generated schema (D-17, D-21)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        expect(schema).toContain('  useItem(itemId: ID!): UseItemResult!\n');
+        expect(schema).toContain(
+            '  useItem(itemId: ID!, petId: ID): UseItemResult!\n',
+        );
         expect(schema.match(/type UseItemResult \{[^}]*\}/)?.[0]).toBe(
             'type UseItemResult {\n  hpAfter: Int!\n  hpBefore: Int!\n  injuriesHealed: [InjuryType!]!\n  loreUnlocked: [Lore!]!\n  quantityLeft: Int!\n  recoveryUntil: DateTime!\n}',
+        );
+    });
+
+    it('writes the companion name contract of the BE Phase 23 into the generated schema (D-19, D-31)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain(
+            '  renamePet(request: RenamePetRequest!): CommonResponse!\n',
+        );
+        expect(schema.match(/input RenamePetRequest \{[^}]*\}/)?.[0]).toBe(
+            'input RenamePetRequest {\n  id: String!\n  name: String\n  petId: String!\n}',
         );
     });
 
@@ -767,7 +783,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+        );
+        expect(schema.match(/type CompanionOutcome \{[^}]*\}/)?.[0]).toBe(
+            'type CompanionOutcome {\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  lifeBefore: Int!\n  lifePoints: Int!\n  maxLifePoints: Int!\n  name: String!\n}',
         );
         expect(schema.match(/type QuestResultQuest \{[^}]*\}/)?.[0]).toBe(
             'type QuestResultQuest {\n  id: ID!\n  title: String!\n  type: String!\n}',
@@ -776,7 +795,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
             'type AmbushCity {\n  id: ID!\n  name: String!\n}',
         );
         expect(schema.match(/type AmbushReport \{[^}]*\}/)?.[0]).toBe(
-            'type AmbushReport {\n  at: DateTime!\n  nearCity: AmbushCity!\n  reachedCity: AmbushCity\n}',
+            'type AmbushReport {\n  at: DateTime!\n  nearCity: AmbushCity!\n  onFoot: Boolean!\n  reachedCity: AmbushCity\n}',
         );
         expect(schema.match(/enum QuestResultKind \{[^}]*\}/)?.[0]).toBe(
             'enum QuestResultKind {\n  ambush\n  quest\n}',
@@ -997,7 +1016,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(
             schema.match(/input ParticipantOverrideInput \{[^}]*\}/)?.[0],
         ).toBe(
-            'input ParticipantOverrideInput {\n  characterId: ID!\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
+            'input ParticipantOverrideInput {\n  characterId: ID!\n  companionLifeAfter: Int\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
         );
         expect(schema.match(/input SpellUsageInput \{[^}]*\}/)?.[0]).toBe(
             'input SpellUsageInput {\n  spell: ID!\n  usages: Int!\n}',
@@ -1027,6 +1046,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('  ambushDefeat\n');
         // liberazione dalla prigione (quick 261110-prp): valore additivo dell'enum
         expect(schema).toContain('  prisonRelease\n');
+        // compagno sconfitto di nuovo in forze (D-11) e push di ogni imboscata (D-30): il blocco intero, perché enum QuestResultKind ha già la riga ambush
+        expect(schema.match(/enum PushEventType \{[^}]*\}/)?.[0]).toBe(
+            'enum PushEventType {\n  ambush\n  ambushDefeat\n  missionStart\n  petRecovered\n  prisonRelease\n  questCancelled\n  questEnd\n  streamerLive\n  travelEnd\n}',
+        );
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
         expect(schema).not.toContain('type PushDevice');
@@ -1067,6 +1090,8 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get(PrisonReleaseSweeper)).toBeInstanceOf(
             PrisonReleaseSweeper,
         );
+        // push «in forze» (D-24): stesso intervallo della prigione
+        expect(app.get(PetRecoverySweeper)).toBeInstanceOf(PetRecoverySweeper);
         expect(app.get(getQueueToken(QUEST_RESOLUTION_QUEUE))).toBeDefined();
         expect(app.get<QuestConfig>(QUEST_CONFIG)).toEqual({
             sweepIntervalMs: 0,

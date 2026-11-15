@@ -757,7 +757,8 @@ describe('GmCompletionService.complete (replSet)', () => {
             _id: subject.characterId,
         });
         expect(raw?.assets.ownedPets).toEqual([
-            { pet: pet._id, xp: 35, currentLifePoints: 4 },
+            // senza scontro solo l'xp: voce legacy scritta piena al suo massimo e col livello (D-23, D-39)
+            { pet: pet._id, xp: 35, currentLifePoints: 10, level: 2 },
         ]);
         const result = await world.models.questResults
             .findById(draft._id)
@@ -977,6 +978,83 @@ describe('GmCompletionService.complete (replSet)', () => {
             expect(acceptances).toBe(1);
             expect(await rawDocuments()).toEqual(afterAcceptance);
             expect(world.push.sent).toHaveLength(0);
+        });
+    });
+
+    it('accepts companionLifeAfter in the legacy completion (D-33)', async () => {
+        const recoveryMs = 3_600_000;
+        const pet = (await persistPet(world.models.pets, {
+            name: 'Worg',
+            maxLifePoints: 100,
+            maxXp: 100,
+            recoveryTime: recoveryMs,
+        })) as { _id: Types.ObjectId };
+        const withFenrir = () =>
+            storyQuester({
+                characterOverrides: {
+                    assets: {
+                        pet: pet._id,
+                        ownedPets: [
+                            buildOwnedPet(pet._id, {
+                                currentLifePoints: 60,
+                                level: 1,
+                                name: 'Fenrir',
+                            }),
+                        ],
+                    },
+                },
+            });
+        const refused = await withFenrir();
+        for (const companionLifeAfter of [0, 101]) {
+            await expect(
+                service.complete(
+                    inputOf(refused, [
+                        {
+                            characterId: String(refused.characterId),
+                            companionLifeAfter,
+                        },
+                    ]),
+                ),
+            ).rejects.toMatchObject({
+                code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            });
+        }
+        await expectUntouched([refused], QuestLane.story);
+        const subject = await withFenrir();
+
+        const [draft] = await service.complete(
+            inputOf(subject, [
+                {
+                    characterId: String(subject.characterId),
+                    companionLifeAfter: 1,
+                },
+            ]),
+        );
+
+        const raw = await world.models.characters.collection.findOne({
+            _id: subject.characterId,
+        });
+        expect(raw?.assets.pet).toBeNull();
+        expect(raw?.assets.ownedPets).toEqual([
+            {
+                pet: pet._id,
+                xp: 0,
+                currentLifePoints: 1,
+                level: 1,
+                name: 'Fenrir',
+                lifeAsOf: NOW,
+                defeatedUntil: new Date(NOW.getTime() + recoveryMs),
+            },
+        ]);
+        const result = await world.models.questResults
+            .findById(draft._id)
+            .lean<any>();
+        expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+        expect(result.companion).toMatchObject({
+            name: 'Fenrir',
+            lifeBefore: 60,
+            lifePoints: 1,
+            defeated: true,
         });
     });
 });

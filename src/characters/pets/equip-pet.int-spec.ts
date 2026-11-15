@@ -5,8 +5,14 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { AuthTestApp, graphqlRequest } from '../../../test/auth/auth-test-app';
+import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import { createPlayer, TestPlayer } from '../../../test/authz/player-fixture';
 import { buildCharacter, persistPet } from '../../../test/fixtures';
@@ -24,6 +30,14 @@ const COMPANION =
     'query($id: String!) { character(id: $id) { assets { pet { id name } } } }';
 const EQUIPPED = { successful: true, response: 'Compagno equipaggiato' };
 const UNEQUIPPED = { successful: true, response: 'Compagno lasciato a riposo' };
+const MINUTE_SECONDS = 60;
+const MINUTE_MS = 60_000;
+const RECOVERY_TIME_MS = 100 * MINUTE_MS;
+const HOUR_MS = 3_600_000;
+const t0 = new Date('2026-11-14T10:00:00.000Z');
+
+const at = (minutes: number): Date =>
+    new Date(t0.getTime() + minutes * MINUTE_MS);
 
 interface WireBody {
     data?: Record<string, unknown> | null;
@@ -41,12 +55,21 @@ function codeOf(body: WireBody): unknown {
 
 describe('equipPet / unequipPet (wire)', () => {
     let harness: AuthTestApp;
+    let clock: FixedClock;
     let characters: Model<CharacterDocument>;
+    let pendingQuests: Model<PendingQuestDocument>;
     let pets: Model<PetDocument>;
     let horse: PetDocument;
     let cat: PetDocument;
+    let wolf: PetDocument;
     let horseId: Types.ObjectId;
     let catId: Types.ObjectId;
+    let wolfId: Types.ObjectId;
+
+    function setClockTo(minutesAfterT0: number): void {
+        const elapsed = clock.now().getTime() - t0.getTime();
+        clock.advanceSeconds(minutesAfterT0 * MINUTE_SECONDS - elapsed / 1000);
+    }
 
     function idOf(player: TestPlayer): string {
         return String(player.character?._id);
@@ -111,22 +134,53 @@ describe('equipPet / unequipPet (wire)', () => {
         );
     }
 
+    async function lockedOwnerOf(
+        twitchId: string,
+        ownedPets: OwnedPetSeed[],
+    ): Promise<TestPlayer> {
+        const draft = await pendingQuests.create({
+            startDate: null,
+            waitingTime: HOUR_MS,
+            pointsSpent: 0,
+            quest: new Types.ObjectId(),
+            missionDraftStartedAt: t0,
+        });
+        return ownerOf(twitchId, ownedPets, {
+            quests: {
+                ...buildCharacter().quests,
+                [QuestLane.story]: draft._id,
+            },
+        });
+    }
+
     beforeAll(async () => {
-        harness = await createCharactersTestApp();
+        clock = new FixedClock(t0);
+        harness = await createCharactersTestApp({ clock });
         characters = harness.connection.model<CharacterDocument>(
             Character.name,
+        );
+        pendingQuests = harness.connection.model<PendingQuestDocument>(
+            PendingQuest.name,
         );
         pets = harness.connection.model<PetDocument>(Pet.name);
     });
 
     beforeEach(async () => {
+        setClockTo(0);
         horse = await persistPet(pets, {
             name: 'Cavallo da viaggio',
             speedModifier: 2,
         });
         cat = await persistPet(pets, { name: 'Gatto', speedModifier: null });
+        wolf = await persistPet(pets, {
+            name: 'Lupo',
+            maxLifePoints: 100,
+            maxXp: 100,
+            recoveryTime: RECOVERY_TIME_MS,
+        });
         horseId = horse._id as Types.ObjectId;
         catId = cat._id as Types.ObjectId;
+        wolfId = wolf._id as Types.ObjectId;
     });
 
     afterEach(async () => {
@@ -173,8 +227,12 @@ describe('equipPet / unequipPet (wire)', () => {
         expect((await rawCharacter(player)).assets.pet).toEqual(horseId);
     });
 
-    it('equips a pet owned as an entry and leaves its state untouched (D-03)', async () => {
-        const entry = buildOwnedPet(horseId, { xp: 12, currentLifePoints: 7 });
+    it('equips a pet owned as an entry and keeps the state of a full companion (D-03, D-04)', async () => {
+        const entry = buildOwnedPet(horseId, {
+            xp: 12,
+            currentLifePoints: 10,
+            level: 2,
+        });
         const player = await ownerOf('twitch-pet-entry', [
             buildOwnedPet(catId),
             entry,
@@ -215,7 +273,9 @@ describe('equipPet / unequipPet (wire)', () => {
         expect(second.data?.unequipPet).toEqual(UNEQUIPPED);
         const raw = await rawCharacter(player);
         expect(raw.assets.pet).toBeNull();
-        expect(raw.assets.ownedPets).toEqual([buildOwnedPet(horseId)]);
+        expect(raw.assets.ownedPets).toEqual([
+            buildOwnedPet(horseId, { level: 1, lifeAsOf: t0 }),
+        ]);
     });
 
     it('equips during a travel without changing the travel (D-15)', async () => {
@@ -264,5 +324,155 @@ describe('equipPet / unequipPet (wire)', () => {
         expect(body.errors).toBeUndefined();
         expect(body.data?.equipPet).toEqual(EQUIPPED);
         expect((await rawCharacter(player)).assets.pet).toEqual(horseId);
+    });
+
+    it('refuses a defeated companion with PET_DEFEATED and writes nothing (D-02)', async () => {
+        setClockTo(50);
+        const player = await ownerOf('twitch-pet-defeated', [
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 1,
+                lifeAsOf: at(0),
+                defeatedUntil: at(100),
+                level: 1,
+            }),
+        ]);
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, wolf);
+
+        expect(codeOf(body)).toBe('PET_DEFEATED');
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('equips the defeated companion once its full-life date has passed, keeping the marker for the sweeper (D-24)', async () => {
+        const defeatedUntil = at(100);
+        const player = await ownerOf('twitch-pet-recovered', [
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 1,
+                lifeAsOf: at(0),
+                defeatedUntil,
+                level: 1,
+            }),
+        ]);
+        setClockTo(101);
+
+        const body = await equip(player, wolf);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipPet).toEqual(EQUIPPED);
+        const raw = await rawCharacter(player);
+        expect(raw.assets.pet).toEqual(wolfId);
+        expect(raw.assets.ownedPets).toEqual([
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 100,
+                defeatedUntil,
+                level: 1,
+            }),
+        ]);
+    });
+
+    it("equips a hurt resting companion with the life reached as in the user's example (D-04)", async () => {
+        const player = await ownerOf('twitch-pet-hurt', [
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 20,
+                lifeAsOf: at(0),
+                level: 1,
+            }),
+        ]);
+        setClockTo(20);
+
+        const body = await equip(player, wolf);
+
+        expect(body.errors).toBeUndefined();
+        expect((await rawCharacter(player)).assets.ownedPets).toEqual([
+            buildOwnedPet(wolfId, { currentLifePoints: 40, level: 1 }),
+        ]);
+    });
+
+    it('puts the outgoing companion to rest from the instant of the swap (D-04)', async () => {
+        const player = await ownerOf('twitch-pet-swap', [
+            buildOwnedPet(wolfId, { currentLifePoints: 30, level: 1 }),
+            buildOwnedPet(horseId, { currentLifePoints: 10, level: 1 }),
+        ]);
+        await characters.updateOne(
+            { _id: player.character?._id },
+            { 'assets.pet': wolfId },
+        );
+        setClockTo(15);
+
+        const body = await equip(player, horse);
+
+        expect(body.errors).toBeUndefined();
+        const raw = await rawCharacter(player);
+        expect(raw.assets.pet).toEqual(horseId);
+        expect(raw.assets.ownedPets).toEqual([
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 30,
+                lifeAsOf: at(15),
+                level: 1,
+            }),
+            buildOwnedPet(horseId, { currentLifePoints: 10, level: 1 }),
+        ]);
+    });
+
+    it('anchors the rest at the instant of the unequip (D-04)', async () => {
+        const player = await ownerOf('twitch-pet-rest', [
+            buildOwnedPet(wolfId, { currentLifePoints: 45, level: 1 }),
+        ]);
+        await characters.updateOne(
+            { _id: player.character?._id },
+            { 'assets.pet': wolfId },
+        );
+        setClockTo(7);
+
+        const body = await unequip(player);
+
+        expect(body.data?.unequipPet).toEqual(UNEQUIPPED);
+        const raw = await rawCharacter(player);
+        expect(raw.assets.pet).toBeNull();
+        expect(raw.assets.ownedPets).toEqual([
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 45,
+                lifeAsOf: at(7),
+                level: 1,
+            }),
+        ]);
+    });
+
+    it('checks the mission lock before the defeat (D-02)', async () => {
+        const player = await lockedOwnerOf('twitch-pet-locked', [
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 1,
+                lifeAsOf: at(0),
+                defeatedUntil: at(100),
+                level: 1,
+            }),
+        ]);
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, wolf);
+
+        expect(codeOf(body)).toBe('MISSION_IN_PROGRESS');
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('keeps the name of every companion across equip and unequip (D-23)', async () => {
+        const player = await ownerOf('twitch-pet-names', [
+            buildOwnedPet(wolfId, {
+                currentLifePoints: 100,
+                name: 'Zanna',
+                level: 1,
+            }),
+            buildOwnedPet(horseId, { name: 'Brina', level: 1 }),
+        ]);
+
+        await equip(player, wolf);
+        await equip(player, horse);
+        await unequip(player);
+
+        const names = (await rawCharacter(player)).assets.ownedPets.map(
+            (entry) => (entry as { name?: unknown }).name,
+        );
+        expect(names).toEqual(['Zanna', 'Brina']);
     });
 });

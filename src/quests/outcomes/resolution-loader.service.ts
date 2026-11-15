@@ -499,13 +499,28 @@ export class ResolutionLoader {
         };
     }
 
+    // il catalogo dei pet da solo: lo stato sovrapposto della bozza guidata ne legge i livelli (D-26)
+    async readPetCatalog(): Promise<ReadonlyMap<string, CombatPetSnapshot>> {
+        return (await this.readCombatPets()).pets;
+    }
+
     // tetti e statistiche dell'intero catalogo (piccolo) in una lettura: il compagno equipaggiato può cambiare fra questa lettura e lo snapshot in sessione
     private async readCombatPets(): Promise<{
         petMaxXp: Map<string, number>;
         pets: Map<string, CombatPetSnapshot>;
     }> {
         const entries = await this.petModel
-            .find({}, { maxXp: 1, attack: 1, defense: 1, maxLifePoints: 1 })
+            .find(
+                {},
+                {
+                    maxXp: 1,
+                    attack: 1,
+                    defense: 1,
+                    maxLifePoints: 1,
+                    name: 1,
+                    recoveryTime: 1,
+                },
+            )
             .lean<CatalogEntry<{ maxXp?: unknown } & CombatPetSnapshot>[]>()
             .exec();
         return {
@@ -517,10 +532,27 @@ export class ResolutionLoader {
                 ),
             ),
             pets: new Map(
-                entries.map(({ _id, attack, defense, maxLifePoints }) => [
-                    _id.toHexString(),
-                    { attack, defense, maxLifePoints },
-                ]),
+                entries.map(
+                    ({
+                        _id,
+                        attack,
+                        defense,
+                        maxLifePoints,
+                        maxXp,
+                        name,
+                        recoveryTime,
+                    }) => [
+                        _id.toHexString(),
+                        {
+                            attack,
+                            defense,
+                            maxLifePoints,
+                            maxXp,
+                            name,
+                            recoveryTime,
+                        },
+                    ],
+                ),
             ),
         };
     }

@@ -18,6 +18,11 @@ export interface ActiveTravelAmbush {
     attempts: number;
 }
 
+export interface ActiveTravelMountDraft {
+    pet: Types.ObjectId;
+    factor: number;
+}
+
 export interface ActiveTravelDraft {
     road: { coordinates: LonLat[]; distance: number };
     startTime: Date;
@@ -27,19 +32,37 @@ export interface ActiveTravelDraft {
     kind: TravelKind;
     ambush?: ActiveTravelAmbush;
     food?: ActiveTravelFoodDraft;
+    mount?: ActiveTravelMountDraft;
 }
 
 // null = non cavalcabile; un modificatore non valido vale come assente e il chiamante logga il solo id del pet (D-08)
 export function speedOf(modifier: unknown): TravelSpeed {
     if (modifier === null || modifier === undefined)
         return { speed: BASE_SPEED, invalid: false };
-    if (
-        typeof modifier !== 'number' ||
-        !Number.isFinite(modifier) ||
-        modifier <= 0
-    )
-        return { speed: BASE_SPEED, invalid: true };
+    if (!isSpeedModifier(modifier)) return { speed: BASE_SPEED, invalid: true };
     return { speed: BASE_SPEED * modifier, invalid: false };
+}
+
+function isSpeedModifier(modifier: unknown): modifier is number {
+    return (
+        typeof modifier === 'number' &&
+        Number.isFinite(modifier) &&
+        modifier > 0
+    );
+}
+
+// cavalcatura = più veloce del passo: un pet a velocità 1 o più lento non accorcia nulla e non si perde (D-29)
+export function isMountFactor(factor: unknown): factor is number {
+    return isSpeedModifier(factor) && factor > 1;
+}
+
+// stessa validazione di speedOf, ma il modificatore nullo non è una cavalcatura (D-29)
+export function mountOf(
+    petId: Types.ObjectId | null,
+    modifier: unknown,
+): ActiveTravelMountDraft | null {
+    if (!petId || !isMountFactor(modifier)) return null;
+    return { pet: petId, factor: modifier };
 }
 
 // ore reali, nessuna scala né clamp (D-07): la regolazione passa da Road.speedFactor a DB
@@ -54,6 +77,7 @@ export function buildActiveTravel(input: {
     now: Date;
     to: Types.ObjectId;
     kind: TravelKind;
+    mount?: ActiveTravelMountDraft | null;
 }): ActiveTravelDraft {
     const duration = durationMsOf(input.route.baseHours, input.speed);
     const start = input.now.getTime();
@@ -69,6 +93,7 @@ export function buildActiveTravel(input: {
         duration,
         to: input.to,
         kind: input.kind,
+        ...(input.mount ? { mount: input.mount } : {}),
     };
 }
 

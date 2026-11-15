@@ -8,6 +8,11 @@ import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 const AUTH_ERROR_CODES: readonly unknown[] = Object.values(AuthErrorCode);
 const SESSION_REVOKE_REASONS: readonly unknown[] =
     Object.values(SessionRevokeReason);
+// le attese delle pozioni: del personaggio e del compagno (Phase 23 D-32, Pitfall 7)
+const RECOVERY_UNTIL_CODES: ReadonlySet<unknown> = new Set([
+    GameRuleErrorCode.POTION_RECOVERING,
+    GameRuleErrorCode.PET_POTION_RECOVERING,
+]);
 
 type CodedHttpException = HttpException & {
     extensions: {
@@ -75,12 +80,12 @@ export function revokeReasonOf(
         : {};
 }
 
-// la data di fine ricarica esce solo con POTION_RECOVERING e solo come istante ISO (Phase 18 D-17): un testo libero di un'altra eccezione non arriva al client
+// la data di fine ricarica esce solo coi codici delle attese delle pozioni e solo come istante ISO (Phase 18 D-17, Phase 23 D-32): un testo libero di un'altra eccezione non arriva al client
 export function potionRecoveryOf(
     code: unknown,
     recoveryUntil: unknown,
 ): { recoveryUntil?: string } {
-    if (code !== GameRuleErrorCode.POTION_RECOVERING) return {};
+    if (!RECOVERY_UNTIL_CODES.has(code)) return {};
     return isIsoInstant(recoveryUntil) ? { recoveryUntil } : {};
 }
 

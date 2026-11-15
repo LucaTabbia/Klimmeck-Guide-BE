@@ -82,8 +82,11 @@ describe('AmbushProcessor (real Redis)', () => {
     const rawOf = async (id: Types.ObjectId): Promise<any> =>
         world.models.characters.findById(id).lean<any>().exec();
 
-    const reportCountOf = async (id: Types.ObjectId): Promise<number> =>
-        ((await rawOf(id))?.status.activeTravel?.ambushReports ?? []).length;
+    // il risultato dell'imboscata nasce nella transazione della risoluzione (D-28)
+    const reportCountOf = (id: Types.ObjectId): Promise<number> =>
+        world.models.questResults
+            .countDocuments({ character: id, kind: 'ambush' })
+            .exec();
 
     beforeAll(async () => {
         const { host, port } = await startRedis();

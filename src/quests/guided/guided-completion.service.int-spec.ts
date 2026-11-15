@@ -776,4 +776,184 @@ describe('GuidedCompletionService (replSet)', () => {
         );
         expect(questEndPushes()).toHaveLength(2);
     });
+
+    describe('the companion at completion (Phase 23)', () => {
+        const RECOVERY_MS = 3_600_000;
+
+        // il primo iscritto porta Fenrir a 60 su 100 (livello 1, base 100, recupero 1 h); il secondo è senza compagno
+        async function missionWithFenrir() {
+            const wolf = idOf(
+                await persistEnemy(world.models.enemies, {
+                    name: 'Lupo',
+                    xp: 50,
+                }),
+            );
+            const worg = idOf(
+                await persistPet(world.models.pets, {
+                    name: 'Worg',
+                    maxLifePoints: 100,
+                    maxXp: 100,
+                    recoveryTime: RECOVERY_MS,
+                }),
+            );
+            const first = await quester({
+                questOverrides: gmQuest('worldMission'),
+                characterOverrides: {
+                    assets: {
+                        pet: worg,
+                        ownedPets: [
+                            buildOwnedPet(worg, {
+                                currentLifePoints: 60,
+                                level: 1,
+                                name: 'Fenrir',
+                            }),
+                        ],
+                    },
+                },
+            });
+            const second = await quester({ quest: first.quest });
+            await drafts.start(hexOf(first), null);
+            return { first, second, wolf, worg };
+        }
+
+        const fenrirOf = async (subject: Quester) => {
+            const character = await characterOf(subject);
+            return {
+                slot: character.assets.pet,
+                entry: character.assets.ownedPets[0],
+            };
+        };
+
+        it('defeats a companion corrected to 1 at completion and dates its return (D-17, D-26)', async () => {
+            const { first, second, wolf } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 50,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+            await saver.save({
+                pendingQuestId: hexOf(first),
+                fights: [
+                    {
+                        enemies: enemiesOf([wolf, 1]),
+                        corrections: [
+                            correctionOf(first, {
+                                hpAfter: 900,
+                                companionLifeAfter: 1,
+                            }),
+                        ],
+                    },
+                ],
+            });
+
+            await service.complete(hexOf(first));
+
+            const { slot, entry } = await fenrirOf(first);
+            expect(slot).toBeNull();
+            expect(entry).toMatchObject({
+                currentLifePoints: 1,
+                lifeAsOf: NOW,
+                defeatedUntil: new Date(NOW.getTime() + RECOVERY_MS),
+            });
+            const result = await resultOf(first);
+            expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+            expect(result.companion).toMatchObject({
+                name: 'Fenrir',
+                lifeBefore: 60,
+                lifePoints: 1,
+                defeated: true,
+            });
+            expect((await resultOf(second)).companion).toBeNull();
+        });
+
+        it('writes the corrected life of a wounded companion (D-17, D-27)', async () => {
+            const { first, second, wolf, worg } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 50,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+            await saver.save({
+                pendingQuestId: hexOf(first),
+                fights: [
+                    {
+                        enemies: enemiesOf([wolf, 1]),
+                        corrections: [
+                            correctionOf(first, { companionLifeAfter: 30 }),
+                        ],
+                    },
+                ],
+            });
+
+            await service.complete(hexOf(first));
+
+            const { slot, entry } = await fenrirOf(first);
+            expect(slot).toEqual(worg);
+            expect(entry.currentLifePoints).toBe(30);
+            expect(entry).not.toHaveProperty('lifeAsOf');
+            expect(entry).not.toHaveProperty('defeatedUntil');
+            expect((await resultOf(first)).companion).toMatchObject({
+                lifeBefore: 60,
+                lifePoints: 30,
+                defeated: false,
+            });
+        });
+
+        it('uses the simulated companion life when not corrected (D-17)', async () => {
+            const { first, second, wolf, worg } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 45,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+
+            await service.complete(hexOf(first));
+
+            const { slot, entry } = await fenrirOf(first);
+            expect(slot).toEqual(worg);
+            expect(entry.currentLifePoints).toBe(45);
+            expect((await resultOf(first)).companion).toMatchObject({
+                lifePoints: 45,
+                defeated: false,
+            });
+        });
+
+        it('keeps a companion defeated in an early fight defeated at completion (D-12, D-26)', async () => {
+            const { first, second, wolf } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 1,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 800,
+                    companionLifeAfter: 70,
+                })
+                .willResolve(second.characterId, { hpAfter: 900 });
+            await simulate(first, 1, [wolf, 1]);
+
+            await service.complete(hexOf(first));
+
+            const { slot, entry } = await fenrirOf(first);
+            expect(slot).toBeNull();
+            expect(entry).toMatchObject({
+                currentLifePoints: 1,
+                lifeAsOf: NOW,
+                defeatedUntil: new Date(NOW.getTime() + RECOVERY_MS),
+            });
+            expect((await resultOf(first)).companion).toMatchObject({
+                lifePoints: 1,
+                defeated: true,
+            });
+        });
+    });
 });

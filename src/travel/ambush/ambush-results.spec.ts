@@ -26,6 +26,7 @@ describe('ambushResultDraftsOf', () => {
             ambush: {
                 at: report.at,
                 nearCity: report.nearCity,
+                onFoot: false,
                 reachedCity: null,
             },
             outcome: 'success',
@@ -52,12 +53,14 @@ describe('ambushResultDraftsOf', () => {
             stagesCleared: null,
             stagesTotal: null,
             rescuedCharacters: [],
+            companion: null,
         });
         expect(Object.keys(draft).sort()).toEqual([
             '_id',
             'acknowledgedAt',
             'ambush',
             'character',
+            'companion',
             'consumablesUsed',
             'enemies',
             'hpAfter',
@@ -113,6 +116,28 @@ describe('ambushResultDraftsOf', () => {
         expect(draft.petXpGained).toBe(0);
     });
 
+    it('carries the companion outcome into the ambush result and null for older held reports (D-10, Pitfall 9)', () => {
+        const companion = {
+            name: 'Fenrir',
+            lifeBefore: 60,
+            lifePoints: 1,
+            maxLifePoints: 100,
+            defeated: true,
+            fullLifeAt: new Date('2026-10-21T09:30:00.000Z'),
+        };
+        const old = buildAmbushReport();
+        expect(Object.keys(old)).not.toContain('companion');
+
+        const [fresh] = ambushResultDraftsOf(
+            [buildAmbushReport({ companion })],
+            characterId,
+        );
+        const [held] = ambushResultDraftsOf([old], characterId);
+
+        expect(fresh.companion).toEqual(companion);
+        expect(held.companion).toBeNull();
+    });
+
     it('keeps the reached city of a defeat (D-13, D-14)', () => {
         const reachedCity = { id: new Types.ObjectId(), name: 'Alba' };
         const report = buildAmbushReport({
@@ -124,6 +149,22 @@ describe('ambushResultDraftsOf', () => {
 
         expect(draft.outcome).toBe('failure');
         expect(draft.ambush.reachedCity).toEqual(reachedCity);
+    });
+
+    it('says the rest of the road is on foot, false for the held reports (D-13, D-28)', () => {
+        const [onFoot, held] = ambushResultDraftsOf(
+            [
+                buildAmbushReport({
+                    at: new Date('2026-10-21T09:00:00.000Z'),
+                    onFoot: true,
+                }),
+                buildAmbushReport({ at: new Date('2026-10-21T12:00:00.000Z') }),
+            ],
+            characterId,
+        );
+
+        expect(onFoot.ambush.onFoot).toBe(true);
+        expect(held.ambush.onFoot).toBe(false);
     });
 
     it('orders the drafts by ambush instant (D-13)', () => {

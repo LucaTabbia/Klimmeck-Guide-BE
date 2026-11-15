@@ -1,19 +1,33 @@
 import { Types } from 'mongoose';
+import { companionDisplayName } from 'src/characters/pets/companion-life';
 import { applyTradeToInventory } from 'src/economy/trade/trade-inventory';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
-import { objectIdFromHex } from 'src/mongo/document-id';
+import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
-import { overrideParticipantOf } from 'src/quests/outcomes/gm-overrides';
+import {
+    type OverrideCompanion,
+    overrideParticipantOf,
+} from 'src/quests/outcomes/gm-overrides';
+import { companionAssetsAfter } from 'src/quests/outcomes/guard/guard-outcome';
 import {
     consumablesSpent,
     sellLine,
     spellsSpent,
     woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
+import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
 import { presentOnly } from './ids';
 import type { MissionFightEffectsRecord } from './mission-draft.model';
+
+// compagno equipaggiato a inizio scontro (D-17, D-38): massimo del suo livello, nome mostrato fotografato alla simulazione
+export interface FightCompanion {
+    pet: Types.ObjectId;
+    name: string;
+    lifeBefore: number;
+    maxLifePoints: number;
+}
 
 // stato all'inizio di uno scontro e suoi limiti: gli stessi di validateOverrides (D-06, D-17)
 export interface FightStart {
@@ -21,6 +35,7 @@ export interface FightStart {
     injuriesBefore: InjuryType[];
     consumablesAvailable: { item: Types.ObjectId; quantity: number }[];
     spellsAvailable: { spell: Types.ObjectId; usages: number }[];
+    companion: FightCompanion | null;
 }
 
 // nessun istante di recupero nella sovrapposizione: la simulazione non programma job
@@ -30,6 +45,7 @@ const EPOCH = new Date(0);
 function afterFight(
     state: ResolutionCharacter,
     effects: ParticipantEffects,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): ResolutionCharacter {
     const wounds = woundsAfter(
         state.status.injuries ?? [],
@@ -50,7 +66,7 @@ function afterFight(
         NO_RECOVERY_TIMES,
         EPOCH,
     );
-    return {
+    const fought: ResolutionCharacter = {
         ...state,
         status: {
             ...state.status,
@@ -60,21 +76,57 @@ function afterFight(
         },
         assets: { ...state.assets, ownedItems, ownedEquipments },
     };
+    return {
+        ...fought,
+        ...companionAssetsAfter<ResolutionCharacter>(
+            fought.assets,
+            effects.companionLifeAfter,
+            petCatalog,
+        ),
+    };
 }
 
-// D-02, D-04: snapshot reale con sovrapposti gli effetti effettivi degli scontri precedenti; lo snapshot letto non si muta
+// D-02, D-04, D-26: snapshot reale con sovrapposti gli effetti effettivi degli scontri precedenti; lo snapshot letto non si muta
 export function stateBeforeFight(
     snapshot: ResolutionCharacter,
     previous: readonly ParticipantEffects[],
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): ResolutionCharacter {
-    return previous.reduce(afterFight, snapshot);
+    return previous.reduce(
+        (state, effects) => afterFight(state, effects, petCatalog),
+        snapshot,
+    );
 }
 
 const byHex = (totals: ReadonlyMap<string, number>) =>
     [...totals.entries()].sort(([left], [right]) => left.localeCompare(right));
 
-export function fightStartOf(state: ResolutionCharacter): FightStart {
-    const bounds = overrideParticipantOf(state);
+// limiti del compagno dalla regola delle correzioni (D-17, D-38); nome mostrato fotografato alla simulazione
+function fightCompanionOf(
+    state: ResolutionCharacter,
+    bounds: OverrideCompanion | null,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
+): FightCompanion | null {
+    const pet = refIdOf(state.assets?.pet);
+    if (!bounds || !pet) return null;
+    const entry = state.assets?.ownedPets?.find((owned) =>
+        refIdOf(owned.pet)?.equals(pet),
+    );
+    return {
+        pet,
+        name: companionDisplayName(
+            entry?.name,
+            petCatalog.get(pet.toHexString())?.name,
+        ),
+        ...bounds,
+    };
+}
+
+export function fightStartOf(
+    state: ResolutionCharacter,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
+): FightStart {
+    const bounds = overrideParticipantOf(state, petCatalog);
     return {
         hpBefore: bounds.currentLifePoints,
         injuriesBefore: [...(state.status.injuries ?? [])],
@@ -85,6 +137,7 @@ export function fightStartOf(state: ResolutionCharacter): FightStart {
             spell: new Types.ObjectId(hex),
             usages,
         })),
+        companion: fightCompanionOf(state, bounds.companion, petCatalog),
     };
 }
 
@@ -115,6 +168,7 @@ export function effectsRecordOf(
                 return spell ? { spell, usages } : null;
             }),
         ),
+        companionLifeAfter: effects.companionLifeAfter ?? null,
     };
 }
 
@@ -134,5 +188,8 @@ export function participantEffectsOf(
             spellId: spell.toHexString(),
             usages,
         })),
+        ...(record.companionLifeAfter == null
+            ? {}
+            : { companionLifeAfter: record.companionLifeAfter }),
     };
 }

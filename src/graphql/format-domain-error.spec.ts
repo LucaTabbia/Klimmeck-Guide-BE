@@ -379,6 +379,34 @@ describe('formatDomainError', () => {
         expect(result.extensions).toEqual({ code: 'PROBE_CODE' });
     });
 
+    it('lets the companion wait out with PET_POTION_RECOVERING (D-32, Pitfall 7)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                GameRuleException.petPotionRecovering(new Date(ISO)),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'PET_POTION_RECOVERING',
+            recoveryUntil: ISO,
+        });
+    });
+
+    it('drops recoveryUntil for any other code (Pitfall 7)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                badRequestWithExtensions({
+                    code: 'PET_DEFEATED',
+                    recoveryUntil: ISO,
+                }),
+            ),
+        );
+
+        expect(result.extensions).toEqual({ code: 'PET_DEFEATED' });
+    });
+
     it.each(['tomorrow', '2026-11-10', 1731241800000, null, { nested: true }])(
         'drops the recovery instant %p that is not an ISO string (D-17)',
         (recoveryUntil) => {

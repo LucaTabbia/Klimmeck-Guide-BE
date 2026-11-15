@@ -9,6 +9,7 @@ import { CharactersService } from 'src/characters/characters.service';
 import { MissionDraftLockPublisher } from 'src/characters/mission-lock/mission-draft-lock.publisher';
 import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
+import { OwnedPetResolver } from 'src/characters/pets/owned-pet.resolver';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { EconomyModule } from 'src/economy/economy.module';
 import {
@@ -28,6 +29,7 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import { Pet, PetSchema } from 'src/models/pet.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import {
@@ -55,6 +57,7 @@ export async function createCharactersTestApp(
                 { name: PointOfInterest.name, schema: PointOfInterestSchema },
                 { name: PendingQuest.name, schema: PendingQuestSchema },
                 { name: Quest.name, schema: QuestSchema },
+                { name: Pet.name, schema: PetSchema },
             ]),
             EconomyModule,
             AuthzModule,
@@ -66,6 +69,7 @@ export async function createCharactersTestApp(
             CharactersService,
             CharactersResolver,
             CharacterStatusResolver,
+            OwnedPetResolver,
             CharacterUpdatesPublisher,
             PendingQuestStartPublisher,
             MissionDraftLockPublisher,

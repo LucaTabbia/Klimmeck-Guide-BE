@@ -54,6 +54,13 @@ const SWEEP_INDEXES: SweepIndex[] = [
         schema: CharacterSchema,
         key: { deletedAt: 1, 'status.activeTravel.food.settledKm': 1 },
     },
+    // indexes the companion defeat for the recovery sweep (D-24)
+    {
+        collection: 'characters',
+        name: 'character_owned_pets_defeated_until',
+        schema: CharacterSchema,
+        key: { deletedAt: 1, 'assets.ownedPets.defeatedUntil': 1 },
+    },
     {
         collection: 'quests',
         name: 'quest_forming_parties',

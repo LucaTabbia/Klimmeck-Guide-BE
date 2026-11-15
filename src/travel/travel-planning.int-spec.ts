@@ -552,6 +552,68 @@ describe('TravelPlanner and TravelScheduler (replSet)', () => {
         });
     });
 
+    describe('departure mount (Phase 23)', () => {
+        const questRequest = () => ({
+            questId: new Types.ObjectId(),
+            characterId: new Types.ObjectId(),
+            from: world.markerA,
+            to: world.questPoi,
+        });
+
+        it('saves the mount of a free travel with a riding companion (D-29)', async () => {
+            const pet = await persistPet(pets, { speedModifier: 1.5 });
+            const id = await characterAt(world.markerA, {
+                assets: { pet: pet._id },
+            });
+
+            const plan = await planner.planFree(id, world.markerB);
+
+            expect(plan.travel.mount).toEqual({ pet: pet._id, factor: 1.5 });
+            expect(plan.travel.duration).toBe(
+                durationMsOf(route.baseHours, BASE_SPEED * 1.5),
+            );
+        });
+
+        it('saves the mount of the automatic quest travel (D-29)', async () => {
+            const pet = await persistPet(pets, { speedModifier: 2 });
+
+            const travel = await planner.autoRoute({
+                ...questRequest(),
+                pet: pet._id,
+            });
+
+            const questRoute = roads.routeBetween(
+                [0, 0],
+                [0.1, 0],
+            ) as RoadRoute;
+            expect(travel?.mount).toEqual({ pet: pet._id, factor: 2 });
+            expect(travel?.duration).toBe(
+                durationMsOf(questRoute.baseHours, BASE_SPEED * 2),
+            );
+        });
+
+        it('saves no mount on foot or with a companion that is not a mount (D-29)', async () => {
+            const companion = await persistPet(pets, { speedModifier: null });
+            const onFoot = await characterAt(world.markerA);
+            const withCompanion = await characterAt(world.markerA, {
+                assets: { pet: companion._id },
+            });
+
+            const plans = [
+                (await planner.planFree(onFoot, world.markerB)).travel,
+                (await planner.planFree(withCompanion, world.markerB)).travel,
+                await planner.autoRoute({ ...questRequest(), pet: null }),
+                await planner.autoRoute({
+                    ...questRequest(),
+                    pet: companion._id,
+                }),
+            ];
+
+            for (const travel of plans)
+                expect(Object.keys(travel as object)).not.toContain('mount');
+        });
+    });
+
     describe('speedOfCharacter', () => {
         it('exposes the travel speed of the character with pet and injuries (D-11, D-21)', async () => {
             const pet = await persistPet(pets, { speedModifier: 2 });

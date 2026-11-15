@@ -49,6 +49,18 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: "L'oste ha dato inizio alla tua missione",
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.petRecovered]: {
+        type: PushEventType.petRecovered,
+        title: 'Di nuovo in forze',
+        body: 'Il tuo compagno è di nuovo in forze.',
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
+    [PushEventType.ambush]: {
+        type: PushEventType.ambush,
+        title: 'Imboscata!',
+        body: "Hai subito un'imboscata.",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -58,6 +70,8 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.ambushDefeat,
     PushEventType.prisonRelease,
     PushEventType.missionStart,
+    PushEventType.petRecovered,
+    PushEventType.ambush,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -78,14 +92,11 @@ export const questCancelled = (questId: string): PushMessage => ({
     id: questId,
 });
 
-// sconfitta in imboscata (Phase 15 D-12): id = personaggio, corpo con la città raggiunta composto dal BE
-export const ambushDefeat = (
-    characterId: string,
-    cityName: string,
-): PushMessage => ({
-    ...CATALOG[PushEventType.ambushDefeat],
-    id: characterId,
-    body: `Sei stato sconfitto: la via torna verso ${cityName}`,
+// ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto da ambushPushOf
+export const ambush = (resultId: string, body: string): PushMessage => ({
+    ...CATALOG[PushEventType.ambush],
+    id: resultId,
+    body,
 });
 
 // fine della prigione (quick 261110-prp): id = personaggio, come travelEnd
@@ -102,6 +113,16 @@ export const missionStart = (
     ...CATALOG[PushEventType.missionStart],
     id: characterId,
     body: `L'oste ha dato inizio a «${questTitle}»`,
+});
+
+// compagno sconfitto di nuovo a vita piena (D-11): id = pet a catalogo, così due compagni dello stesso personaggio danno due notifiche; corpo col nome mostrato (D-20)
+export const petRecovered = (
+    petId: string,
+    companionName: string,
+): PushMessage => ({
+    ...CATALOG[PushEventType.petRecovered],
+    id: petId,
+    body: `${companionName} è di nuovo in forze`,
 });
 
 export const streamerLive = (): PushMessage => ({

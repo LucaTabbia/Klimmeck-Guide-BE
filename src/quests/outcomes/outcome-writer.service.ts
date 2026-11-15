@@ -32,6 +32,7 @@ import { PushService } from 'src/push/push.service';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
 import { QuestGenerationTrigger } from 'src/quests/generation/quest-generation-trigger';
+import type { AmbushResultDraft } from 'src/travel/ambush/ambush-results';
 import type { AidQuestDraft } from './aid/aid-quest';
 import type {
     ParticipantPlan,
@@ -121,8 +122,9 @@ export class OutcomeWriter {
         if (!written) throw new StaleResolution();
     }
 
+    // anche il risultato dell'imboscata, scritto all'istante nella transazione della risoluzione (D-28)
     async writeResult(
-        result: QuestResultDraft,
+        result: QuestResultDraft | AmbushResultDraft,
         session: ClientSession,
     ): Promise<void> {
         await this.questResultModel.create([result], { session });

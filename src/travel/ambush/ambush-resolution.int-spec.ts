@@ -1,11 +1,14 @@
 import { Logger } from '@nestjs/common';
 import { toCopper } from 'src/economy/coins';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { OutcomeWriter } from 'src/quests/outcomes/outcome-writer.service';
 import { ResolutionLoader } from 'src/quests/outcomes/resolution-loader.service';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { QuestResultsModule } from 'src/quests/results/quest-results.module';
 import { RoadsService } from 'src/roads/roads.service';
 import { travelJobId } from 'src/travel/travel-job';
+import { graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
@@ -31,6 +34,7 @@ import {
     type Traveller,
     type TravellerOptions,
 } from '../../../test/travel/ambush-world';
+import { buildAmbushReport } from '../../../test/travel/ambush-report.fixture';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import {
     foodStack,
@@ -55,6 +59,11 @@ const RECOVERY_MS = 5_000;
 const COMPANION_WOLF_XP = 7;
 const COMPANION_SHARE = 1;
 const COMPANION_LIFE = 7;
+const COMPANION_RECOVERY_MS = 3_600_000;
+const UNACKNOWLEDGED =
+    '{ unacknowledgedQuestResults { id kind outcome resolvedAt } }';
+const CONFIRM =
+    'mutation Confirm($id: String!) { acknowledgeQuestResult(id: $id) { successful } }';
 
 describe('AmbushResolutionService (replica set)', () => {
     const clock = new FixedClock(START);
@@ -107,8 +116,53 @@ describe('AmbushResolutionService (replica set)', () => {
             .lean<any>()
             .exec();
 
+    // risultati d'imboscata del personaggio scritti nella transazione della risoluzione (D-28)
+    const ambushResultsOf = async (subject: Traveller): Promise<any[]> =>
+        world.models.questResults
+            .find({ character: subject.characterId, kind: 'ambush' })
+            .sort({ resolvedAt: 1, _id: 1 })
+            .lean<any[]>()
+            .exec();
+
+    const ambushResultOf = async (subject: Traveller): Promise<any> => {
+        const results = await ambushResultsOf(subject);
+        expect(results).toHaveLength(1);
+        return results[0];
+    };
+
     const ambushJobs = () =>
         travelQueue.added.filter((job) => job.name === 'ambush');
+
+    // trasporto FCM che non risponde finché il test non lo lascia andare: fotografa la coda dei viaggi all'invio (B-01)
+    const holdPush = () => {
+        let release: () => void = () => undefined;
+        let started: (queue: {
+            added: string[];
+            removed: string[];
+        }) => void = () => undefined;
+        const queueAtPush = new Promise<{ added: string[]; removed: string[] }>(
+            (resolve) => {
+                started = resolve;
+            },
+        );
+        jest.spyOn(world.push, 'sendToTokens').mockImplementationOnce(
+            (tokens, message) =>
+                new Promise((resolve) => {
+                    world.push.sent.push({ tokens: [...tokens], message });
+                    started({
+                        added: travelQueue.added.map(({ options }) =>
+                            String(options.jobId),
+                        ),
+                        removed: [...travelQueue.removed],
+                    });
+                    release = () =>
+                        resolve(
+                            tokens.map((token) => ({ token, delivered: true })),
+                        );
+                }),
+        );
+        return { queueAtPush, release: () => release() };
+    };
 
     const defeatOf = (
         subject: Traveller,
@@ -129,7 +183,10 @@ describe('AmbushResolutionService (replica set)', () => {
             ._id;
         const ownedPets = [
             buildOwnedPet(other, { xp: 12 }),
-            buildOwnedPet(companion, { currentLifePoints: COMPANION_LIFE }),
+            buildOwnedPet(companion, {
+                currentLifePoints: COMPANION_LIFE,
+                level: 1,
+            }),
         ];
         await world.models.enemies.updateOne(
             { _id: enemies.wolf },
@@ -147,7 +204,7 @@ describe('AmbushResolutionService (replica set)', () => {
             clock,
             chance,
             combat,
-            imports: [AmbushModule],
+            imports: [AmbushModule, QuestResultsModule],
             travelQueue,
         });
         service = world.harness.app.get(AmbushResolutionService);
@@ -191,7 +248,7 @@ describe('AmbushResolutionService (replica set)', () => {
         ]);
     });
 
-    it('teaches the enemies of a won ambush and holds the new lore in the report (D-06, D-09)', async () => {
+    it('teaches the enemies of a won ambush and writes the new lore in the result (D-06, D-09)', async () => {
         const subject = await traveller({ km: 10 });
         chance.load([0, 0]);
         const wolf = await world.models.enemies
@@ -207,7 +264,7 @@ describe('AmbushResolutionService (replica set)', () => {
             String(enemies.wolf),
         ]);
         expect(
-            raw.status.activeTravel.ambushReports[0].loreUnlocked.map(String),
+            (await ambushResultOf(subject)).loreUnlocked.map(String),
         ).toEqual([page]);
     });
 
@@ -232,7 +289,7 @@ describe('AmbushResolutionService (replica set)', () => {
         const raw = await rawOf(subject);
         expect(raw.status.level).toBe(2);
         expect(raw.status.title).toBe(TitleType.rookie);
-        expect(raw.status.activeTravel.ambushReports[0].titleAfter).toBe(
+        expect((await ambushResultOf(subject)).titleAfter).toBe(
             TitleType.rookie,
         );
     });
@@ -270,26 +327,133 @@ describe('AmbushResolutionService (replica set)', () => {
         ]);
     });
 
-    it('holds the report in the travel until arrival (D-13)', async () => {
+    it('writes the ambush result at once while the travel goes on (D-15, D-28)', async () => {
         const subject = await traveller({ km: 10 });
         chance.load([0, 0]);
 
         await service.resolve(subject.identity);
 
         const { activeTravel } = (await rawOf(subject)).status;
-        expect(activeTravel.ambushReports).toHaveLength(1);
-        expect(activeTravel.ambushReports[0]).toEqual(
+        expect(activeTravel.ambushReports ?? []).toEqual([]);
+        expect(await ambushResultOf(subject)).toEqual(
             expect.objectContaining({
+                kind: 'ambush',
                 outcome: QuestOutcome.success,
-                at: subject.identity.at,
-                nearCity: { id: map.cities.crocevia, name: 'Crocevia' },
-                reachedCity: null,
+                resolvedAt: subject.identity.at,
+                acknowledgedAt: null,
+                ambush: {
+                    at: subject.identity.at,
+                    nearCity: { id: map.cities.crocevia, name: 'Crocevia' },
+                    onFoot: false,
+                    reachedCity: null,
+                },
                 user: subject.player.user._id,
                 enemies: [{ enemy: enemies.wolf, quantity: 1 }],
                 xpGained: 40 + WOLF_XP,
             }),
         );
-        expect(await world.models.questResults.countDocuments()).toBe(0);
+    });
+
+    it('serves the unseen ambush results mid-travel and hides them once acknowledged (D-15, D-28)', async () => {
+        const subject = await traveller({ km: 10 });
+        chance.load([0, 0]);
+        await service.resolve(subject.identity);
+        const unseen = async () => {
+            const response = await graphqlRequest(
+                world.harness.app,
+                UNACKNOWLEDGED,
+                undefined,
+                subject.player.bearer,
+            );
+            expect(response.body.errors).toBeUndefined();
+            return response.body.data.unacknowledgedQuestResults as {
+                id: string;
+                kind: string;
+            }[];
+        };
+
+        const served = await unseen();
+        expect((await rawOf(subject)).status.activeTravel).not.toBeNull();
+        expect(served).toEqual([
+            expect.objectContaining({
+                kind: 'ambush',
+                outcome: 'success',
+                resolvedAt: subject.identity.at.toISOString(),
+            }),
+        ]);
+
+        const confirmed = await graphqlRequest(
+            world.harness.app,
+            CONFIRM,
+            { id: served[0].id },
+            subject.player.bearer,
+        );
+
+        expect(confirmed.body).toEqual({
+            data: { acknowledgeQuestResult: { successful: true } },
+        });
+        expect(await unseen()).toEqual([]);
+    });
+
+    it('writes the companion of the ambush in the result (D-10, D-26)', async () => {
+        const { subject, companion } = await travellerWithCompanion();
+        await world.models.pets.updateOne(
+            { _id: companion },
+            { $set: { recoveryTime: COMPANION_RECOVERY_MS } },
+        );
+        chance.load([0, 0]);
+        combat.willResolve(subject.characterId, { companionLifeAfter: 1 });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const backAt = new Date(
+            subject.identity.at.getTime() + COMPANION_RECOVERY_MS,
+        );
+        const raw = await rawOf(subject);
+        expect(raw.assets.pet).toBeNull();
+        expect(raw.assets.ownedPets[1]).toEqual({
+            pet: companion,
+            xp: COMPANION_SHARE,
+            currentLifePoints: 1,
+            level: 1,
+            lifeAsOf: subject.identity.at,
+            defeatedUntil: backAt,
+        });
+        expect((await ambushResultOf(subject)).companion).toEqual({
+            name: 'Test Mount',
+            lifeBefore: COMPANION_LIFE,
+            lifePoints: 1,
+            maxLifePoints: 10,
+            defeated: true,
+            fullLifeAt: backAt,
+        });
+    });
+
+    it('writes no result when the resolution is stale (D-28)', async () => {
+        const subject = await traveller({ km: 10 });
+        const loader = world.harness.app.get(ResolutionLoader);
+        const original = loader.readCombatCatalog.bind(loader);
+        jest.spyOn(loader, 'readCombatCatalog').mockImplementationOnce(
+            async (...args) => {
+                await world.models.characters.updateOne(
+                    { _id: subject.characterId },
+                    {
+                        $set: {
+                            'status.activeTravel.ambush.at': new Date(
+                                subject.identity.at.getTime() + 1,
+                            ),
+                        },
+                    },
+                );
+                return original(...args);
+            },
+        );
+        chance.load([0, 0]);
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('stale');
+
+        expect(await ambushResultsOf(subject)).toEqual([]);
+        expect(combat.contexts).toEqual([]);
     });
 
     it('raises the equipped companion and holds its gain in the report on a won ambush (D-04, D-19)', async () => {
@@ -306,10 +470,11 @@ describe('AmbushResolutionService (replica set)', () => {
                 pet: companion,
                 xp: COMPANION_SHARE,
                 currentLifePoints: COMPANION_LIFE,
+                level: 1,
             },
         ]);
         expect(raw.status.xp).toBe(40 + COMPANION_WOLF_XP);
-        expect(raw.status.activeTravel.ambushReports.at(-1).petXpGained).toBe(
+        expect((await ambushResultOf(subject)).petXpGained).toBe(
             COMPANION_SHARE,
         );
     });
@@ -359,10 +524,12 @@ describe('AmbushResolutionService (replica set)', () => {
 
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
 
-        const report = (await rawOf(subject)).status.activeTravel
-            .ambushReports[0];
-        expect(report.nearCity).toEqual({ id: map.cities.alba, name: 'Alba' });
-        expect(report.enemies).toEqual([
+        const result = await ambushResultOf(subject);
+        expect(result.ambush.nearCity).toEqual({
+            id: map.cities.alba,
+            name: 'Alba',
+        });
+        expect(result.enemies).toEqual([
             { enemy: enemies.bandit, quantity: 1 },
         ]);
     });
@@ -420,13 +587,12 @@ describe('AmbushResolutionService (replica set)', () => {
 
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
 
-        const report = (await rawOf(subject)).status.activeTravel
-            .ambushReports[0];
-        expect(report.nearCity).toEqual({
+        const result = await ambushResultOf(subject);
+        expect(result.ambush.nearCity).toEqual({
             id: map.cities.crocevia,
             name: 'Crocevia',
         });
-        expect(report.enemies).toEqual([{ enemy: enemies.wolf, quantity: 1 }]);
+        expect(result.enemies).toEqual([{ enemy: enemies.wolf, quantity: 1 }]);
     });
 
     it('ignores a duplicate, early or stale trigger (D-05)', async () => {
@@ -447,8 +613,7 @@ describe('AmbushResolutionService (replica set)', () => {
         chance.load([0, 0]);
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
         await expect(service.resolve(subject.identity)).resolves.toBe('stale');
-        const raw = await rawOf(subject);
-        expect(raw.status.activeTravel.ambushReports).toHaveLength(1);
+        expect(await ambushResultsOf(subject)).toHaveLength(1);
         expect(combat.contexts).toHaveLength(1);
     });
 
@@ -529,12 +694,108 @@ describe('AmbushResolutionService (replica set)', () => {
         ]);
     });
 
-    it('never pushes on a victory (D-12)', async () => {
+    it('pushes a won ambush to the owner after the commit with the result id (D-14, D-30)', async () => {
         const subject = await traveller({ km: 10 });
         await registerDevice(world.harness, subject.player);
         chance.load([0, 0]);
 
         await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        const result = await ambushResultOf(subject);
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message).toEqual({
+            type: 'ambush',
+            id: result._id.toHexString(),
+            title: 'Imboscata!',
+            body: 'Imboscata presso Crocevia: hai respinto gli assalitori',
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('realigns the travel jobs before a slow push of a won ambush (D-14, D-30)', async () => {
+        const subject = await traveller({ km: 10 });
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0, 0]);
+        const push = holdPush();
+
+        const resolving = service.resolve(subject.identity);
+        const queue = await push.queueAtPush;
+        push.release();
+
+        await expect(resolving).resolves.toBe('won');
+        const { activeTravel } = (await rawOf(subject)).status;
+        expect(queue.added).toEqual([
+            ambushJobId(subject.characterId, START, activeTravel.ambush.at),
+        ]);
+        expect(world.push.sent).toHaveLength(1);
+    });
+
+    // una scrittura rivale fra lo snapshot in sessione e la scrittura dell'esito: WriteConflict, il driver riesegue il callback (Pitfall 5)
+    it('pushes once and writes one result when a write conflict replays the resolution (D-14, Pitfall 5)', async () => {
+        const subject = await traveller({ km: 10 });
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0]);
+        const writer = world.harness.app.get(OutcomeWriter);
+        const original = writer.writeCharacterUpdate.bind(writer);
+        const write = jest
+            .spyOn(writer, 'writeCharacterUpdate')
+            .mockImplementationOnce(async (filter, update, session) => {
+                await world.models.characters.collection.updateOne(
+                    { _id: subject.characterId },
+                    { $set: { rivalWrite: true } },
+                );
+                return original(filter, update, session);
+            });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        expect(write).toHaveBeenCalledTimes(2);
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message.id).toBe(
+            (await ambushResultOf(subject))._id.toHexString(),
+        );
+    });
+
+    it('names the fallen companion in the push (D-14, D-20)', async () => {
+        const { subject, companion } = await travellerWithCompanion();
+        await world.models.pets.updateOne(
+            { _id: companion },
+            { $set: { recoveryTime: COMPANION_RECOVERY_MS } },
+        );
+        await world.models.characters.updateOne(
+            { _id: subject.characterId },
+            { $set: { 'assets.ownedPets.1.name': 'Fenrir' } },
+        );
+        await registerDevice(world.harness, subject.player);
+        chance.load([0, 0]);
+        combat.willResolve(subject.characterId, { companionLifeAfter: 1 });
+
+        await expect(service.resolve(subject.identity)).resolves.toBe('won');
+
+        expect(world.push.sent).toHaveLength(1);
+        expect(world.push.sent[0].message).toMatchObject({
+            type: 'ambush',
+            id: (await ambushResultOf(subject))._id.toHexString(),
+            body: 'Imboscata presso Crocevia: Fenrir è stato sconfitto',
+        });
+    });
+
+    it('sends no push for a skipped or stale ambush (D-14)', async () => {
+        const skipped = await traveller({ km: 10, xp: LEVEL_TWENTY_XP });
+        await registerDevice(world.harness, skipped.player);
+        await expect(service.resolve(skipped.identity)).resolves.toBe(
+            'skipped',
+        );
+        const stale = await traveller({ km: 10 });
+        await registerDevice(world.harness, stale.player);
+        chance.load([0, 0]);
+
+        await expect(
+            service.resolve({
+                ...stale.identity,
+                at: new Date(stale.identity.at.getTime() + 1),
+            }),
+        ).resolves.toBe('stale');
 
         expect(world.push.sent).toEqual([]);
     });
@@ -570,9 +831,7 @@ describe('AmbushResolutionService (replica set)', () => {
 
             const raw = await rawOf(subject);
             expect(raw.assets.ownedPets).toEqual(ownedPets);
-            expect(
-                raw.status.activeTravel.ambushReports.at(-1).petXpGained,
-            ).toBe(0);
+            expect((await ambushResultOf(subject)).petXpGained).toBe(0);
         });
 
         it('rewrites the travel from the point towards the nearest city by road (D-11)', async () => {
@@ -735,12 +994,10 @@ describe('AmbushResolutionService (replica set)', () => {
             expect(raw.status.currentLifePoints).toBe(1);
         });
 
-        it('carries the held reports into the rewritten travel (D-13)', async () => {
-            const held = await traveller({ km: 10 });
-            chance.load([0, 0]);
-            await service.resolve(held.identity);
-            const heldReport = (await rawOf(held)).status.activeTravel
-                .ambushReports[0];
+        it('keeps the reports held before the deploy in the rewritten travel and writes the new one at once (D-28, Pitfall 9)', async () => {
+            const heldReport = buildAmbushReport({
+                at: new Date(START.getTime() + ONE_MINUTE_S * 1000),
+            });
             const subject = await traveller({ km: 10, reports: [heldReport] });
             defeatOf(subject);
 
@@ -750,16 +1007,20 @@ describe('AmbushResolutionService (replica set)', () => {
 
             const { ambushReports } = (await rawOf(subject)).status
                 .activeTravel;
-            expect(ambushReports).toHaveLength(2);
+            expect(ambushReports).toHaveLength(1);
+            expect(String(ambushReports[0].resultId)).toBe(
+                String(heldReport.resultId),
+            );
             expect(ambushReports[0].outcome).toBe(QuestOutcome.success);
-            expect(ambushReports[1].outcome).toBe(QuestOutcome.failure);
-            expect(ambushReports[1].reachedCity).toEqual({
+            const result = await ambushResultOf(subject);
+            expect(result.outcome).toBe(QuestOutcome.failure);
+            expect(result.ambush.reachedCity).toEqual({
                 id: map.cities.crocevia,
                 name: 'Crocevia',
             });
         });
 
-        it('pushes every defeat to the owner after the commit (D-12)', async () => {
+        it('pushes a lost ambush as an ambush, never as ambushDefeat (D-14, D-30)', async () => {
             const subject = await traveller({ km: 10 });
             await registerDevice(world.harness, subject.player);
             defeatOf(subject);
@@ -769,12 +1030,34 @@ describe('AmbushResolutionService (replica set)', () => {
             );
 
             expect(world.push.sent).toHaveLength(1);
-            expect(world.push.sent[0].message).toMatchObject({
-                type: 'ambushDefeat',
-                id: subject.characterId.toHexString(),
+            expect(world.push.sent[0].message).toEqual({
+                type: 'ambush',
+                id: (await ambushResultOf(subject))._id.toHexString(),
                 title: 'Imboscata!',
                 body: 'Sei stato sconfitto: la via torna verso Crocevia',
+                ttlSeconds: 3600,
             });
+        });
+
+        it('realigns the travel jobs before a slow push of a lost ambush (D-14, D-30)', async () => {
+            const subject = await traveller({ km: 10 });
+            await registerDevice(world.harness, subject.player);
+            const oldJob = travelJobId(subject.characterId, START);
+            await travelQueue.add('complete', {}, { jobId: oldJob });
+            travelQueue.added.length = 0;
+            defeatOf(subject);
+            const push = holdPush();
+
+            const resolving = service.resolve(subject.identity);
+            const queue = await push.queueAtPush;
+            push.release();
+
+            await expect(resolving).resolves.toBe('lost');
+            expect(queue).toEqual({
+                added: [travelJobId(subject.characterId, subject.identity.at)],
+                removed: [oldJob],
+            });
+            expect(world.push.sent).toHaveLength(1);
         });
 
         it('never draws an ambush on the detour (D-03)', async () => {
@@ -823,7 +1106,7 @@ describe('AmbushResolutionService (replica set)', () => {
             expect(activeTravel.road.coordinates.slice(1)).toEqual(
                 original.slice(1),
             );
-            expect(activeTravel.ambushReports[0].reachedCity).toEqual({
+            expect((await ambushResultOf(subject)).ambush.reachedCity).toEqual({
                 id: map.cities.borgo,
                 name: 'Borgo',
             });
@@ -880,7 +1163,7 @@ describe('AmbushResolutionService (replica set)', () => {
                 clock.now(),
             );
             expect(raw.status.activeTravel.food.uncoveredKm).toBe(120);
-            expect(raw.status.activeTravel.ambushReports[0].hpBefore).toBe(945);
+            expect((await ambushResultOf(subject)).hpBefore).toBe(945);
         });
 
         it('builds the boundary meal from the food catalog read in session (D-14)', async () => {

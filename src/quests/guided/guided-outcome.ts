@@ -2,7 +2,10 @@ import { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
-import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
+import {
+    lastCompanionLifeOf,
+    type ParticipantEffects,
+} from 'src/quests/outcomes/combat/combat-resolver';
 import { effectiveEffectsOf } from './draft-invalidation';
 import { participantEffectsOf } from './fight-state';
 import type {
@@ -53,7 +56,17 @@ function totalsById(
     return [...totals];
 }
 
-// vita dell'ultimo scontro, ferite unite, consumi e usi sommati per id; nessuno scontro = nessun combattimento
+// vita del compagno dell'ultimo scontro in cui c'era (D-12, D-26)
+const companionLifeOf = (
+    sequence: readonly ParticipantEffects[],
+): Pick<ParticipantEffects, 'companionLifeAfter'> =>
+    sequence.reduce<Pick<ParticipantEffects, 'companionLifeAfter'>>(
+        (kept, effects) =>
+            lastCompanionLifeOf({ ...effects, ...kept }, effects),
+        {},
+    );
+
+// vita dell'ultimo scontro, ferite unite, consumi e usi sommati per id, vita del compagno dell'ultimo scontro che la porta; nessuno scontro = nessun combattimento
 export function aggregateEffectsOf(
     fights: readonly MissionFightRecord[],
     characterHex: string,
@@ -87,6 +100,7 @@ export function aggregateEffectsOf(
                 })),
             ),
         ).map(([spellId, usages]) => ({ spellId, usages })),
+        ...companionLifeOf(sequence),
     };
 }
 
@@ -134,5 +148,8 @@ export function overrideInputOf(
             spell: spellId,
             usages,
         })),
+        ...(effects.companionLifeAfter === undefined
+            ? {}
+            : { companionLifeAfter: effects.companionLifeAfter }),
     };
 }

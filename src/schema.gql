@@ -33,6 +33,7 @@ type AmbushCity {
 type AmbushReport {
   at: DateTime!
   nearCity: AmbushCity!
+  onFoot: Boolean!
   reachedCity: AmbushCity
 }
 
@@ -209,6 +210,15 @@ input CoinsInput {
 type CommonResponse {
   response: String!
   successful: Boolean!
+}
+
+type CompanionOutcome {
+  defeated: Boolean!
+  fullLifeAt: DateTime
+  lifeBefore: Int!
+  lifePoints: Int!
+  maxLifePoints: Int!
+  name: String!
 }
 
 input CompletePendingRequestInput {
@@ -406,6 +416,13 @@ type Lore {
   type: String!
 }
 
+type MissionCompanion {
+  lifeBefore: Int!
+  maxLifePoints: Int!
+  name: String!
+  pet: ID!
+}
+
 type MissionDraft {
   fights: [MissionFight!]!
   id: ID!
@@ -438,6 +455,7 @@ type MissionFight {
 }
 
 type MissionFightEffects {
+  companionLifeAfter: Int
   consumablesUsed: [MissionItemUsage!]!
   hpAfter: Int!
   injuriesAdded: [InjuryType!]!
@@ -456,6 +474,7 @@ input MissionFightInput {
 
 type MissionFightOutcome {
   character: ID!
+  companion: MissionCompanion
   consumablesAvailable: [MissionItemUsage!]!
   corrected: MissionFightEffects
   hpBefore: Int!
@@ -546,6 +565,7 @@ type Mutation {
   logout: Boolean!
   refreshSession(refreshToken: String!): AuthSession!
   registerPushDevice(input: RegisterPushDeviceInput!): Boolean!
+  renamePet(request: RenamePetRequest!): CommonResponse!
   saveMissionDraft(input: SaveMissionDraftInput!): MissionDraft!
   sendTestPush(input: SendTestPushInput!): PushDeliveryReport!
   simulateMissionFight(input: SimulateMissionFightInput!): MissionDraft!
@@ -555,18 +575,26 @@ type Mutation {
   unequipPet(request: UnequipPetRequest!): CommonResponse!
   unequipSpell(request: EquipSpellRequest!): CommonResponse!
   unregisterPushDevice(deviceId: String!): Boolean!
-  useItem(itemId: ID!): UseItemResult!
+  useItem(itemId: ID!, petId: ID): UseItemResult!
   useSpell(request: UseSpellRequest!): CommonResponse!
 }
 
 type OwnedPet {
   currentLifePoints: Int!
+  defeated: Boolean!
+  fullLifeAt: DateTime
+  level: Int!
+  lifeAsOf: DateTime
+  maxLifePoints: Int!
+  name: String
   pet: Pet!
+  potionRecoveryUntil: DateTime
   xp: Int!
 }
 
 input ParticipantOverrideInput {
   characterId: ID!
+  companionLifeAfter: Int
   consumablesUsed: [ItemUsageInput!]
   hpAfter: Int
   injuries: [InjuryType!]
@@ -630,6 +658,7 @@ type Pet {
   maxXp: Int!
   name: String!
   rarity: RarityType
+  recoveryTime: Int
   relatedLore: [Lore!]!
   sellPrice: Coins!
   sellable: Boolean
@@ -689,8 +718,10 @@ type PushDeliveryReport {
 }
 
 enum PushEventType {
+  ambush
   ambushDefeat
   missionStart
+  petRecovered
   prisonRelease
   questCancelled
   questEnd
@@ -828,6 +859,7 @@ type QuestResult {
   arrested: Boolean!
   character: ID!
   coinsLost: Coins
+  companion: CompanionOutcome
   consumablesUsed: [AssetQuantity!]!
   enemies: [QuestEnemy!]!
   guardEncounter: Boolean!
@@ -910,6 +942,12 @@ input RegisterPushDeviceInput {
   deviceId: String!
   platform: PushPlatform!
   token: String!
+}
+
+input RenamePetRequest {
+  id: String!
+  name: String
+  petId: String!
 }
 
 enum RoleType {

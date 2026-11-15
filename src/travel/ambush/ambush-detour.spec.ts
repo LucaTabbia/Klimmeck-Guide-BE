@@ -1,7 +1,11 @@
 import { Types } from 'mongoose';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import type { LonLat } from 'src/roads/road-route';
-import { detourFallbacksOf, residualDetourOf } from './ambush-detour';
+import {
+    detourFallbacksOf,
+    residualDetourOf,
+    residualRoadOf,
+} from './ambush-detour';
 import type { AmbushTravelSnapshot } from './ambush-plan';
 
 const TO_ID = new Types.ObjectId('64b0000000000000000000c8');
@@ -41,6 +45,23 @@ describe('ambush detour edges', () => {
             [0, 4.5],
             [0, 0],
         ]);
+    });
+
+    it('builds the residual road from the ambush point for the detour and the walk (D-11, D-13)', () => {
+        expect(residualRoadOf(travel, [0, 4.4966], 1)).toEqual({
+            coordinates: [
+                [0, 4.4966],
+                [0, 9],
+            ],
+            distance: 10,
+        });
+        expect(residualRoadOf(travel, [0, 0], 0)).toEqual({
+            coordinates: [
+                [0, 0],
+                [0, 9],
+            ],
+            distance: 10,
+        });
     });
 
     it('keeps heading to the destination on the residual road when no city is reachable (D-11)', () => {

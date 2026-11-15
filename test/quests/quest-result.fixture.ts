@@ -39,6 +39,7 @@ export function buildQuestResult(overrides: Record<string, any> = {}) {
         arrested: false,
         coinsLost: null,
         guardEncounter: false,
+        companion: null,
         ...overrides,
     };
 }

@@ -149,7 +149,7 @@ describe('handler fixtures of the authorization matrix', () => {
             pendingQuest: PENDING_QUEST_TARGETS,
             questResult: QUEST_RESULT_TARGETS,
         });
-        expect(ownershipCharacterTargets).toHaveLength(16);
+        expect(ownershipCharacterTargets).toHaveLength(17);
     });
 
     it('puts the victim id of its target in the variables of every fixture (D-01)', () => {

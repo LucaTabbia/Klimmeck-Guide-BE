@@ -13,6 +13,7 @@ import {
     type GmRequest,
     GmRequestReader,
 } from 'src/quests/outcomes/gm-request.reader';
+import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { QuestEnemyRef } from 'src/quests/outcomes/quest-enemies';
 import {
     ResolutionLoader,
@@ -64,43 +65,49 @@ function enemyRefsOf(enemies: readonly MissionEnemyInput[]): QuestEnemyRef[] {
 function outcomeOf(
     state: ResolutionCharacter,
     effects: ParticipantEffects | undefined,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): MissionFightOutcomeRecord {
     return {
         character: state._id,
-        ...fightStartOf(state),
+        ...fightStartOf(state, petCatalog),
         simulated: effects ? effectsRecordOf(effects) : null,
         corrected: null,
     };
 }
 
-// D-02: i partecipanti della bozza nello stato lasciato dagli scontri prima di k
-function overlaidParticipants(
+function draftCharactersOf(
     request: GmRequest,
     draft: MissionDraftRecord,
-    fightIndex: number,
 ): ResolutionCharacter[] {
     const inDraft = new Set(
         draft.participants.map(({ character }) => hexOf(character)),
     );
     return request.seats
         .map(({ character }) => character)
-        .filter((character) => inDraft.has(hexOf(character._id)))
-        .map((character) =>
-            stateBeforeFight(
-                character,
-                previousEffectsOf(
-                    draft.fights,
-                    fightIndex,
-                    hexOf(character._id),
-                ),
-            ),
-        );
+        .filter((character) => inDraft.has(hexOf(character._id)));
+}
+
+// D-02, D-26: i partecipanti della bozza nello stato lasciato dagli scontri prima di k, compagno compreso
+function overlaidParticipants(
+    characters: readonly ResolutionCharacter[],
+    draft: MissionDraftRecord,
+    fightIndex: number,
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
+): ResolutionCharacter[] {
+    return characters.map((character) =>
+        stateBeforeFight(
+            character,
+            previousEffectsOf(draft.fights, fightIndex, hexOf(character._id)),
+            petCatalog,
+        ),
+    );
 }
 
 function fightRecordOf(
     resolution: CombatResolution,
     entries: QuestEnemyRef[],
     overlaid: readonly ResolutionCharacter[],
+    petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): MissionFightRecord {
     const effectsOf = new Map(
         resolution.participants.map((effects) => [
@@ -112,7 +119,7 @@ function fightRecordOf(
         enemies: entries,
         verdict: MissionFightVerdict[resolution.verdict],
         outcomes: overlaid.map((state) =>
-            outcomeOf(state, effectsOf.get(hexOf(state._id))),
+            outcomeOf(state, effectsOf.get(hexOf(state._id)), petCatalog),
         ),
     };
 }
@@ -133,12 +140,11 @@ export class MissionSimulationService {
         const { request, draft } = await this.readDraft(input.pendingQuestId);
         assertSimulable(draft.fights, input);
         const entries = enemyRefsOf(input.enemies);
-        const overlaid = overlaidParticipants(request, draft, input.fightIndex);
         const fight = await this.resolveFight(
             request,
             draft,
             entries,
-            overlaid,
+            input.fightIndex,
         );
         return this.writeFight(draft, input.fightIndex, fight);
     }
@@ -154,15 +160,23 @@ export class MissionSimulationService {
         request: GmRequest,
         draft: MissionDraftRecord,
         entries: QuestEnemyRef[],
-        overlaid: ResolutionCharacter[],
+        fightIndex: number,
     ): Promise<MissionFightRecord> {
+        const characters = draftCharactersOf(request, draft);
+        // lo stato reale porta gli stessi riferimenti dello stato sovrapposto (che consuma, non aggiunge)
         const catalog = await this.loader.readCombatCatalog(
             entries,
-            overlaid,
+            characters,
             `della bozza ${hexOf(draft._id)}`,
         );
         if (catalog.enemies.length !== entries.length)
             throw ResourceNotFoundException.enemy();
+        const overlaid = overlaidParticipants(
+            characters,
+            draft,
+            fightIndex,
+            catalog.pets,
+        );
         const context = buildCombatContext({
             quest: request.quest,
             enemies: catalog.enemies,
@@ -176,6 +190,7 @@ export class MissionSimulationService {
             this.combat.resolve(context, this.simulationChance),
             entries,
             overlaid,
+            catalog.pets,
         );
     }
 

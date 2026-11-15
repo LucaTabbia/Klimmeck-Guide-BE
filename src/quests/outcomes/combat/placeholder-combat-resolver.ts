@@ -1,5 +1,6 @@
 // PROVVISORIO (D-02): regole di combattimento dell'utente in arrivo; ogni formula di combattimento vive solo in questo file, i malus delle ferite solo in injury-rules.ts
 import { Injectable } from '@nestjs/common';
+import { COMPANION_LIFE_FLOOR } from 'src/characters/pets/companion-life';
 import { EffectType } from 'src/models/enums/effect-type.enum';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
@@ -96,6 +97,21 @@ const newInjuryOf = (
     return [candidates[index]];
 };
 
+// D-03: il compagno subisce la perdita del personaggio prima della pozione, senza tiri (le sequenze restano quelle di oggi)
+const companionLifeAfterLoss = (
+    participant: CombatParticipant,
+    loss: number,
+): number | undefined =>
+    participant.companion
+        ? Math.max(
+              COMPANION_LIFE_FLOOR,
+              Math.min(
+                  participant.companion.maxLifePoints,
+                  participant.companion.currentLifePoints - loss,
+              ),
+          )
+        : undefined;
+
 const healPotionOf = (
     participant: CombatParticipant,
 ): CombatConsumable | undefined =>
@@ -137,6 +153,7 @@ export class PlaceholderCombatResolver extends CombatResolver {
             (round.enemyDamage * lossFactor) /
                 injuryModifiersOf(participant.injuries).lifePointsFactor,
         );
+        const companionLifeAfter = companionLifeAfterLoss(participant, loss);
         let hpAfter = clampLifePoints(
             participant.currentLifePoints - loss,
             maxLifePoints,
@@ -162,6 +179,7 @@ export class PlaceholderCombatResolver extends CombatResolver {
             spellsUsed: participant.activeSpells
                 .filter(hasUsages)
                 .map((spell) => ({ spellId: spell.spellId, usages: 1 })),
+            ...(companionLifeAfter === undefined ? {} : { companionLifeAfter }),
         };
     }
 }

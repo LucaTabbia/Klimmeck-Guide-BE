@@ -228,11 +228,13 @@ describe('MissionSimulationService (replSet)', () => {
             injuriesBefore: [InjuryType.deepCut],
             consumablesAvailable: [{ item: potion, quantity: 3 }],
             spellsAvailable: [{ spell, usages: 5 }],
+            companion: null,
             simulated: {
                 hpAfter: expect.any(Number),
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [{ spell, usages: 1 }],
+                companionLifeAfter: null,
             },
             corrected: null,
         });
@@ -242,11 +244,13 @@ describe('MissionSimulationService (replSet)', () => {
             injuriesBefore: [],
             consumablesAvailable: [],
             spellsAvailable: [],
+            companion: null,
             simulated: {
                 hpAfter: expect.any(Number),
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [],
+                companionLifeAfter: null,
             },
             corrected: null,
         });
@@ -364,7 +368,9 @@ describe('MissionSimulationService (replSet)', () => {
             ._id as Types.ObjectId;
         const { first, second, enemy } = await startedWorldMission({
             pet: companion,
-            ownedPets: [buildOwnedPet(companion, { currentLifePoints: 40 })],
+            ownedPets: [
+                buildOwnedPet(companion, { currentLifePoints: 7, level: 1 }),
+            ],
         });
         const scripted = new ScriptedCombatResolver();
         combat.current = scripted;
@@ -378,8 +384,96 @@ describe('MissionSimulationService (replSet)', () => {
             );
         expect(participantOf(second)!.companion).toMatchObject({
             petId: String(companion),
-            currentLifePoints: 40,
+            currentLifePoints: 7,
         });
         expect(participantOf(first)!.companion).toBeNull();
+    });
+
+    describe('the companion in the simulated fights (Phase 23)', () => {
+        async function missionWithFenrir() {
+            const companion = (
+                await persistPet(world.models.pets, {
+                    name: 'Worg',
+                    maxLifePoints: 100,
+                    maxXp: 100,
+                })
+            )._id as Types.ObjectId;
+            const mission = await startedWorldMission({
+                pet: companion,
+                ownedPets: [
+                    buildOwnedPet(companion, {
+                        currentLifePoints: 60,
+                        level: 1,
+                        name: 'Fenrir',
+                    }),
+                ],
+            });
+            return { ...mission, companion };
+        }
+
+        it('proposes the companion life of every participant in a simulated fight (D-17)', async () => {
+            const { first, second, enemy, companion } =
+                await missionWithFenrir();
+
+            const draft = await service.simulate(inputOf(first, 0, enemy));
+
+            const outcome = outcomeOf(draft.fights[0], second)!;
+            const loss = 900 - outcome.simulated!.hpAfter;
+            expect(outcome.simulated!.hpAfter).toBeGreaterThan(1);
+            expect(outcome.companion).toEqual({
+                pet: companion,
+                name: 'Fenrir',
+                lifeBefore: 60,
+                maxLifePoints: 100,
+            });
+            expect(outcome.simulated!.companionLifeAfter).toBe(
+                Math.max(1, 60 - loss),
+            );
+            expect(outcomeOf(draft.fights[0], first)!.companion).toBeNull();
+            expect(
+                outcomeOf(draft.fights[0], first)!.simulated!
+                    .companionLifeAfter,
+            ).toBeNull();
+        });
+
+        it('leaves a companion defeated in the first fight out of the second (D-12, D-26)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+            const scripted = new ScriptedCombatResolver().willResolve(
+                second.characterId,
+                { companionLifeAfter: 1 },
+            );
+            combat.current = scripted;
+
+            await service.simulate(inputOf(first, 0, enemy));
+            const draft = await service.simulate(inputOf(first, 1, enemy));
+
+            const firstFight = outcomeOf(draft.fights[0], second)!;
+            expect(firstFight.companion).not.toBeNull();
+            expect(firstFight.simulated!.companionLifeAfter).toBe(1);
+            const secondFight = outcomeOf(draft.fights[1], second)!;
+            expect(secondFight.companion).toBeNull();
+            expect(secondFight.simulated!.companionLifeAfter).toBeNull();
+            expect(
+                scripted.contexts[1].participants.find(
+                    ({ characterId }) =>
+                        characterId === String(second.characterId),
+                )!.companion,
+            ).toBeNull();
+        });
+
+        it('writes nothing outside the draft when it simulates the companion (D-17)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+            combat.current = new ScriptedCombatResolver().willResolve(
+                second.characterId,
+                { companionLifeAfter: 1 },
+            );
+            const before = await rawDocuments();
+
+            await service.simulate(inputOf(first, 0, enemy));
+            await service.simulate(inputOf(first, 1, enemy));
+
+            expect(await rawDocuments()).toEqual(before);
+            expect(sharedChance.drawn).toEqual([]);
+        });
     });
 });

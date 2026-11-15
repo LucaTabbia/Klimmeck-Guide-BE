@@ -6,6 +6,7 @@ import { SlotType } from 'src/models/enums/slot-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { SequenceChance } from '../../../../test/quests/sequence-chance';
 import {
+    CombatCompanion,
     CombatConsumable,
     CombatContext,
     CombatEnemy,
@@ -279,28 +280,98 @@ describe('PlaceholderCombatResolver (PROVVISORIO)', () => {
         expect(context).toEqual(pristine);
     });
 
-    it('ignores the companion and draws the same sequence (D-20)', () => {
+    const companionAt = (
+        currentLifePoints: number,
+        maxLifePoints = 80,
+    ): CombatCompanion => ({
+        petId: hex('61'),
+        attack: { base: [{ type: 'cut', power: 900 }], energy: [] },
+        defense: { base: [{ type: 'blunt', power: 50 }], energy: [] },
+        currentLifePoints,
+        maxLifePoints,
+        xp: 40,
+    });
+
+    it("damages the companion with the character's loss before the potion without drawing (D-03)", () => {
+        const hero = participant({
+            equipment: [weapon(300)],
+            currentLifePoints: 100,
+            consumables: [potion(200)],
+        });
+        const values = [0.2, 0.9];
+        const alone = new SequenceChance(values);
+        const together = new SequenceChance(values);
+
+        const [withoutCompanion] = resolver.resolve(
+            contextOf([hero], 1000, 40),
+            alone,
+        ).participants;
+        const [withCompanion] = resolver.resolve(
+            contextOf([{ ...hero, companion: companionAt(50) }], 1000, 40),
+            together,
+        ).participants;
+
+        expect(withoutCompanion.hpAfter).toBe(280);
+        expect(withoutCompanion.consumablesUsed).toEqual([
+            { itemId: hex('71'), quantity: 1 },
+        ]);
+        expect(withCompanion).toEqual({
+            ...withoutCompanion,
+            companionLifeAfter: 30,
+        });
+        expect(together.drawn).toEqual(alone.drawn);
+    });
+
+    it('draws the same sequence with or without a companion (D-20)', () => {
         const hero = participant({ equipment: [weapon(300)] });
-        const companion = {
-            petId: hex('61'),
-            attack: { base: [{ type: 'cut', power: 900 }], energy: [] },
-            defense: { base: [{ type: 'blunt', power: 50 }], energy: [] },
-            currentLifePoints: 30,
-            maxLifePoints: 50,
-            xp: 40,
-        };
         const values = [0.2, 0.1, 0.5, 0.7];
         const alone = new SequenceChance(values);
         const together = new SequenceChance(values);
 
         const withoutCompanion = resolver.resolve(contextOf([hero]), alone);
         const withCompanion = resolver.resolve(
-            contextOf([{ ...hero, companion }]),
+            contextOf([{ ...hero, companion: companionAt(50) }]),
             together,
         );
 
-        expect(withCompanion).toEqual(withoutCompanion);
+        expect(withCompanion.verdict).toBe(withoutCompanion.verdict);
+        const [alonePlayer] = withoutCompanion.participants;
+        const [togetherPlayer] = withCompanion.participants;
+        expect(togetherPlayer.hpAfter).toBe(alonePlayer.hpAfter);
+        expect(togetherPlayer.injuriesAdded).toEqual(alonePlayer.injuriesAdded);
+        expect(togetherPlayer.consumablesUsed).toEqual(
+            alonePlayer.consumablesUsed,
+        );
+        expect(togetherPlayer.spellsUsed).toEqual(alonePlayer.spellsUsed);
         expect(together.drawn).toEqual(alone.drawn);
+        expect(together.drawn).toHaveLength(alone.drawn.length);
+    });
+
+    it('never takes the companion below 1 (D-03)', () => {
+        const hero = participant({ companion: companionAt(3) });
+
+        const [result] = resolve(
+            contextOf([hero], 1000, 40),
+            [0.9, 0.9],
+        ).participants;
+
+        expect(result.hpAfter).toBe(960);
+        expect(result.companionLifeAfter).toBe(1);
+    });
+
+    it('leaves companionLifeAfter absent without a companion (D-03)', () => {
+        const [result] = resolve(
+            contextOf([participant()]),
+            [0.9, 0.9],
+        ).participants;
+
+        expect(Object.keys(result).sort()).toEqual([
+            'characterId',
+            'consumablesUsed',
+            'hpAfter',
+            'injuriesAdded',
+            'spellsUsed',
+        ]);
     });
 
     it('keeps hpAfter within [1, maxLifePoints] on 50 seeded sequences (D-07)', () => {

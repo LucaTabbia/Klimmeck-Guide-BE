@@ -35,6 +35,7 @@ const unrewardedInputOf = (
     pendingQuestId: input.pendingQuestId,
     userId: input.userId,
     spellRecoveryTimes: input.catalog.recoveryTimes,
+    petCatalog: input.catalog.pets,
     now: input.now,
     ...overrides,
 });
@@ -69,7 +70,13 @@ function planGuardEncounter(
             buildCombatContext({
                 quest: input.quest,
                 enemies: encounter.enemies,
-                participants: [foughtSnapshotOf(input.snapshot, questEffects)],
+                participants: [
+                    foughtSnapshotOf(
+                        input.snapshot,
+                        questEffects,
+                        encounter.pets,
+                    ),
+                ],
                 equipment: encounter.equipment,
                 spells: encounter.spells,
                 loot: encounter.loot,

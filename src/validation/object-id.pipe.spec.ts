@@ -3,6 +3,7 @@ import {
     MAX_ID_LIST,
     ObjectIdListPipe,
     ObjectIdPipe,
+    OptionalObjectIdPipe,
 } from 'src/validation/object-id.pipe';
 
 const VALID_ID = '64b000000000000000000001';
@@ -48,6 +49,34 @@ describe('ObjectIdPipe', () => {
             rejectionOf(() => pipe.transform('zz', { type: 'custom' })).fields,
         ).toEqual(['id']);
     });
+});
+
+describe('OptionalObjectIdPipe', () => {
+    const pipe = new OptionalObjectIdPipe();
+    const metadata = { type: 'custom' as const, data: 'petId' };
+
+    it.each([null, undefined])(
+        'reads an omitted optional id %p as null (D-05)',
+        (value) => {
+            expect(pipe.transform(value, metadata)).toBeNull();
+        },
+    );
+
+    it('returns a well-formed optional id unchanged (D-05)', () => {
+        expect(pipe.transform(VALID_ID, metadata)).toBe(VALID_ID);
+    });
+
+    it.each(['zz', '', 42])(
+        'rejects a malformed optional id %p with BAD_USER_INPUT (T-23-20)',
+        (value) => {
+            const rejection = rejectionOf(() =>
+                pipe.transform(value, metadata),
+            );
+
+            expect(rejection).toBeInstanceOf(BadUserInputException);
+            expect(rejection.fields).toEqual(['petId']);
+        },
+    );
 });
 
 describe('ObjectIdListPipe', () => {

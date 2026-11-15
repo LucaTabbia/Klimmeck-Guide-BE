@@ -1,4 +1,22 @@
 import type { Types } from 'mongoose';
+import {
+    type PetCatalogFacts,
+    petSlotGuardOf,
+} from 'src/characters/pets/equip-pet.plan';
+import {
+    companionLifeAt,
+    companionStoredLifeOf,
+    isPetDefeated,
+} from 'src/characters/pets/companion-life';
+import {
+    companionMaxLifeOf,
+    companionStoredLevelOf,
+} from 'src/characters/pets/companion-level';
+import {
+    type NewOwnedPetEntry,
+    type OwnedPetEntry,
+    normalisedOwnedPets,
+} from 'src/characters/pets/owned-pet-entry';
 import { recoveryDueAt } from 'src/characters/spells/spell-state.snapshot';
 import {
     applyTradeToInventory,
@@ -14,7 +32,7 @@ import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { TitleType } from 'src/models/enums/title-type.enum';
 import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
 import { relatedLoreIdsOf } from 'src/lore/related-lore-ids';
-import { sameId } from 'src/mongo/document-id';
+import { idForms, sameId } from 'src/mongo/document-id';
 import { cureInjuries } from 'src/quests/outcomes/injuries/cure-injuries';
 import { lifePointsWithin } from 'src/quests/outcomes/progression/level-table';
 import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
@@ -31,6 +49,18 @@ export const ITEM_USE_CATALOG_PROJECTION = {
     relatedLore: 1,
 } as const;
 
+export const PET_POTION_CATALOG_PROJECTION = {
+    maxLifePoints: 1,
+    maxXp: 1,
+    recoveryTime: 1,
+} as const;
+
+// lo slot e le voci dei compagni arrivano con la stessa proiezione `assets` (Phase 23 D-23)
+export interface ItemUseAssetsSnapshot extends InventorySnapshot {
+    pet?: unknown;
+    ownedPets?: readonly OwnedPetEntry[] | null;
+}
+
 export interface ItemUseCharacterSnapshot {
     _id: Types.ObjectId;
     status: {
@@ -44,7 +74,7 @@ export interface ItemUseCharacterSnapshot {
         potionRecoveryUntil?: unknown;
         unlockedLore?: unknown[];
     };
-    assets?: InventorySnapshot | null;
+    assets?: ItemUseAssetsSnapshot | null;
 }
 
 // oggetto di catalogo letto lean: Mongoose non valida gli update e gli script di contenuto usano il driver nativo (D-23)
@@ -62,6 +92,11 @@ export interface ItemUsePlanInput {
     item: ItemUseCatalogSnapshot | null;
     now: Date;
     missionInProgress: boolean;
+}
+
+export interface PetPotionPlanInput extends ItemUsePlanInput {
+    petId: Types.ObjectId;
+    pet: PetCatalogFacts | null;
 }
 
 export interface ItemUseOutcome {
@@ -163,9 +198,13 @@ function usablePotionOf(item: ItemUseCatalogSnapshot | null): UsablePotion {
     };
 }
 
-function refuseWhileRecovering(until: unknown, now: Date): void {
+function refuseWhileRecovering(
+    until: unknown,
+    now: Date,
+    refusal: (until: Date) => GameRuleException,
+): void {
     if (until instanceof Date && until.getTime() > now.getTime()) {
-        throw GameRuleException.potionRecovering(until);
+        throw refusal(until);
     }
 }
 
@@ -237,7 +276,9 @@ export function planItemUse(input: ItemUsePlanInput): ItemUsePlan {
     refuseWhileOnMission(input.missionInProgress);
     refuseUnlessOwned(snapshot.assets, itemId);
     const potion = usablePotionOf(input.item);
-    refuseWhileRecovering(snapshot.status.potionRecoveryUntil, now);
+    refuseWhileRecovering(snapshot.status.potionRecoveryUntil, now, (until) =>
+        GameRuleException.potionRecovering(until),
+    );
     const effect = drinkEffectOf(snapshot, potion);
     refuseWithoutEffect(effect);
 
@@ -265,6 +306,157 @@ export function planItemUse(input: ItemUsePlanInput): ItemUsePlan {
             hpBefore: effect.hpBefore,
             hpAfter: effect.hpAfter,
             injuriesHealed: effect.cured.healed,
+            quantityLeft: quantityLeftOf(ownedItems, itemId),
+            recoveryUntil,
+            loreUnlocked: knowledge.fresh,
+        },
+    };
+}
+
+interface CompanionHeal {
+    hpBefore: number;
+    hpAfter: number;
+    level: number;
+    resting: boolean;
+}
+
+function ownedCompanionOf(
+    assets: ItemUseAssetsSnapshot | null | undefined,
+    petId: Types.ObjectId,
+): OwnedPetEntry {
+    const entry = (assets?.ownedPets ?? []).find((owned) =>
+        sameId(owned?.pet, petId),
+    );
+    if (!entry) throw GameRuleException.petNotOwned();
+    return entry;
+}
+
+function refuseUnfitCompanion(entry: OwnedPetEntry, now: Date): void {
+    if (isPetDefeated(entry, now)) throw GameRuleException.petDefeated();
+    refuseWhileRecovering(entry.potionRecoveryUntil, now, (until) =>
+        GameRuleException.petPotionRecovering(until),
+    );
+}
+
+// vita di adesso con la regola del riposo e tetto al massimo DEL COMPAGNO (D-07, D-38): una voce mai toccata dalla fase è piena
+function companionHealOf(
+    input: PetPotionPlanInput,
+    entry: OwnedPetEntry,
+    power: number,
+): CompanionHeal {
+    const { snapshot, petId, pet, now } = input;
+    const maxLifePoints = companionMaxLifeOf(entry, pet);
+    if (maxLifePoints === null) throw GameRuleException.itemNoEffect();
+    const resting = !sameId(snapshot.assets?.pet, petId);
+    const { lifePoints } = companionLifeAt({
+        lifePoints: companionStoredLifeOf(entry, maxLifePoints),
+        lifeAsOf: entry.lifeAsOf,
+        resting,
+        maxLifePoints,
+        recoveryTimeMs: pet?.recoveryTime,
+        now,
+    });
+    const hpAfter = Math.min(maxLifePoints, Math.floor(lifePoints + power));
+    if (hpAfter === lifePoints) throw GameRuleException.itemNoEffect();
+    return {
+        hpBefore: lifePoints,
+        hpAfter,
+        level: companionStoredLevelOf(entry, pet),
+        resting,
+    };
+}
+
+// a riposo l'ancora riparte da adesso, nello slot non c'è ancora (D-04, D-07); l'attesa è della sola voce (D-05)
+function healedEntry(
+    entry: NewOwnedPetEntry,
+    heal: CompanionHeal,
+    recoveryUntil: Date,
+    now: Date,
+): NewOwnedPetEntry {
+    const healed: NewOwnedPetEntry = {
+        ...entry,
+        currentLifePoints: heal.hpAfter,
+        level: heal.level,
+        potionRecoveryUntil: recoveryUntil,
+    };
+    if (heal.resting) healed.lifeAsOf = now;
+    else delete healed.lifeAsOf;
+    return healed;
+}
+
+function ownedPetsAfterPotion(
+    entries: readonly OwnedPetEntry[] | null | undefined,
+    petId: Types.ObjectId,
+    heal: (entry: NewOwnedPetEntry) => NewOwnedPetEntry,
+): NewOwnedPetEntry[] {
+    const ownedPets = normalisedOwnedPets(entries);
+    const target = ownedPets.findIndex((entry) => entry.pet.equals(petId));
+    return ownedPets.map((entry, index) =>
+        index === target ? heal(entry) : entry,
+    );
+}
+
+// la voce come letta, assente = null (Pitfall 5): una seconda pozione concorrente non combacia più (D-23, T-23-18)
+function companionGuardOf(
+    snapshot: ItemUseCharacterSnapshot,
+    entry: OwnedPetEntry,
+    petId: Types.ObjectId,
+    drink: TradeLine,
+): Record<string, unknown> {
+    return {
+        ...activeCharacterById(snapshot._id),
+        'status.awaitingAid': null,
+        'assets.pet': petSlotGuardOf(snapshot.assets?.pet),
+        'assets.ownedPets': {
+            $elemMatch: {
+                pet: { $in: idForms(petId) },
+                currentLifePoints: entry.currentLifePoints ?? null,
+                lifeAsOf: recoveryAsRead(entry.lifeAsOf),
+                potionRecoveryUntil: recoveryAsRead(entry.potionRecoveryUntil),
+                defeatedUntil: recoveryAsRead(entry.defeatedUntil),
+            },
+        },
+        ...soldQuantityGuards([drink]),
+    };
+}
+
+// gemello di planItemUse per il compagno (Phase 23 D-05, D-06, D-07, D-32): stessi primi rifiuti, poi quelli della voce; nessuna ferita, nessuna attesa del personaggio
+export function planPetPotion(input: PetPotionPlanInput): ItemUsePlan {
+    const { snapshot, itemId, petId, now } = input;
+    refuseWhileAwaitingAid(snapshot);
+    refuseWhileOnMission(input.missionInProgress);
+    refuseUnlessOwned(snapshot.assets, itemId);
+    const potion = usablePotionOf(input.item);
+    const entry = ownedCompanionOf(snapshot.assets, petId);
+    refuseUnfitCompanion(entry, now);
+    const heal = companionHealOf(input, entry, potion.power);
+
+    const drink = drinkLineOf(itemId);
+    const { ownedItems } = applyTradeToInventory(snapshot.assets ?? {}, [
+        drink,
+    ]);
+    const recoveryUntil = recoveryDueAt(now, potion.recoveryTime);
+    const knowledge = knowledgeUpdateOf(
+        snapshot.status.unlockedLore,
+        potion.relatedLore,
+    );
+    return {
+        filter: companionGuardOf(snapshot, entry, petId, drink),
+        update: {
+            $set: {
+                'assets.ownedPets': ownedPetsAfterPotion(
+                    snapshot.assets?.ownedPets,
+                    petId,
+                    (owned) => healedEntry(owned, heal, recoveryUntil, now),
+                ),
+                'assets.ownedItems': ownedItems,
+            },
+            ...knowledge.addition,
+        },
+        outcome: {
+            hpBefore: heal.hpBefore,
+            hpAfter: heal.hpAfter,
+            injuriesHealed: [],
             quantityLeft: quantityLeftOf(ownedItems, itemId),
             recoveryUntil,
             loreUnlocked: knowledge.fresh,

@@ -16,9 +16,11 @@ import {
     buildSpell,
     persistEnemy,
     persistLootItem,
+    persistPet,
     persistSpell,
     spellStatesOf,
 } from '../../../test/fixtures';
+import { buildOwnedPet } from '../../../test/fixtures/owned-pet.fixture';
 import {
     createOutcomeHarness,
     type OutcomeHarness,
@@ -313,12 +315,14 @@ describe('MissionDraftSaveService (replSet)', () => {
                 injuriesAdded: [InjuryType.fracturedRib],
                 consumablesUsed: [{ item: potion, quantity: 3 }],
                 spellsUsed: [{ spell, usages: 5 }],
+                companionLifeAfter: null,
             });
             expect(outcomeOf(highest.fights[0], first)!.corrected).toEqual({
                 hpAfter: 1000,
                 injuriesAdded: [],
                 consumablesUsed: [],
                 spellsUsed: [],
+                companionLifeAfter: null,
             });
         });
 
@@ -473,6 +477,82 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(
                 outcomeOf(saved.fights[0], second)!.simulated,
             ).not.toBeNull();
+        });
+    });
+
+    describe('the companion correction (Phase 23)', () => {
+        // il secondo iscritto porta Fenrir a 60 su 100 (livello 1, base 100); il primo è senza compagno
+        async function missionWithFenrir() {
+            const mission = await startedWorldMission();
+            const worg = (
+                await persistPet(world.models.pets, {
+                    name: 'Worg',
+                    maxLifePoints: 100,
+                    maxXp: 100,
+                })
+            )._id as Types.ObjectId;
+            await world.models.characters.updateOne(
+                { _id: mission.second.characterId },
+                {
+                    $set: {
+                        'assets.pet': worg,
+                        'assets.ownedPets': [
+                            buildOwnedPet(worg, {
+                                currentLifePoints: 60,
+                                level: 1,
+                                name: 'Fenrir',
+                            }),
+                        ],
+                    },
+                },
+            );
+            await simulate(mission.first, 0, mission.enemy);
+            return mission;
+        }
+
+        const rawCharacters = () =>
+            world.models.characters.find().sort({ _id: 1 }).lean();
+
+        it('saves the innkeeper correction of the companion life (D-17)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+            const before = await rawCharacters();
+
+            await save(first, {
+                fights: [
+                    fightOf(enemy, 1, [
+                        correctionOf(second, { companionLifeAfter: 1 }),
+                    ]),
+                ],
+            });
+
+            const stored = outcomeOf((await storedDraft())!.fights[0], second)!;
+            expect(stored.corrected!.companionLifeAfter).toBe(1);
+            expect(stored.corrected!.hpAfter).toBe(900);
+            expect(await rawCharacters()).toEqual(before);
+        });
+
+        it('refuses a companion life outside its range with OUTCOME_OVERRIDE_INVALID (D-33)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+            const before = await storedDraft();
+            const correcting = (subject: Quester, companionLifeAfter: number) =>
+                save(first, {
+                    fights: [
+                        fightOf(enemy, 1, [
+                            correctionOf(subject, { companionLifeAfter }),
+                        ]),
+                    ],
+                });
+
+            await expect(correcting(second, 0)).rejects.toMatchObject(
+                OUTCOME_OVERRIDE_INVALID,
+            );
+            await expect(correcting(second, 101)).rejects.toMatchObject(
+                OUTCOME_OVERRIDE_INVALID,
+            );
+            await expect(correcting(first, 1)).rejects.toMatchObject(
+                OUTCOME_OVERRIDE_INVALID,
+            );
+            expect(await storedDraft()).toEqual(before);
         });
     });
 

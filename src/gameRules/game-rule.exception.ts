@@ -1,4 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+    CHARACTER_NAME_MAX_LENGTH,
+    CHARACTER_NAME_MIN_LENGTH,
+} from 'src/characters/creation/character-name';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
 export interface GameRuleExtensions {
@@ -316,6 +320,31 @@ export class GameRuleException extends BadRequestException {
         return new GameRuleException(
             GameRuleErrorCode.MISSION_IN_PROGRESS,
             'Missione in corso: azione non disponibile fino al risultato',
+        );
+    }
+
+    // lo sconfitto torna nello slot solo a vita piena (Phase 23 D-02): la data la FE la legge da OwnedPet.fullLifeAt
+    static petDefeated(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_DEFEATED,
+            'Il compagno è stato sconfitto: deve riposare finché non torna in forze',
+        );
+    }
+
+    // attesa del solo compagno che ha bevuto (Phase 23 D-05, D-32): la data di fine viaggia solo nelle extensions
+    static petPotionRecovering(until: Date): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_POTION_RECOVERING,
+            "Il compagno non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
+            { recoveryUntil: until.toISOString() },
+        );
+    }
+
+    // stesse regole di forma del nome del personaggio (Phase 23 D-31)
+    static petNameInvalid(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.PET_NAME_INVALID,
+            `Nome del compagno non valido: da ${CHARACTER_NAME_MIN_LENGTH} a ${CHARACTER_NAME_MAX_LENGTH} caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera`,
         );
     }
 }

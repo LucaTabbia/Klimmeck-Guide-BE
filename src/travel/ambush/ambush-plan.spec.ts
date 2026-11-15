@@ -2,11 +2,20 @@ import { Types } from 'mongoose';
 import { fromCopper } from 'src/economy/coins';
 import { TravelKind } from 'src/models/character/active-travel.model';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import { travelSpeedFactorOf } from 'src/quests/outcomes/injuries/injury-rules';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
-import { durationMsOf } from 'src/travel/travel-timing';
+import { idForms } from 'src/mongo/document-id';
+import { BASE_SPEED, durationMsOf } from 'src/travel/travel-timing';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
-import { ambushFoodOf, withFoodSettlement } from './ambush-food';
+import { stacksOf } from '../food/travel-pantry.reader';
+import { foodPlanOf, planTravelFood } from '../food/travel-food';
+import { settlementGuardsOf } from '../food/travel-food-settlement';
+import {
+    ambushFoodOf,
+    defeatSettlementOf,
+    withFoodSettlement,
+} from './ambush-food';
 import type { AmbushIdentity } from './ambush-job';
 import {
     type AmbushCharacterSnapshot,
@@ -32,6 +41,19 @@ const OTHER_PET_ID = new Types.ObjectId('64b0000000000000000000bc');
 const IDLE_SPELL_ID = new Types.ObjectId('64b0000000000000000000bd');
 const COMPANION_MAX_XP = 1000;
 const COMPANION_LIFE = 7;
+const COMPANION_BASE_LIFE = 100;
+const COMPANION_RECOVERY_MS = 3_600_000;
+const COMPANION_CATALOG = new Map([
+    [
+        COMPANION_ID.toHexString(),
+        {
+            name: 'Lupo',
+            maxLifePoints: COMPANION_BASE_LIFE,
+            maxXp: COMPANION_MAX_XP,
+            recoveryTime: COMPANION_RECOVERY_MS,
+        },
+    ],
+]);
 
 const START = new Date('2026-10-21T10:00:00.000Z');
 const DURATION = 20 * 3_600_000;
@@ -100,7 +122,12 @@ const companionSnapshot = (xp: number): AmbushCharacterSnapshot =>
             pet: COMPANION_ID,
             ownedPets: [
                 otherPet,
-                { pet: COMPANION_ID, xp, currentLifePoints: COMPANION_LIFE },
+                {
+                    pet: COMPANION_ID,
+                    xp,
+                    currentLifePoints: COMPANION_LIFE,
+                    level: 1,
+                },
             ],
         },
     );
@@ -129,8 +156,10 @@ const inputWith = (
     nearCity,
     nextAmbush: null,
     detour: null,
+    ambushPoint: { point: [0, 4.5], segment: 1 },
     spellRecoveryTimes: new Map([[SPELL_ID.toHexString(), RECOVERY_MS]]),
     petMaxXp: new Map(),
+    petCatalog: new Map(),
     now: NOW,
     ...overrides,
 });
@@ -143,6 +172,7 @@ const companionInput = (
         snapshot: companionSnapshot(xp),
         enemies: { entries: [{ enemy: ENEMY_ID, quantity: 1 }], xp: 300 },
         petMaxXp: new Map([[COMPANION_ID.toHexString(), COMPANION_MAX_XP]]),
+        petCatalog: COMPANION_CATALOG,
         ...overrides,
     });
 
@@ -260,6 +290,7 @@ describe('ambush outcome plan', () => {
             startTime: START,
             endTime: END,
             ambush: { at: nextAt, km: 14 },
+            rewritten: false,
         });
         expect(plan.update.$set['status.activeTravel.ambush']).toBeNull();
         expect(plan.travelAfter.ambush).toBeNull();
@@ -269,10 +300,8 @@ describe('ambush outcome plan', () => {
         expect(travelKeys).toEqual(['status.activeTravel.ambush']);
     });
 
-    it('holds the report in the travel with the owner and no reached city (D-13)', () => {
-        expect(plan.update.$push).toEqual({
-            'status.activeTravel.ambushReports': plan.report,
-        });
+    it('returns the report with the owner and no reached city, held nowhere (D-28)', () => {
+        expect(Object.keys(plan.update)).toEqual(['$set']);
         expect(plan.report).toEqual({
             resultId: RESULT_ID,
             user: USER_ID,
@@ -299,6 +328,8 @@ describe('ambush outcome plan', () => {
             titleAfter: TitleType.rookie,
             loreUnlocked: [],
             petXpGained: 0,
+            companion: null,
+            onFoot: false,
         });
     });
 
@@ -316,14 +347,7 @@ describe('ambush outcome plan', () => {
             'status.knownEnemies': { $each: [ENEMY_ID] },
         });
         expect(won.report.loreUnlocked).toEqual([fresh]);
-        expect(Object.keys(won.update).sort()).toEqual([
-            '$addToSet',
-            '$push',
-            '$set',
-        ]);
-        expect(won.update.$push).toEqual({
-            'status.activeTravel.ambushReports': won.report,
-        });
+        expect(Object.keys(won.update).sort()).toEqual(['$addToSet', '$set']);
         expect(won.update.$set).toEqual(plan.update.$set);
     });
 
@@ -351,12 +375,15 @@ describe('the companion xp of an ambush', () => {
 
         expect(won.update.$set['assets.ownedPets']).toEqual([
             otherPet,
-            { pet: COMPANION_ID, xp: 30, currentLifePoints: COMPANION_LIFE },
+            {
+                pet: COMPANION_ID,
+                xp: 30,
+                currentLifePoints: COMPANION_LIFE,
+                level: 2,
+            },
         ]);
         expect(won.report.petXpGained).toBe(30);
-        expect(won.update.$push).toEqual({
-            'status.activeTravel.ambushReports': won.report,
-        });
+        expect(Object.keys(won.update)).toEqual(['$set']);
     });
 
     it('shares the raw enemies xp, not the rank prize of the character (D-04)', () => {
@@ -375,6 +402,7 @@ describe('the companion xp of an ambush', () => {
                 pet: COMPANION_ID,
                 xp: COMPANION_MAX_XP,
                 currentLifePoints: COMPANION_LIFE,
+                level: 10,
             },
         ]);
         expect(won.report.petXpGained).toBe(10);
@@ -424,8 +452,128 @@ describe('the companion xp of an ambush', () => {
         ]);
         expect(input.snapshot.assets?.ownedPets).toEqual([
             otherPet,
-            { pet: COMPANION_ID, xp: 0, currentLifePoints: COMPANION_LIFE },
+            {
+                pet: COMPANION_ID,
+                xp: 0,
+                currentLifePoints: COMPANION_LIFE,
+                level: 1,
+            },
         ]);
+    });
+});
+
+describe('the companion in an ambush (Phase 23)', () => {
+    const backAt = new Date(AT.getTime() + COMPANION_RECOVERY_MS);
+    const lostDetour: DetourDraft = {
+        road: { coordinates: [[0, 4.5]], distance: 0 },
+        to: CROCEVIA_ID,
+        reachedCity: { id: CROCEVIA_ID, name: 'Crocevia' },
+        baseHours: 0,
+        residualMs: null,
+        petSpeed: 10,
+    };
+    const companionEntryOf = (outcome: AmbushOutcomePlan) =>
+        (
+            outcome.update.$set['assets.ownedPets'] as {
+                pet: Types.ObjectId;
+            }[]
+        ).find((entry) => entry.pet.equals(COMPANION_ID));
+
+    it('writes the wounded companion of a won ambush and keeps it equipped (D-03, D-10)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 4 }),
+            }),
+        );
+
+        expect(companionEntryOf(won)).toEqual({
+            pet: COMPANION_ID,
+            xp: 30,
+            currentLifePoints: 4,
+            level: 2,
+        });
+        expect(Object.keys(won.update.$set)).not.toContain('assets.pet');
+        expect(Object.keys(won.filter)).not.toContain('assets.pet');
+        expect(won.report.companion).toEqual({
+            name: 'Lupo',
+            lifeBefore: COMPANION_LIFE,
+            lifePoints: 4,
+            maxLifePoints: 102,
+            defeated: false,
+            fullLifeAt: null,
+        });
+    });
+
+    it('unequips a companion defeated in an ambush and dates its return from the ambush instant (D-03, D-26)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 1 }),
+            }),
+        );
+
+        expect(won.update.$set['assets.pet']).toBeNull();
+        expect(won.filter['assets.pet']).toEqual({
+            $in: idForms(COMPANION_ID),
+        });
+        expect(companionEntryOf(won)).toEqual({
+            pet: COMPANION_ID,
+            xp: 30,
+            currentLifePoints: 1,
+            level: 2,
+            lifeAsOf: AT,
+            defeatedUntil: backAt,
+        });
+        expect(won.report.companion?.defeated).toBe(true);
+        expect(won.report.companion?.fullLifeAt).toEqual(backAt);
+    });
+
+    it('defeats the companion in a lost ambush too (D-26)', () => {
+        const lost = planAmbushOutcome(
+            companionInput(0, {
+                verdict: 'failure',
+                effects: effectsWith({ hpAfter: 0, companionLifeAfter: 1 }),
+                detour: lostDetour,
+            }),
+        );
+
+        expect(lost.update.$set['assets.pet']).toBeNull();
+        expect(companionEntryOf(lost)).toEqual({
+            pet: COMPANION_ID,
+            xp: 0,
+            currentLifePoints: 1,
+            level: 1,
+            lifeAsOf: AT,
+            defeatedUntil: backAt,
+        });
+        expect(lost.report.companion?.defeated).toBe(true);
+        expect(lost.report.petXpGained).toBe(0);
+    });
+
+    it('no longer holds the report in the travel on a victory (D-28)', () => {
+        const won = planAmbushOutcome(
+            companionInput(0, {
+                effects: effectsWith({ companionLifeAfter: 4 }),
+            }),
+        );
+
+        expect(Object.keys(won.update)).toEqual(['$set']);
+        const travelKeys = Object.keys(won.update.$set).filter((key) =>
+            key.startsWith('status.activeTravel'),
+        );
+        expect(travelKeys).toEqual(['status.activeTravel.ambush']);
+    });
+
+    it('returns the report of the ambush to be written at once (D-15)', () => {
+        const input = companionInput(0, {
+            effects: effectsWith({ companionLifeAfter: 4 }),
+        });
+
+        const won = planAmbushOutcome(input);
+
+        expect(won.report.resultId).toBe(input.resultId);
+        expect(won.report.companion).toEqual(
+            expect.objectContaining({ name: 'Lupo', lifePoints: 4 }),
+        );
     });
 });
 
@@ -498,14 +646,14 @@ describe('ambush defeat plan', () => {
             'status.spellStates',
             'status.xp',
         ]);
-        expect(defeat.update.$push).toBeUndefined();
+        expect(Object.keys(defeat.update)).toEqual(['$set']);
         expect(defeat.report.outcome).toBe(QuestOutcome.failure);
         expect(defeat.report.coins).toEqual(fromCopper(0));
         expect(defeat.report.xpGained).toBe(0);
         expect(defeat.report.hpAfter).toBe(1);
     });
 
-    it('rewrites the travel from the ambush point towards the reached city (D-11)', () => {
+    it('rewrites the travel from the ambush point towards the reached city, a new travel identity (D-11, Pitfall 5)', () => {
         const defeat = planAmbushOutcome(defeatWith());
         const duration = durationMsOf(4.434, 10);
         const endTime = new Date(AT.getTime() + duration);
@@ -516,12 +664,13 @@ describe('ambush defeat plan', () => {
             duration,
             to: CROCEVIA_ID,
             kind: TravelKind.free,
-            ambushReports: [defeat.report],
+            ambushReports: [],
         });
         expect(defeat.travelAfter).toEqual({
             startTime: AT,
             endTime,
             ambush: null,
+            rewritten: true,
         });
         expect(defeat.report.reachedCity).toEqual(reachedCity);
     });
@@ -568,7 +717,7 @@ describe('ambush defeat plan', () => {
         expect(rewrittenOf(defeat).to).toEqual(TO_ID);
     });
 
-    it('carries the held reports into the rewritten travel (D-13)', () => {
+    it('keeps only the held reports in the rewritten travel of a defeat (Pitfall 9, D-28)', () => {
         const held = planAmbushOutcome(inputWith()).report;
         const defeat = planAmbushOutcome(
             defeatWith({
@@ -578,7 +727,7 @@ describe('ambush defeat plan', () => {
             }),
         );
         const reports = rewrittenOf(defeat).ambushReports as unknown[];
-        expect(reports).toEqual([held, defeat.report]);
+        expect(reports).toEqual([held]);
         expect(defeat.report.reachedCity).toEqual(reachedCity);
     });
 
@@ -761,5 +910,497 @@ describe('progressive food in the ambush plan (Phase 20)', () => {
                 'status.xp': 0,
             });
         }
+    });
+});
+
+describe('the departure mount falling in an ambush (Phase 23)', () => {
+    const F20 = new Types.ObjectId('64b000000000000000000020');
+    const catalog = [{ _id: F20, power: 20 }];
+    const ROAD_KM = 400;
+    const RIDE_MS = 144_000_000;
+    const AMBUSH_KM = 30;
+    const FACTOR = 2;
+    const POINT: [number, number] = [0, 0.6];
+    const atKm = (km: number) =>
+        new Date(START.getTime() + (RIDE_MS * km) / ROAD_KM);
+    const ambushAt = atKm(AMBUSH_KM);
+    const now = new Date(ambushAt.getTime() + 60_000);
+    const WALK_MS = Math.round((RIDE_MS - (RIDE_MS * 30) / ROAD_KM) * FACTOR);
+    const RESIDUAL_KM = ROAD_KM - AMBUSH_KM;
+    const FOOD_PLAN = {
+        needed: 800,
+        uncoveredKm: 120,
+        coveredKm: 280,
+        hpLostTotal: 7260,
+        settledKm: 0,
+        foodConsumedAt: null,
+    };
+    const f20 = (quantity: number) => ({
+        itemType: 'LootItem' as const,
+        item: F20,
+        quantity,
+    });
+    const mountIdentity: AmbushIdentity = {
+        characterId: CHARACTER_ID,
+        startTime: START,
+        at: ambushAt,
+    };
+    const rideWith = (extra: Record<string, unknown>) => ({
+        ...travel,
+        road: { ...travel.road, distance: ROAD_KM },
+        endTime: new Date(START.getTime() + RIDE_MS),
+        duration: RIDE_MS,
+        ambush: { at: ambushAt, km: AMBUSH_KM, attempts: 0 },
+        ...extra,
+    });
+    const rawWith = (
+        extra: Record<string, unknown>,
+        food = 28,
+    ): AmbushCharacterSnapshot =>
+        snapshotWith(
+            { activeTravel: rideWith(extra) },
+            {
+                pet: COMPANION_ID,
+                ownedPets: [
+                    otherPet,
+                    {
+                        pet: COMPANION_ID,
+                        xp: 0,
+                        currentLifePoints: COMPANION_LIFE,
+                        level: 1,
+                    },
+                ],
+                ownedItems: [f20(food)],
+            },
+        );
+    const MOUNT = { pet: COMPANION_ID, factor: FACTOR };
+    const FOOD_RIDE = { mount: MOUNT, food: FOOD_PLAN };
+    const mountInputWith = (
+        raw: AmbushCharacterSnapshot,
+        overrides: Partial<AmbushPlanInput> = {},
+    ): AmbushPlanInput => {
+        const food = ambushFoodOf({ snapshot: raw, catalog, now });
+        return companionInput(0, {
+            snapshot: withFoodSettlement(raw, food?.progress ?? null),
+            identity: mountIdentity,
+            effects: effectsWith({
+                consumablesUsed: [],
+                companionLifeAfter: 1,
+            }),
+            food,
+            ambushPoint: { point: POINT, segment: 1 },
+            nextAmbush: { at: atKm(100), km: 100 },
+            now,
+            ...overrides,
+        });
+    };
+    const walkFoodOf = (outcome: AmbushOutcomePlan, food: number) =>
+        planTravelFood({
+            durationMs: WALK_MS,
+            distanceKm: RESIDUAL_KM,
+            hpBefore: outcome.update.$set['status.currentLifePoints'] as number,
+            stacks: stacksOf([f20(food)], catalog),
+        });
+    const rewrittenTravelOf = (outcome: AmbushOutcomePlan) =>
+        outcome.update.$set['status.activeTravel'] as Record<string, unknown>;
+
+    it('rewrites the travel on foot when the departure mount falls in a won ambush (D-13)', () => {
+        const won = planAmbushOutcome(mountInputWith(rawWith(FOOD_RIDE)));
+        const endTime = new Date(ambushAt.getTime() + WALK_MS);
+        const nextAt = new Date(
+            ambushAt.getTime() + Math.floor((70 / RESIDUAL_KM) * WALK_MS),
+        );
+
+        expect(rewrittenTravelOf(won)).toEqual({
+            road: {
+                coordinates: [POINT, [0, 9]],
+                distance: RESIDUAL_KM,
+            },
+            startTime: ambushAt,
+            endTime,
+            duration: WALK_MS,
+            to: TO_ID,
+            kind: TravelKind.free,
+            ambush: { at: nextAt, km: 70, attempts: 0 },
+            food: foodPlanOf(walkFoodOf(won, 25), RESIDUAL_KM),
+        });
+        expect(
+            Object.keys(won.update.$set).filter((key) =>
+                key.startsWith('status.activeTravel'),
+            ),
+        ).toEqual(['status.activeTravel']);
+        expect(won.update.$set['assets.pet']).toBeNull();
+        expect(won.report.onFoot).toBe(true);
+        expect(won.travelAfter).toEqual({
+            startTime: ambushAt,
+            endTime,
+            ambush: { at: nextAt, km: 70 },
+            rewritten: true,
+        });
+    });
+
+    it('rewrites only the road and the times of a travel without a food plan (D-13)', () => {
+        const won = planAmbushOutcome(
+            mountInputWith(rawWith({ mount: MOUNT }), { nextAmbush: null }),
+        );
+
+        expect(Object.keys(rewrittenTravelOf(won)).sort()).toEqual([
+            'duration',
+            'endTime',
+            'kind',
+            'road',
+            'startTime',
+            'to',
+        ]);
+        expect(won.travelAfter.ambush).toBeNull();
+        expect(won.report.onFoot).toBe(true);
+    });
+
+    it('eats as at a stop before leaving on foot (D-13)', () => {
+        const input = mountInputWith(rawWith(FOOD_RIDE));
+        const won = planAmbushOutcome(input);
+        const food = input.food!;
+
+        expect(won.update.$set['assets.ownedItems']).toEqual([f20(25)]);
+        expect(won.filter).toEqual({
+            ...ambushFilter(mountIdentity, now),
+            'status.xp': 0,
+            'assets.pet': { $in: idForms(COMPANION_ID) },
+            ...settlementGuardsOf(
+                food.food,
+                defeatSettlementOf(food),
+                food.hpRaw,
+            ),
+        });
+    });
+
+    it('keeps the travel when the fallen companion was not the departure mount (D-29)', () => {
+        const won = planAmbushOutcome(
+            mountInputWith(
+                rawWith({
+                    mount: { pet: OTHER_PET_ID, factor: FACTOR },
+                    food: FOOD_PLAN,
+                }),
+            ),
+        );
+
+        expect(Object.keys(won.update.$set)).not.toContain(
+            'status.activeTravel',
+        );
+        expect(won.update.$set['assets.ownedItems']).toEqual([f20(28)]);
+        expect(won.report.onFoot).toBe(false);
+        expect(won.travelAfter.rewritten).toBe(false);
+    });
+
+    it('keeps the travel of a journey started before the deploy (D-29)', () => {
+        const won = planAmbushOutcome(
+            mountInputWith(rawWith({ food: FOOD_PLAN })),
+        );
+
+        expect(Object.keys(won.update.$set)).not.toContain(
+            'status.activeTravel',
+        );
+        expect(won.update.$set['status.activeTravel.ambush']).toEqual({
+            at: atKm(100),
+            km: 100,
+            attempts: 0,
+        });
+        expect(won.report.onFoot).toBe(false);
+        expect(won.travelAfter).toEqual({
+            startTime: START,
+            endTime: new Date(START.getTime() + RIDE_MS),
+            ambush: { at: atKm(100), km: 100 },
+            rewritten: false,
+        });
+    });
+
+    it('writes onFoot false on every other ambush (D-28)', () => {
+        const others = [
+            inputWith(),
+            mountInputWith(rawWith(FOOD_RIDE), {
+                effects: effectsWith({
+                    consumablesUsed: [],
+                    companionLifeAfter: 4,
+                }),
+            }),
+            mountInputWith(rawWith(FOOD_RIDE), {
+                verdict: 'failure',
+                effects: effectsWith({
+                    hpAfter: 0,
+                    consumablesUsed: [],
+                    companionLifeAfter: 4,
+                }),
+                detour: lostDetourOnFoot,
+            }),
+        ];
+
+        for (const input of others) {
+            const outcome = planAmbushOutcome(input);
+            expect(outcome.report.onFoot).toBe(false);
+            // la sconfitta riscrive sempre il viaggio verso la deviazione (Pitfall 5)
+            expect(outcome.travelAfter.rewritten).toBe(
+                input.verdict === 'failure',
+            );
+            expect(outcome.redirected).toBe(false);
+        }
+    });
+
+    it('writes the food plan of the walk whether it suffices or not, without a detour (D-16)', () => {
+        const hungry = planAmbushOutcome(mountInputWith(rawWith(FOOD_RIDE)));
+        const fed = planAmbushOutcome(mountInputWith(rawWith(FOOD_RIDE, 200)));
+
+        expect(walkFoodOf(hungry, 25).arrivesAlive).toBe(false);
+        expect(rewrittenTravelOf(hungry).food).toEqual(
+            foodPlanOf(walkFoodOf(hungry, 25), RESIDUAL_KM),
+        );
+        expect(walkFoodOf(fed, 197).arrivesAlive).toBe(true);
+        expect(rewrittenTravelOf(fed).food).toEqual(
+            foodPlanOf(walkFoodOf(fed, 197), RESIDUAL_KM),
+        );
+    });
+
+    const lostDetourOnFoot: DetourDraft = {
+        road: { coordinates: [[0, 1]], distance: 0 },
+        to: CROCEVIA_ID,
+        reachedCity: { id: CROCEVIA_ID, name: 'Crocevia' },
+        baseHours: 0,
+        residualMs: null,
+        petSpeed: 10,
+    };
+
+    describe('the hunger redirection and the detour on foot', () => {
+        const DETOUR_HOURS = 3;
+        const MOUNT_SPEED = BASE_SPEED * FACTOR;
+        const reachedCity = { id: CROCEVIA_ID, name: 'Crocevia' };
+        const detourRoad = {
+            coordinates: [POINT, [1, 0.6]] as [number, number][],
+            distance: 12,
+        };
+        const nearestDetour: DetourDraft = {
+            road: detourRoad,
+            to: CROCEVIA_ID,
+            reachedCity,
+            baseHours: DETOUR_HOURS,
+            residualMs: null,
+            petSpeed: MOUNT_SPEED,
+        };
+        const unhurt = (companionLifeAfter: number, hpAfter = 600) =>
+            effectsWith({
+                hpAfter,
+                injuriesAdded: [],
+                consumablesUsed: [],
+                companionLifeAfter,
+            });
+        const onQuest = (raw: AmbushCharacterSnapshot) => ({
+            ...raw,
+            quests: { completedQuests: [], pendingQuest: PENDING_ID },
+        });
+
+        it('redirects to the nearest city when the food no longer suffices on foot (D-16)', () => {
+            const redirected = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+            const duration = durationMsOf(DETOUR_HOURS, BASE_SPEED);
+            const endTime = new Date(ambushAt.getTime() + duration);
+
+            expect(rewrittenTravelOf(redirected)).toEqual({
+                road: detourRoad,
+                startTime: ambushAt,
+                endTime,
+                duration,
+                to: CROCEVIA_ID,
+                kind: TravelKind.free,
+                ambushReports: [],
+            });
+            expect(redirected.update.$set['quests.pendingQuest']).toBeNull();
+            expect(redirected.update.$set['assets.ownedItems']).toEqual([
+                f20(25),
+            ]);
+            expect(redirected.redirected).toBe(true);
+            expect(redirected.coinsDelta).toBeGreaterThan(0);
+            expect(redirected.report.outcome).toBe(QuestOutcome.success);
+            expect(redirected.report.reachedCity).toEqual(reachedCity);
+            expect(redirected.report.onFoot).toBe(true);
+            expect(redirected.travelAfter).toEqual({
+                startTime: ambushAt,
+                endTime,
+                ambush: null,
+                rewritten: true,
+            });
+        });
+
+        it('goes on foot to the goal when the food suffices (D-13, D-16)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE, 200)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(rewrittenTravelOf(walking).duration).toBe(WALK_MS);
+            expect(Object.keys(walking.update.$set)).not.toContain(
+                'quests.pendingQuest',
+            );
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+        });
+
+        it('slows the walk on foot and the residual fallback with the new wounds, as the detour (D-13, D-11)', () => {
+            const lamed = {
+                ...unhurt(1),
+                injuriesAdded: [InjuryType.brokenLeftLeg],
+            };
+            const slowdown =
+                1 / travelSpeedFactorOf([InjuryType.brokenLeftLeg]);
+            const walking = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE, 200), {
+                    effects: lamed,
+                    detour: nearestDetour,
+                }),
+            );
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: { ...lamed, hpAfter: 0 },
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+            const walked = Math.round(WALK_MS * slowdown);
+
+            expect(slowdown).toBeGreaterThan(1);
+            expect(walking.redirected).toBe(false);
+            expect(rewrittenTravelOf(walking).duration).toBe(walked);
+            expect(walking.travelAfter.endTime).toEqual(
+                new Date(ambushAt.getTime() + walked),
+            );
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                Math.round(12 * 3_600_000 * slowdown),
+            );
+        });
+
+        it('walks on to the goal with the quest when no city is reachable by road, even starving (D-16, D-25)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith(FOOD_RIDE)), {
+                    effects: unhurt(1),
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(rewrittenTravelOf(walking).duration).toBe(WALK_MS);
+            expect(Object.keys(walking.update.$set)).not.toContain(
+                'quests.pendingQuest',
+            );
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+            expect(walking.report.onFoot).toBe(true);
+        });
+
+        it('checks no hunger on a travel without a food plan (D-16)', () => {
+            const walking = planAmbushOutcome(
+                mountInputWith(onQuest(rawWith({ mount: MOUNT }, 1)), {
+                    effects: unhurt(1),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(walking).to).toEqual(TO_ID);
+            expect(walking.redirected).toBe(false);
+            expect(walking.report.reachedCity).toBeNull();
+        });
+
+        it('walks the detour of a lost ambush when the companion falls (D-16, C-11)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(1, 0),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                durationMsOf(DETOUR_HOURS, BASE_SPEED),
+            );
+            expect(lost.update.$set['assets.pet']).toBeNull();
+            expect(lost.report.onFoot).toBe(true);
+            expect(lost.redirected).toBe(false);
+        });
+
+        it('lights onFoot in a defeat only when the fallen companion is a mount (D-13, D-29)', () => {
+            const lostWith = (
+                extra: Record<string, unknown>,
+                petSpeed: number,
+            ) =>
+                planAmbushOutcome(
+                    mountInputWith(rawWith(extra), {
+                        verdict: 'failure',
+                        effects: unhurt(1, 0),
+                        detour: { ...nearestDetour, petSpeed },
+                    }),
+                );
+            const otherMount = {
+                mount: { pet: OTHER_PET_ID, factor: FACTOR },
+                food: FOOD_PLAN,
+            };
+            const noMount = { food: FOOD_PLAN };
+            const walker = lostWith(noMount, BASE_SPEED);
+
+            expect(lostWith(FOOD_RIDE, MOUNT_SPEED).report.onFoot).toBe(true);
+            expect(lostWith(otherMount, MOUNT_SPEED).report.onFoot).toBe(false);
+            expect(lostWith(noMount, MOUNT_SPEED).report.onFoot).toBe(true);
+            expect(walker.report.onFoot).toBe(false);
+            expect(rewrittenTravelOf(walker).duration).toBe(
+                durationMsOf(DETOUR_HOURS, BASE_SPEED),
+            );
+        });
+
+        it('stretches the residual fallback when the departure mount falls in a defeat (C-11)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(1, 0),
+                    detour: {
+                        ...nearestDetour,
+                        to: TO_ID,
+                        baseHours: null,
+                        residualMs: 6 * 3_600_000,
+                    },
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(12 * 3_600_000);
+            expect(rewrittenTravelOf(lost).endTime).toEqual(
+                new Date(ambushAt.getTime() + 12 * 3_600_000),
+            );
+        });
+
+        it('keeps the pet speed on a detour when the companion survives (D-29)', () => {
+            const lost = planAmbushOutcome(
+                mountInputWith(rawWith(FOOD_RIDE), {
+                    verdict: 'failure',
+                    effects: unhurt(4, 0),
+                    detour: nearestDetour,
+                }),
+            );
+
+            expect(rewrittenTravelOf(lost).duration).toBe(
+                durationMsOf(DETOUR_HOURS, MOUNT_SPEED),
+            );
+            expect(lost.report.onFoot).toBe(false);
+        });
     });
 });

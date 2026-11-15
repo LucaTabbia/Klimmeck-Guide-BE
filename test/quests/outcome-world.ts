@@ -5,6 +5,7 @@ import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
 import type { Clock } from 'src/auth/clock';
 import { PrisonReleaseSweeper } from 'src/characters/imprisonment/prison-release.sweeper';
+import { PetRecoverySweeper } from 'src/characters/pets/pet-recovery.sweeper';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
@@ -64,11 +65,19 @@ export const IDLE_PRISON_RELEASE_SWEEPER = {
     sweep: () => Promise.resolve(0),
 };
 
+// nessun claim «in forze» concorrente con il setup dei test (D-24)
+export const IDLE_PET_RECOVERY_SWEEPER = {
+    onApplicationBootstrap: () => undefined,
+    onModuleDestroy: () => undefined,
+    sweep: () => Promise.resolve(0),
+};
+
 // ogni harness che monta QuestOutcomesModule o PendingRequestsModule lo usa: nessuno sweep periodico né reconciler concorrente con il setup dei test
 export const QUIET_OUTCOME_OVERRIDES: ProviderOverride[] = [
     QUIET_SWEEP_CONFIG,
     { token: QuestResolutionSweeper, useValue: IDLE_QUEST_SWEEPER },
     { token: PrisonReleaseSweeper, useValue: IDLE_PRISON_RELEASE_SWEEPER },
+    { token: PetRecoverySweeper, useValue: IDLE_PET_RECOVERY_SWEEPER },
 ];
 
 export const OUTCOME_START = new Date('2026-10-24T10:00:00.000Z');

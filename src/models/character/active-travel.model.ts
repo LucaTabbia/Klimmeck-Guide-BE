@@ -1,6 +1,7 @@
 import { Field, Float, ID, ObjectType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Schema as MongooseSchema, Types } from 'mongoose';
+import { Pet } from '../pet.model';
 import {
     ActiveTravelFood,
     ActiveTravelFoodSchema,
@@ -33,6 +34,23 @@ export class TravelPath {
 }
 
 export const TravelPathSchema = SchemaFactory.createForClass(TravelPath);
+
+// cavalcatura della partenza (D-29): factor = velocità con la cavalcatura / velocità a piedi a parità di ferite
+@Schema({ _id: false })
+export class ActiveTravelMount {
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Pet.name,
+        required: true,
+    })
+    pet: Types.ObjectId;
+
+    @Prop({ type: Number, required: true, min: 0 })
+    factor: number;
+}
+
+export const ActiveTravelMountSchema =
+    SchemaFactory.createForClass(ActiveTravelMount);
 
 // endTime persistito è la fonte di verità del completamento (STATE [Phase 8], D-09, D-12); duration = endTime − startTime in ms
 @ObjectType()
@@ -72,6 +90,10 @@ export class ActiveTravel {
 
     @Prop({ type: [AmbushReportSnapshotSchema], default: undefined })
     ambushReports?: AmbushReportSnapshot[];
+
+    // cavalcatura della partenza (D-29): interna, mai sul filo; assente sui viaggi a piedi e su quelli in volo al deploy
+    @Prop({ type: ActiveTravelMountSchema, required: false })
+    mount?: ActiveTravelMount;
 
     // assente = viaggio legacy o deviazione (Phase 20 D-04, D-11)
     @Prop({ type: ActiveTravelFoodSchema, required: false })
