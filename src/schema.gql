@@ -145,8 +145,11 @@ enum CitySize {
 }
 
 enum CityType {
+  aarakocraCapital
   aarakocraVillage
   desertVillage
+  dragonbornCapital
+  dragonbornVillage
   drusteaCapital
   drusteaCity
   drusteaSeaCity
