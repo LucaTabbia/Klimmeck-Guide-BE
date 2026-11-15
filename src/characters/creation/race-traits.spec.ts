@@ -29,15 +29,15 @@ describe('race traits', () => {
         expect(races).toEqual(expect.arrayContaining(Object.values(RaceType)));
     });
 
-    it('maps every race to its lore home city types', () => {
+    it('maps every race to its lore home city types (D-18)', () => {
         expect(RACE_HOME_CITY_TYPES).toEqual({
             elf: ['elfCapital'],
             gnome: ['motherCapital'],
             dwarf: ['motherCapital'],
             tiefling: ['motherCapital'],
             halfling: ['liberiaCapital'],
-            aarakocra: ['aarakocraVillage'],
-            dragonborn: ['mountainVillage'],
+            aarakocra: ['aarakocraCapital'],
+            dragonborn: ['dragonbornCapital'],
             human: [
                 'drusteaCapital',
                 'valanCapital',

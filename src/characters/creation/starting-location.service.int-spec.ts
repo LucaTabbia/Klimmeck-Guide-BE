@@ -70,8 +70,8 @@ describe('StartingLocationService (replSet)', () => {
         ['dwarf', 'motherCapital'],
         ['tiefling', 'motherCapital'],
         ['halfling', 'liberiaCapital'],
-        ['aarakocra', 'aarakocraVillage'],
-        ['dragonborn', 'mountainVillage'],
+        ['aarakocra', 'aarakocraCapital'],
+        ['dragonborn', 'dragonbornCapital'],
     ])('starts a %s in a %s', async (race, cityType) => {
         await createHomeCity('elfCapital');
         const marker = await createHomeCity(cityType);
@@ -123,6 +123,14 @@ describe('StartingLocationService (replSet)', () => {
         await createHomeCity('elfCapital');
 
         await expectUnavailable(service.resolveFor(RaceType.dwarf));
+    });
+
+    it('never starts a dragonborn in a mountain village nor an aarakocra in their old village (D-18)', async () => {
+        await createHomeCity('mountainVillage');
+        await createHomeCity('aarakocraVillage');
+
+        await expectUnavailable(service.resolveFor(RaceType.dragonborn));
+        await expectUnavailable(service.resolveFor(RaceType.aarakocra));
     });
 
     it('fails with STARTING_LOCATION_UNAVAILABLE when the marker POI does not exist', async () => {
