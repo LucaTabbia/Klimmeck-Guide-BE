@@ -24,6 +24,7 @@ import {
 } from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
+import { SpellCatalogueReporter } from 'src/spells/spell-catalogue.reporter';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
 import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
@@ -1244,6 +1245,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get<SpellRecoveryConfig>(SPELL_RECOVERY_CONFIG)).toEqual({
             sweepIntervalMs: 0,
         });
+    });
+
+    it('mounts the spell catalogue reporter and warns about no spell on an empty catalogue (D-07)', () => {
+        expect(app.get(SpellCatalogueReporter)).toBeDefined();
+        expect(
+            warnSpy.mock.calls.filter(([message]) =>
+                String(message).startsWith('Magie: '),
+            ),
+        ).toEqual([]);
     });
 
     it('boots EventSub disabled without calling Twitch', () => {
