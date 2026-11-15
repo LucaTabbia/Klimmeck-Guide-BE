@@ -75,11 +75,11 @@ const catalogue: MissionPrizeCatalogue = {
         { id: PET.none, rarity: null },
     ],
     spells: [
-        { id: SPELL.costly, minXpToLearn: 500 },
-        { id: SPELL.cheap, minXpToLearn: 100 },
-        { id: SPELL.exact, minXpToLearn: 300 },
-        { id: SPELL.known, minXpToLearn: 50 },
-        { id: SPELL.malformed, minXpToLearn: '100' },
+        { id: SPELL.costly, minLevelToLearn: 8 },
+        { id: SPELL.cheap, minLevelToLearn: 2 },
+        { id: SPELL.exact, minLevelToLearn: 6 },
+        { id: SPELL.known, minLevelToLearn: 1 },
+        { id: SPELL.malformed, minLevelToLearn: '2' },
     ],
 };
 
@@ -87,7 +87,7 @@ interface OptionsCase {
     block?: PrizesSnapshot | null;
     questType?: QuestType;
     title?: TitleType;
-    xp?: number;
+    level?: number;
     knownSpellIds?: readonly string[];
 }
 
@@ -95,14 +95,14 @@ const optionsOf = ({
     block = null,
     questType = QuestType.worldMission,
     title = TitleType.mage,
-    xp = 300,
+    level = 6,
     knownSpellIds = [],
 }: OptionsCase = {}): MissionPrizeAllowance =>
     missionPrizeOptionsOf({
         block,
         questType,
         title,
-        xp,
+        level,
         knownSpellIds,
         catalogue,
     });
@@ -160,9 +160,9 @@ describe('mission prize options', () => {
         ]);
     });
 
-    it('offers spells only to casters with enough xp and not known yet (D-07)', () => {
+    it('offers spells only to casters at their minimum level and not known yet (D-08)', () => {
         expect(
-            optionsOf({ title: TitleType.paladin, xp: 99999 }).spellIds,
+            optionsOf({ title: TitleType.paladin, level: 20 }).spellIds,
         ).toEqual([]);
         expect(optionsOf({ knownSpellIds: [SPELL.known] }).spellIds).toEqual([
             SPELL.cheap,
@@ -174,6 +174,31 @@ describe('mission prize options', () => {
             SPELL.known,
         ]);
     });
+
+    it('offers a spell exactly at its minimum level and not one level below (D-08)', () => {
+        expect(optionsOf({ level: 6 }).spellIds).toContain(SPELL.exact);
+        expect(optionsOf({ level: 5 }).spellIds).not.toContain(SPELL.exact);
+    });
+
+    it.each([['2'], [0], [2.5], [null], [undefined], [NaN]])(
+        'never offers a spell whose minimum level is not an integer of at least one (D-08): %p',
+        (minLevelToLearn) => {
+            const dirty = '64f1000000000000000000d7';
+            const options = missionPrizeOptionsOf({
+                block: null,
+                questType: QuestType.worldMission,
+                title: TitleType.mage,
+                level: 20,
+                knownSpellIds: [],
+                catalogue: {
+                    ...catalogue,
+                    spells: [{ id: dirty, minLevelToLearn }],
+                },
+            });
+
+            expect(options.spellIds).not.toContain(dirty);
+        },
+    );
 
     it('always allows the entries of the rank block (D-22)', () => {
         const options = optionsOf({

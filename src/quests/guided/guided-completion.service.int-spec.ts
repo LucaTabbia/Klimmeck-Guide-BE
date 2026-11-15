@@ -199,7 +199,7 @@ describe('GuidedCompletionService (replSet)', () => {
             ),
             learnable: idOf(
                 await world.models.spells.create(
-                    buildSpell({ name: 'Scintilla', minXpToLearn: 0 }),
+                    buildSpell({ name: 'Scintilla', minLevelToLearn: 1 }),
                 ),
             ),
         };
@@ -560,6 +560,26 @@ describe('GuidedCompletionService (replSet)', () => {
         await world.models.lootItems.updateOne(
             { _id: catalogue.commonLoot },
             { $set: { rarity: 'legendary' } },
+        );
+        const before = await rawDocuments();
+
+        await expect(service.complete(hexOf(first))).rejects.toMatchObject(
+            OUTCOME_OVERRIDE_INVALID,
+        );
+        expect(await rawDocuments()).toEqual(before);
+    });
+
+    // il mage di prova parte da 0 xp = livello 1: la magia scelta sale al livello 2 dopo il salvataggio
+    it('refuses at completion a chosen spell above the level of the character (D-08)', async () => {
+        const { first } = await guidedWorldMission();
+        const catalogue = await prizeCatalogue();
+        await saver.save({
+            pendingQuestId: hexOf(first),
+            prizes: [prizeOf(first, { spell: String(catalogue.learnable) })],
+        });
+        await world.models.spells.collection.updateOne(
+            { _id: catalogue.learnable },
+            { $set: { minLevelToLearn: 2 } },
         );
         const before = await rawDocuments();
 

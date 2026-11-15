@@ -642,12 +642,12 @@ describe('MissionDraftSaveService (replSet)', () => {
                 ),
                 learnable: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Scintilla', minXpToLearn: 100 }),
+                        buildSpell({ name: 'Scintilla', minLevelToLearn: 2 }),
                     ),
                 ),
                 blockSpell: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Benedizione', minXpToLearn: 0 }),
+                        buildSpell({ name: 'Benedizione', minLevelToLearn: 1 }),
                     ),
                 ),
             };
@@ -800,6 +800,25 @@ describe('MissionDraftSaveService (replSet)', () => {
                     save(mage, { prizes: [prize] }),
                 ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
             }
+            expect(await storedDraft()).toEqual(before);
+        });
+
+        // il mago di prova ha 20 000 xp = livello 12 dalla tabella unica
+        it('refuses a chosen spell above the level of the character at save (D-08)', async () => {
+            const catalogue = await prizeCatalogue();
+            const aboveLevel = idOf(
+                await world.models.spells.create(
+                    buildSpell({ name: 'Meteora', minLevelToLearn: 13 }),
+                ),
+            );
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const before = await storedDraft();
+
+            await expect(
+                save(paladin, {
+                    prizes: [prizeOf(mage, { spell: aboveLevel })],
+                }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
             expect(await storedDraft()).toEqual(before);
         });
 
