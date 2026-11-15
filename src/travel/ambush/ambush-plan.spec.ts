@@ -504,7 +504,7 @@ describe('the companion in an ambush (Phase 23)', () => {
         });
     });
 
-    it('unequips a companion defeated in an ambush and dates its return from the ambush instant (D-03, D-26)', () => {
+    it('unequips a companion defeated in a won ambush, without xp, and dates its return from the ambush instant (D-03, D-13, D-26)', () => {
         const won = planAmbushOutcome(
             companionInput(0, {
                 effects: effectsWith({ companionLifeAfter: 1 }),
@@ -517,12 +517,13 @@ describe('the companion in an ambush (Phase 23)', () => {
         });
         expect(companionEntryOf(won)).toEqual({
             pet: COMPANION_ID,
-            xp: 30,
+            xp: 0,
             currentLifePoints: 1,
-            level: 2,
+            level: 1,
             lifeAsOf: AT,
             defeatedUntil: backAt,
         });
+        expect(won.report.petXpGained).toBe(0);
         expect(won.report.companion?.defeated).toBe(true);
         expect(won.report.companion?.fullLifeAt).toEqual(backAt);
     });

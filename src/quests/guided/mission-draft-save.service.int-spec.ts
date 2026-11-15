@@ -288,7 +288,8 @@ describe('MissionDraftSaveService (replSet)', () => {
     describe('corrections', () => {
         it('corrects a fight within the bounds at its start (D-06)', async () => {
             const { first, potion, spell, enemy } = await startedWorldMission();
-            await simulate(first, 0, enemy);
+            const simulation = await simulate(first, 0, enemy);
+            const simulated = outcomeOf(simulation.fights[0], first)!.simulated;
 
             const lowest = await save(first, {
                 fights: [
@@ -317,12 +318,10 @@ describe('MissionDraftSaveService (replSet)', () => {
                 spellsUsed: [{ spell, usages: 5 }],
                 companionLifeAfter: null,
             });
+            // A-08: i campi omessi valgono il simulato, non lo stato d'inizio scontro
             expect(outcomeOf(highest.fights[0], first)!.corrected).toEqual({
+                ...simulated,
                 hpAfter: 1000,
-                injuriesAdded: [],
-                consumablesUsed: [],
-                spellsUsed: [],
-                companionLifeAfter: null,
             });
         });
 
@@ -526,9 +525,57 @@ describe('MissionDraftSaveService (replSet)', () => {
             });
 
             const stored = outcomeOf((await storedDraft())!.fights[0], second)!;
-            expect(stored.corrected!.companionLifeAfter).toBe(1);
-            expect(stored.corrected!.hpAfter).toBe(900);
+            expect(stored.corrected).toEqual({
+                ...stored.simulated,
+                companionLifeAfter: 1,
+            });
             expect(await rawCharacters()).toEqual(before);
+        });
+
+        it('keeps the simulated companion life when the correction omits it (A-08)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+
+            await save(first, {
+                fights: [
+                    fightOf(enemy, 1, [correctionOf(second, { hpAfter: 500 })]),
+                ],
+            });
+
+            const stored = outcomeOf((await storedDraft())!.fights[0], second)!;
+            expect(stored.simulated!.companionLifeAfter).toEqual(
+                expect.any(Number),
+            );
+            expect(stored.corrected).toEqual({
+                ...stored.simulated,
+                hpAfter: 500,
+            });
+        });
+
+        it('stores the explicit values of a correction over the simulated ones (A-08)', async () => {
+            const { first, second, enemy } = await missionWithFenrir();
+
+            await save(first, {
+                fights: [
+                    fightOf(enemy, 1, [
+                        correctionOf(second, {
+                            hpAfter: null,
+                            injuries: [],
+                            consumablesUsed: [],
+                            spellsUsed: [],
+                            companionLifeAfter: 2,
+                        }),
+                    ]),
+                ],
+            });
+
+            const stored = outcomeOf((await storedDraft())!.fights[0], second)!;
+            expect(stored.corrected).toEqual({
+                hpAfter: stored.simulated!.hpAfter,
+                injuriesAdded: [],
+                consumablesUsed: [],
+                spellsUsed: [],
+                companionLifeAfter: 2,
+            });
         });
 
         it('refuses a companion life outside its range with OUTCOME_OVERRIDE_INVALID (D-33)', async () => {

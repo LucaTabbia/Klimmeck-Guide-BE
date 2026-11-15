@@ -38,6 +38,7 @@ import {
     participantEffectsOf,
     stateBeforeFight,
 } from './fight-state';
+import { correctionOverSimulated } from './guided-outcome';
 import { hexOf } from './ids';
 import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import {
@@ -226,6 +227,22 @@ function mergedPrizes(
     ];
 }
 
+// A-08: la correzione si fonde col simulato del suo personaggio; senza simulato resta com'è e la convalida decide
+function overSimulated(
+    correction: ParticipantOverrideInput,
+    fight: MissionFightRecord,
+): ParticipantOverrideInput {
+    const hex = objectIdFromHex(correction.characterId)?.toHexString();
+    const simulated = fight.outcomes.find(
+        ({ character }) => hexOf(character) === hex,
+    )?.simulated;
+    if (!hex || !simulated) return correction;
+    return correctionOverSimulated(
+        correction,
+        participantEffectsOf(hex, simulated),
+    );
+}
+
 interface DraftParticipants {
     characters: readonly ResolutionCharacter[];
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
@@ -337,7 +354,7 @@ export class MissionDraftSaveService {
             .filter((character) => inDraft.has(hexOf(character._id)));
     }
 
-    // effetto completo sullo stato all'inizio dello scontro; i non elencati tornano al simulato (D-06)
+    // effetto completo sullo stato all'inizio dello scontro, già fuso col simulato (A-08): il completamento non lo rilegge; i non elencati tornano al simulato (D-06)
     private corrected(
         fights: MissionFightRecord[],
         index: number,
@@ -355,7 +372,7 @@ export class MissionDraftSaveService {
             ),
         );
         const effects = validateOverrides(
-            corrections,
+            corrections.map((correction) => overSimulated(correction, fight)),
             overlays.map((overlay) =>
                 overrideParticipantOf(overlay, petCatalog),
             ),

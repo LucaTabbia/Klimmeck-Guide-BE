@@ -79,7 +79,7 @@ const SCHEMA_FILE = join(process.cwd(), 'src/schema.gql');
 // l'unico kind sul filo è quello dei risultati (Phase 15 D-14): il kind interno del viaggio resta fuori
 const ONLY_RESULT_KIND = ['  kind: QuestResultKind!'];
 const CATALOGUE_PET_BLOCK =
-    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  recoveryTime: Int\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
+    'type Pet {\n  attack: Damages!\n  buyPrice: Coins!\n  defense: Damages!\n  id: ID!\n  imagePath: String!\n  known: Boolean!\n  maxLifePoints: Int!\n  maxXp: Int!\n  name: String!\n  rarity: RarityType\n  recoveryTime: Int\n  relatedLore: [Lore!]!\n  sellPrice: Coins!\n  sellable: Boolean\n  speedModifier: Float\n}';
 const RARITY_TYPE_BLOCK =
     'enum RarityType {\n  common\n  legendary\n  rare\n  ultrarare\n  uncommon\n}';
 const OWNED_PET_BLOCK =

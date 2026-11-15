@@ -6,9 +6,14 @@ import {
     lastCompanionLifeOf,
     type ParticipantEffects,
 } from 'src/quests/outcomes/combat/combat-resolver';
+import {
+    type CompanionFight,
+    companionEnemiesXpOf,
+} from 'src/quests/outcomes/pets/companion-enemies-xp';
 import { effectiveEffectsOf } from './draft-invalidation';
 import { participantEffectsOf } from './fight-state';
 import type {
+    MissionFightEnemyRecord,
     MissionFightOutcomeRecord,
     MissionFightRecord,
 } from './mission-draft.model';
@@ -104,6 +109,52 @@ export function aggregateEffectsOf(
     };
 }
 
+const fightXpOf = (
+    enemies: readonly MissionFightEnemyRecord[],
+    enemyXp: ReadonlyMap<string, number>,
+): number =>
+    enemies.reduce(
+        (total, { enemy, quantity }) =>
+            total + (enemyXp.get(enemy.toHexString()) ?? 0) * quantity,
+        0,
+    );
+
+// D-13: ogni scontro con gli xp dei suoi nemici e la vita effettiva del compagno alla fine (corretta se corretta)
+function companionFightsOf(
+    fights: readonly MissionFightRecord[],
+    characterHex: string,
+    enemyXp: ReadonlyMap<string, number>,
+): CompanionFight[] {
+    return fights.flatMap((fight) => {
+        const outcome = outcomeIn(fight, characterHex);
+        const effects = outcome ? effectiveEffectsOf(outcome) : null;
+        if (!effects) return [];
+        const { companionLifeAfter } = effects;
+        return [
+            {
+                enemiesXp: fightXpOf(fight.enemies, enemyXp),
+                ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
+            },
+        ];
+    });
+}
+
+// effetti aggregati con gli xp dei soli scontri combattuti dal compagno caduto prima dell'ultimo (D-13)
+export function guidedBattleOf(
+    fights: readonly MissionFightRecord[],
+    characterHex: string,
+    enemyXp: ReadonlyMap<string, number>,
+): ParticipantEffects | null {
+    const battle = aggregateEffectsOf(fights, characterHex);
+    if (!battle) return null;
+    return {
+        ...battle,
+        ...companionEnemiesXpOf(
+            companionFightsOf(fights, characterHex, enemyXp),
+        ),
+    };
+}
+
 export function mergedEnemiesOf(
     fights: readonly MissionFightRecord[],
 ): { enemy: Types.ObjectId; quantity: number }[] {
@@ -151,5 +202,23 @@ export function overrideInputOf(
         ...(effects.companionLifeAfter === undefined
             ? {}
             : { companionLifeAfter: effects.companionLifeAfter }),
+    };
+}
+
+// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince
+export function correctionOverSimulated(
+    correction: ParticipantOverrideInput,
+    simulated: ParticipantEffects,
+): ParticipantOverrideInput {
+    const base = overrideInputOf(correction.characterId, simulated);
+    const companionLifeAfter =
+        correction.companionLifeAfter ?? base.companionLifeAfter;
+    return {
+        characterId: correction.characterId,
+        hpAfter: correction.hpAfter ?? base.hpAfter,
+        injuries: correction.injuries ?? base.injuries,
+        consumablesUsed: correction.consumablesUsed ?? base.consumablesUsed,
+        spellsUsed: correction.spellsUsed ?? base.spellsUsed,
+        ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
     };
 }

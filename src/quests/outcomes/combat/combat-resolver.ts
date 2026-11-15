@@ -92,6 +92,8 @@ export interface ParticipantEffects {
     spellsUsed: { spellId: string; usages: number }[];
     // vita del compagno equipaggiato dopo lo scontro, in [1, maxLifePoints] (D-03); assente = nessun compagno nello scontro
     companionLifeAfter?: number;
+    // xp dei nemici dei soli scontri da cui il compagno caduto in una sequenza è uscito in piedi (D-13); assente = tutti i nemici, salvo il compagno caduto nello scontro singolo (companionShareOf)
+    companionEnemiesXp?: number;
 }
 
 // effetti fusi di scontri in sequenza (D-12): vale la vita del compagno dell'ultimo scontro in cui c'era

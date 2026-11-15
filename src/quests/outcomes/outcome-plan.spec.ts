@@ -888,14 +888,16 @@ describe('planParticipant', () => {
             });
         });
 
-        it('unequips a companion defeated in the fight and dates its return (D-03, D-26)', () => {
+        it('unequips a companion defeated in the fight, dates its return and gives it no xp (D-03, D-13, D-26)', () => {
             const plan = foughtWith(1);
 
             expect(plan.update.$set['assets.pet']).toBeNull();
+            expect(plan.result.petXpGained).toBe(0);
+            expect(plan.result.xpGained).toBe(200);
             expect(plan.update.$set['assets.ownedPets']).toEqual([
                 {
                     pet: COMPANION_ID,
-                    xp: 20,
+                    xp: 0,
                     currentLifePoints: 1,
                     level: 1,
                     lifeAsOf: NOW,
@@ -919,6 +921,23 @@ describe('planParticipant', () => {
                 { pet: PET_ID, xp: 0, currentLifePoints: 450, level: 1 },
             ]);
             expect(plan.result.rewards.pet).toEqual(PET_ID);
+        });
+
+        it('gives the companion the xp of the fights it fought only, the character all of them (D-13)', () => {
+            const plan = foughtWith(1, {
+                battle: battleWith({
+                    hpAfter: 700,
+                    companionLifeAfter: 1,
+                    companionEnemiesXp: 60,
+                }),
+                rewards: rewardsWith({ xpPrize: 300 }),
+            });
+
+            expect(plan.result.petXpGained).toBe(6);
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                expect.objectContaining({ pet: COMPANION_ID, xp: 6 }),
+            ]);
+            expect(plan.result.xpGained).toBe(500);
         });
 
         it('leaves the result companion null for a quest without a fight (D-27)', () => {

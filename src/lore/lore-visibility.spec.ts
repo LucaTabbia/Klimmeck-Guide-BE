@@ -3,6 +3,7 @@ import {
     SEES_EVERYTHING,
     SEES_NOTHING,
     isVisible,
+    knowsAnyLoreOf,
     knowsEnemy,
     visibilityOf,
     visibleLoreIdsOf,
@@ -103,6 +104,35 @@ describe('lore visibility', () => {
                     a.toHexString(),
                 ]),
             ).toEqual([a]);
+        });
+    });
+
+    describe('knowsAnyLoreOf', () => {
+        const player = visibilityOf({ unlockedLore: [a], knownEnemies: [] });
+
+        it('knows a subject once one of its lore is unlocked (UAT 2026-11-15)', () => {
+            expect(knowsAnyLoreOf(player, [c, a])).toBe(true);
+            expect(knowsAnyLoreOf(player, [{ _id: a }])).toBe(true);
+            expect(knowsAnyLoreOf(player, [a.toHexString()])).toBe(true);
+        });
+
+        it('does not know a subject whose lore are all locked (UAT 2026-11-15)', () => {
+            expect(knowsAnyLoreOf(player, [b, c])).toBe(false);
+        });
+
+        it('knows every subject as the innkeeper (UAT 2026-11-15)', () => {
+            expect(knowsAnyLoreOf(SEES_EVERYTHING, [b, c])).toBe(true);
+        });
+
+        it('knows no subject with lore without a character (UAT 2026-11-15)', () => {
+            expect(knowsAnyLoreOf(SEES_NOTHING, [a])).toBe(false);
+        });
+
+        it('knows a subject with nothing to discover (UAT 2026-11-15)', () => {
+            expect(knowsAnyLoreOf(SEES_NOTHING, [])).toBe(true);
+            expect(knowsAnyLoreOf(SEES_NOTHING, null)).toBe(true);
+            expect(knowsAnyLoreOf(SEES_NOTHING, undefined)).toBe(true);
+            expect(knowsAnyLoreOf(SEES_NOTHING, ['nope', null, 42])).toBe(true);
         });
     });
 });

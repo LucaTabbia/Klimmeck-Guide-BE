@@ -102,7 +102,7 @@ export function overrideParticipantOf(
     };
 }
 
-// HP fra 1 e il massimo dello snapshot, prima della ricompensa (Open Q 14)
+// HP fra 1 e il massimo dello snapshot, prima della ricompensa (Open Q 14); omessi = vita d'inizio scontro solo senza bozza: la correzione guidata arriva già fusa col simulato (A-08)
 function hpAfterOf(
     override: ParticipantOverrideInput,
     participant: OverrideParticipant,
@@ -117,7 +117,7 @@ function hpAfterOf(
     return hpAfter;
 }
 
-// vita del compagno fra 1 (sconfitto) e il suo massimo; omessa = vita d'inizio scontro, chiave assente (D-17, D-26, D-33)
+// vita del compagno fra 1 (sconfitto) e il suo massimo; omessa = chiave assente, vita invariata, solo senza bozza: la correzione guidata arriva già fusa col simulato (D-17, D-26, D-33, A-08)
 function companionLifeAfterOf(
     override: ParticipantOverrideInput,
     participant: OverrideParticipant,

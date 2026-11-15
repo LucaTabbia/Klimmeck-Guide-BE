@@ -1,7 +1,10 @@
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import type { ChanceSource } from '../chance-source';
 import { buildCombatContext } from '../combat/combat-context';
-import type { CombatResolver } from '../combat/combat-resolver';
+import type {
+    CombatResolver,
+    ParticipantEffects,
+} from '../combat/combat-resolver';
 import {
     battleOf,
     type CombatantPlan,
@@ -17,6 +20,10 @@ import {
     mergedEffects,
     planGuardDefeat,
 } from '../guard/guard-outcome';
+import {
+    companionEnemiesXpOf,
+    companionFightOf,
+} from '../pets/companion-enemies-xp';
 import type { UnrewardedPlanInput } from '../unrewarded-plan';
 import type { ConclusionEvent } from './conclusion-event';
 
@@ -59,9 +66,34 @@ export function planConclusion(input: ConclusionPlanInput): CombatantPlan {
     return planGuardEncounter(input, event.catalog, input.chance);
 }
 
+type GuardCatalog = Extract<
+    ConclusionEvent,
+    { kind: 'guardEncounter' }
+>['catalog'];
+
+const enemiesXpOf = (
+    catalog: Pick<ConclusionPlanInput['catalog'], 'enemies'>,
+) => enemyFactsOf(catalog)?.xp ?? 0;
+
+// per il compagno lo scontro della quest e quello di guardia sono una sequenza di due (D-13)
+function guardBattleEffects(
+    input: ConclusionPlanInput,
+    encounter: GuardCatalog,
+    guardEffects: ParticipantEffects,
+): ParticipantEffects {
+    const questEffects = input.battle?.effects ?? null;
+    return {
+        ...mergedEffects(questEffects, guardEffects),
+        ...companionEnemiesXpOf([
+            companionFightOf(questEffects, enemiesXpOf(input.catalog)),
+            companionFightOf(guardEffects, enemiesXpOf(encounter)),
+        ]),
+    };
+}
+
 function planGuardEncounter(
     input: ConclusionPlanInput,
-    encounter: Extract<ConclusionEvent, { kind: 'guardEncounter' }>['catalog'],
+    encounter: GuardCatalog,
     chance: ChanceSource,
 ): CombatantPlan {
     const questEffects = input.battle?.effects ?? null;
@@ -88,7 +120,7 @@ function planGuardEncounter(
     );
     if (!fought) throw new Error('guard encounter without a verdict');
     const effects = fought.effects
-        ? mergedEffects(questEffects, fought.effects)
+        ? guardBattleEffects(input, encounter, fought.effects)
         : questEffects;
     const catalog = encounterCatalogOf(input.catalog, encounter);
     if (fought.verdict === 'failure') {

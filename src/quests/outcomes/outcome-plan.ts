@@ -53,6 +53,7 @@ import {
     type CompanionCatalogEntry,
     type CompanionOutcomeDraft,
 } from './pets/companion-after-fight';
+import { companionShareOf } from './pets/companion-enemies-xp';
 import {
     canLearnSpell,
     type DrawnRewards,
@@ -500,11 +501,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
-    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18)
+    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18); il compagno caduto, solo dagli scontri da cui è uscito in piedi (D-13)
     const companion = companionAfterFight({
         assets: snapshot.assets,
         effects: battle,
-        enemiesXp,
+        enemiesXp: won ? companionShareOf(battle, enemiesXp) : 0,
         petMaxXp: input.petMaxXp,
         petCatalog: input.petCatalog,
         at: input.now,

@@ -190,7 +190,7 @@ describe('companion defeat across fights', () => {
         fullLifeAt: BACK_IN_FORCE,
     };
 
-    it('defeats the companion of a won quest that ends at 1 and dates its return (D-03, D-26)', async () => {
+    it('defeats the companion of a won quest that ends at 1, without xp, and dates its return (D-03, D-13, D-26)', async () => {
         const pet = await worg();
         const subject = await fighterWith('enemy', [await enemy()], pet._id);
         scripted.willResolve(subject.characterId, { companionLifeAfter: 1 });
@@ -199,9 +199,13 @@ describe('companion defeat across fights', () => {
 
         const raw = await rawCharacterOf(subject);
         expect(raw?.assets.pet).toBeNull();
-        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id)]);
+        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id, 0)]);
         const result = await resultOf(subject);
-        expect(result.outcome).toBe('success');
+        expect(result).toMatchObject({
+            outcome: 'success',
+            xpGained: 50 + 100,
+            petXpGained: 0,
+        });
         expect(result.companion).toEqual(DEFEATED_OUTCOME);
     });
 
@@ -247,7 +251,7 @@ describe('companion defeat across fights', () => {
         expect(String(raw?.assets.pet)).toBe(String(pet._id));
     });
 
-    it('defeats the companion of a boss fight (D-03, D-26)', async () => {
+    it('defeats the companion of a boss fight without xp (D-03, D-13, D-26)', async () => {
         const pet = await worg();
         const boss = questOf('boss', [await enemy()], THREE_SEATS);
         const tamer = await quester({
@@ -262,7 +266,7 @@ describe('companion defeat across fights', () => {
         expect(scripted.contexts).toHaveLength(1);
         const raw = await rawCharacterOf(tamer);
         expect(raw?.assets.pet).toBeNull();
-        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id)]);
+        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id, 0)]);
         expect((await resultOf(tamer)).companion).toEqual(DEFEATED_OUTCOME);
         expect((await resultOf(ally)).companion).toBeNull();
     });
@@ -284,12 +288,41 @@ describe('companion defeat across fights', () => {
         expect(writes).toHaveBeenCalledTimes(1);
         const raw = await rawCharacterOf(subject);
         expect(raw?.assets.pet).toBeNull();
-        expect(raw?.assets.ownedPets).toEqual([
-            defeatedFenrir(pet._id, 2 * FIGHT_PET_XP),
-        ]);
+        // caduto alla prima tappa: nessuna tappa da cui esce in piedi, il personaggio prende gli xp di tutte (D-13)
+        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id, 0)]);
         const result = await resultOf(subject);
-        expect(result).toMatchObject({ stagesCleared: 2, stagesTotal: 2 });
+        expect(result).toMatchObject({
+            stagesCleared: 2,
+            stagesTotal: 2,
+            xpGained: 50 + 2 * 100,
+            petXpGained: 0,
+        });
         expect(result.companion).toEqual(DEFEATED_OUTCOME);
+    });
+
+    it('gives a companion fallen on a later stage the xp of the stages it left standing (D-13)', async () => {
+        const pet = await worg();
+        const stages = [await enemy(), await enemy(), await enemy()];
+        const subject = await fighterWith('dungeon', stages, pet._id);
+        scripted.willResolve(subject.characterId, () => ({
+            companionLifeAfter: scripted.contexts.length === 1 ? 35 : 1,
+        }));
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(
+            scripted.contexts.map(
+                ({ participants }) => participants[0].companion?.petId ?? null,
+            ),
+        ).toEqual([String(pet._id), String(pet._id), null]);
+        const raw = await rawCharacterOf(subject);
+        expect(raw?.assets.pet).toBeNull();
+        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id)]);
+        expect(await resultOf(subject)).toMatchObject({
+            stagesCleared: 3,
+            xpGained: 50 + 3 * 100,
+            petXpGained: FIGHT_PET_XP,
+        });
     });
 
     it('raises the companion level with the fight xp and keeps its life (D-37, D-39)', async () => {

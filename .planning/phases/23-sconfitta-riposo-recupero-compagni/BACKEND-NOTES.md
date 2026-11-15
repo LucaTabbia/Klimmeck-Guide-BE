@@ -20,15 +20,17 @@
 6. **`QuestResult.companion: CompanionOutcome`** ogni volta che un compagno ha combattuto, nullo altrimenti (D-27), anche nei risultati d'imboscata.
 7. **Report d'imboscata scritti all'istante** come `QuestResult` `kind: ambush` (D-28): visibili a viaggio in corso, «visto» = `acknowledgeQuestResult`. `AmbushReport.onFoot: Boolean!` (riga «Prosegui a piedi»).
 8. **Push** (D-30, D-11): `ambush` per OGNI imboscata, vinta o persa (`id` = id del `QuestResult`); `ambushDefeat` non parte più (resta nell'enum e in `sendTestPush`). **La FE di oggi non conosce `ambush` e non riceve più `ambushDefeat` finché non entra la sua PR: da gestire alla merge.** `petRecovered` quando un compagno sconfitto torna in forze (`id` = id del pet).
-9. **Flusso guidato** (D-33): `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter: Int`, `ParticipantOverrideInput.companionLifeAfter: Int`. **Correggendo un partecipante che ha un compagno, la FE rimanda SEMPRE `companionLifeAfter` col valore simulato** (§2 g, A-08).
+9. **Flusso guidato** (D-33): `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter: Int`, `ParticipantOverrideInput.companionLifeAfter: Int`. Correggendo un partecipante, ogni campo omesso o `null` vale il valore simulato di quello scontro (anche `companionLifeAfter`); un valore esplicito, anche `[]`, vince. Rimandare i valori simulati resta lecito (§2 g, A-08, fix/23).
 10. **Codici nuovi:** `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `PET_NAME_INVALID`.
 11. **Non selezionare i compagni nella query dell'oste `characters`**: lì `assets.ownedPets.pet` non è popolato (W-1, W-3).
+12. **xp del compagno solo da vincitore** (D-13, UAT 2026-11-15): il compagno che esce sconfitto da uno scontro non prende xp di quello scontro (quindi niente salita di livello); nelle sequenze (dungeon, flusso guidato, quest più guardia) prende gli xp dei soli scontri da cui esce in piedi. Nessun campo nuovo: `CompanionOutcome` non espone xp, lo si vede su `QuestResult.petXpGained` e su `OwnedPet.level`/`xp` (§2 e).
+13. **`Pet.known: Boolean!`** (UAT 2026-11-15): il BE dice se il viewer conosce il compagno. `false` → la FE non apre il foglio del dettaglio e mostra l'immagine nera, come per i nemici (`QuestEnemy.known`). Vale ovunque compaia `Pet` (§2 i).
 
 ---
 
 ## 1. SDL aggiunto (verbatim)
 
-Blocchi copiati da `src/schema.gql` (ordine alfabetico di `sortSchema`). Prova: `git diff 2c462cbe -- src/schema.gql` = 36 righe aggiunte e 1 tolta; la tolta e una delle aggiunte sono la riga di `useItem`, che guadagna l'argomento opzionale `petId` (SDL additivo nella sostanza: le chiamate di oggi restano valide). Conteggio identico al gate 23-17; i fix della review non hanno toccato lo SDL.
+Blocchi copiati da `src/schema.gql` (ordine alfabetico di `sortSchema`). Prova: `git diff 2c462cbe -- src/schema.gql` = 36 righe aggiunte e 1 tolta; la tolta e una delle aggiunte sono la riga di `useItem`, che guadagna l'argomento opzionale `petId` (SDL additivo nella sostanza: le chiamate di oggi restano valide). Conteggio identico al gate 23-17; i fix della review non hanno toccato lo SDL. Il 2026-11-15 (UAT) si aggiunge in `type Pet` la sola riga `known: Boolean!` (`e4268b72`): ora 37 righe non vuote aggiunte (più 3 righe vuote fra i tipi nuovi) e 1 tolta.
 
 Tipi nuovi:
 
@@ -104,6 +106,7 @@ input ParticipantOverrideInput {
 
 type Pet {
   # … campi esistenti invariati …
+  known: Boolean!   # aggiunto il 2026-11-15 (UAT), risolto per viewer
   recoveryTime: Int
 }
 
@@ -168,7 +171,7 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 - Dungeon e scontri in sequenza: il compagno sconfitto è fuori dagli scontri seguenti; lo slot si svuota a fine missione (D-12).
 - Sconfitto: slot svuotato con guardia sullo slot letto, ancora `lifeAsOf` = istante dell'esito, marcatore della sconfitta = istante + `T`.
 - `CompanionOutcome` è una fotografia dell'esito: `name` mostrato, `lifeBefore`, `lifePoints`, `maxLifePoints` (dopo l'xp dello scontro), `defeated`, `fullLifeAt` (nullo se non sconfitto o con `T` non curato). Durata della sconfitta da mostrare in un foglio storico = `fullLifeAt − resolvedAt`.
-- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0.
+- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0. **Il compagno sconfitto in uno scontro (vita 1 a fine scontro) non prende gli xp di quello scontro** (D-13, UAT 2026-11-15, fix/23): in uno scontro singolo (quest, boss, soccorso, imboscata) prende 0 e il livello non sale, la voce si scrive comunque con vita 1 e i marcatori della sconfitta. Negli scontri in sequenza (tappe di un dungeon, scontri del flusso guidato, scontro della quest seguito da quello della guardia) prende gli xp dei soli scontri da cui esce in piedi: lo scontro della caduta e i seguenti non contano; mai caduto = tutti. Esempi: caduto alla prima tappa = 0; caduto alla seconda di tre = la prima; caduto nella quest con guardia = 0; caduto nella guardia = gli xp della quest. L'xp del personaggio non cambia. Nel guidato conta la vita effettiva del compagno (corretta se corretta) alla fine di ogni scontro.
 
 ### (f) Imboscate e viaggio (D-13, D-14, D-15, D-16, D-28, D-29; W-6, W-7)
 
@@ -184,7 +187,7 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 
 - La simulazione propone per ogni partecipante e per ogni scontro `MissionFightOutcome.companion` (pet, nome mostrato fotografato alla simulazione, `maxLifePoints` del compagno, `lifeBefore`) e `MissionFightEffects.companionLifeAfter`. `companion` è nullo se il partecipante non ha un compagno o se il compagno è stato sconfitto in uno scontro precedente.
 - Correzione dell'oste: `ParticipantOverrideInput.companionLifeAfter` in `1..maxLifePoints` (1 = sconfitto); fuori intervallo o senza compagno a inizio scontro → `OUTCOME_OVERRIDE_INVALID`. Lo accetta anche il legacy `completePendingRequest`.
-- **Contratto delle correzioni (A-08) — DA RISPETTARE NELLA FE:** correggere un partecipante SOSTITUISCE per intero i suoi effetti di quello scontro. Ciò che si omette torna al valore d'INIZIO scontro, NON al simulato: `hpAfter`, ferite, consumi, magie e ANCHE `companionLifeAfter`. Solo i partecipanti non elencati restano al simulato. **Quando corregge un partecipante che ha un compagno, la FE deve rimandare sempre `companionLifeAfter` col valore simulato (o corretto), altrimenti annulla il danno o la sconfitta simulati.** Lo stesso vale per `hpAfter`.
+- **Contratto delle correzioni (A-08, deciso dall'utente, fix/23):** nella bozza guidata ciò che l'oste non tocca vale il SIMULATO dello scontro: un campo omesso o `null` (`hpAfter`, `injuries`, `consumablesUsed`, `spellsUsed`, `companionLifeAfter`) prende il valore simulato; un valore esplicito, anche una lista vuota `[]`, vince. Limiti di validazione invariati (vita 1..max, compagno 1..max, usi entro il disponibile). Il record `corrected` salvato contiene gli effetti già fusi, così il completamento non rilegge il simulato. I partecipanti non elencati restano al simulato. La FE di oggi, che rimanda sempre i valori simulati, resta compatibile. Il legacy `completePendingRequest` senza bozza non cambia: nessun override = nessun combattimento, campo omesso = stato d'inizio scontro.
 - Il completamento applica le stesse regole degli esiti (sconfitta a 1, sconfitto fuori dagli scontri seguenti, slot svuotato).
 
 ### (h) Livelli del compagno (D-37, D-38, D-39; W-1 aggiornato)
@@ -196,6 +199,21 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 - Ogni regola (riposo e interpolazione, equip, pozione, esiti, guidato) usa `OwnedPet.maxLifePoints`, mai `Pet.maxLifePoints`: **la FE interpola fino a `OwnedPet.maxLifePoints`**. `T` resta uno per pet (dal minimo al massimo corrente).
 - Se l'utente cambia `Pet.maxXp` a DB, il livello salvato di un compagno resta quello vecchio finché non riceve un premio di xp, poi si riallinea (A-06, D-39).
 - Con tetti piccoli (`maxXp` < 23) le soglie non si duplicano più a 0: livello 1 a xp 0, mai decrescente, mai oltre 10, 10 al tetto (A-07).
+
+### (i) Compagno noto al viewer (UAT 2026-11-15)
+
+Richiesta dell'utente: «Se non hai ancora ottenuto la lore corrispondente, il foglio non si deve aprire per dare il dettaglio e l'immagine deve essere nera (come succede per gli enemies).»
+
+- **Contratto:** `Pet.known: Boolean!`, `@ResolveField` per viewer (`src/lore/known-pets.resolver.ts`, `KnownPetsResolver`), mai salvato a DB. Vale su ogni percorso che serve un `Pet`: `pets`/`pet`, negozi, premi delle quest e dei ranghi, `CharacterAssets.pet`, `OwnedPet.pet`. (`MissionCompanion.pet` è un `ID!`, non un `Pet`: lì il campo non c'è.)
+- **Regola** (`knowsAnyLoreOf` in `src/lore/lore-visibility.ts`, stessa lettura dei ref e stessa visibilità che filtrano `Pet.relatedLore`):
+  - `true` se almeno una lore di `Pet.relatedLore` è visibile al viewer (cioè in `status.unlockedLore` del suo personaggio corrente attivo; ref come ObjectId, stringa esadecimale o documento popolato);
+  - `true` per un pet senza lore leggibili (lista vuota, o solo ref illeggibili): niente da scoprire;
+  - `true` sempre per l'oste (vede tutto);
+  - `false` altrimenti, compreso il viewer senza personaggio corrente attivo, il morto in attesa del foglio e il viewer anonimo (per tutti la vista è «nulla»): per loro `known` è `true` solo sui pet senza lore.
+- Un pet ottenuto davvero sblocca la sua lore (Phase 19 D-26): un compagno posseduto risulta noto. A DB i 44 pet hanno oggi una lore ciascuno.
+- **Caso limite:** una lore collegata ma cancellata dal DB conta ancora per `known` se il viewer la ha in `unlockedLore` (il campo non legge le lore, a differenza di `relatedLore` che la scarta). Nessun dato reale oggi in questa condizione.
+- **Costo:** una sola lettura della conoscenza del viewer per richiesta HTTP o per evento WS (la cache di `ViewerKnowledgeService`, la stessa di `QuestEnemy.known`), nessuna query delle lore: niente N+1 su liste di pet.
+- **Per la FE:** selezionare `known` accanto a `relatedLore` dove compare un `Pet`; con `false` niente foglio del dettaglio e immagine nera (stesso trattamento dei nemici con `known: false`). Non dedurre la conoscenza da `relatedLore` vuota: un pet senza lore ha `relatedLore: []` e `known: true`.
 
 ---
 
@@ -264,8 +282,10 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Strada a piedi: riscrittura dal punto, job di completamento e della prossima imboscata spostati, push con «prosegui a piedi», viaggio senza mount intatto, arrivo e piano del cibo chiuso una volta, job vecchi del viaggio a cavallo e della camminata no-op senza push `travelEnd` (D-13, D-29, A3, Pitfall 5, B-08) — `src/travel/ambush/ambush-on-foot.int-spec.ts`, `ambush-on-foot.spec.ts`.
 - Fame: ridirezionamento alla città più vicina con quest abbandonata, nessun ridirezionamento senza città raggiungibile, job spostati senza imboscata, push col ridirezionamento, deviazione della sconfitta a piedi col compagno caduto e a cavallo col compagno in piedi, `onFoot` in sconfitta solo per una cavalcatura, ferite nuove sulla strada a piedi (D-14, D-16, C-11, B-02, B-03, B-05) — `src/travel/ambush/ambush-on-foot.int-spec.ts` (describe «the hunger redirection (Phase 23)»), `ambush-plan.spec.ts`.
 - Guidato, proposta: vita del compagno di ogni partecipante, compagno sconfitto nel primo scontro fuori dal secondo, nessuna scrittura fuori dalla bozza (D-12, D-17, D-26) — `src/quests/guided/mission-simulation.service.int-spec.ts`, `fight-state.spec.ts`.
-- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter` (D-17, D-26, D-27, D-33) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
-- SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33) — `test/app.int-spec.ts`.
+- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter`, campi omessi o `null` della correzione = simulato e valori espliciti che vincono (G-1 chiuso), xp del compagno solo dagli scontri da cui esce in piedi (caduto nel primo = 0, caduto nell'ultimo = i precedenti) (D-13, D-17, D-26, D-27, D-33, A-08) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `guided-outcome.spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
+- xp del compagno: nessuno per lo sconfitto in uno scontro singolo (quest, boss, soccorso, imboscata); nelle tappe e nella quest con guardia solo gli scontri da cui esce in piedi, non quello della caduta; il personaggio li prende tutti (D-13) — `src/quests/outcomes/pets/companion-enemies-xp.spec.ts`, `dungeon/placeholder-dungeon-resolver.spec.ts`, `outcome-plan.spec.ts`, `companion-defeat.int-spec.ts`, `companion-defeat-rescue.int-spec.ts`, `src/travel/ambush/ambush-plan.spec.ts`, `ambush-resolution.int-spec.ts`.
+- `Pet.known`: noto con una lore sbloccata, non noto con le lore tutte chiuse, noto senza lore, oste sempre, senza personaggio solo i pet senza lore, query singola, id scritto come stringa, una lettura del viewer e nessuna query delle lore per una lista (UAT 2026-11-15) — `src/lore/lore-visibility.spec.ts` (describe `knowsAnyLoreOf`), `src/lore/lore-related.int-spec.ts` (describe «whether the viewer knows a pet»).
+- SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33); blocco `type Pet` con `known: Boolean!` — `test/app.int-spec.ts`.
 
 ---
 
@@ -302,11 +322,11 @@ Per l'orchestratore e l'utente. Ogni semina si fa con uno script FUORI dal repo.
 2. Equip dello sconfitto rifiutato (`PET_DEFEATED`); dopo la data equip riuscito; entro 60 s push «Di nuovo in forze» col nome.
 3. Pozione a un compagno a riposo: vita su, attesa propria del compagno; la pozione del personaggio resta libera (e viceversa); seconda pozione al compagno rifiutata con la data.
 4. Rinomina dal Diario; il nome nuovo compare nelle push e nei fogli degli esiti successivi.
-5. Quest con compagno ferito e poi sconfitto: foglio dell'esito con la riga della vita e poi della sconfitta, slot vuoto.
+5. Quest con compagno ferito e poi sconfitto: foglio dell'esito con la riga della vita e poi della sconfitta, slot vuoto. Lo sconfitto non prende xp: `xp` e livello del compagno invariati nel Diario, `petXpGained` 0, l'xp del personaggio pieno (D-13, UAT 2026-11-15).
 6. Viaggio con la cavalcatura, imboscata vinta con la cavalcatura sconfitta: push con «prosegui a piedi», pergamena visibile a viaggio in corso, «Prosegui a piedi», arrivo più tardi (attenzione alla pedina, B-09).
 7. Imboscata con poco cibo e cavalcatura caduta: ridirezionamento alla città più vicina, quest abbandonata, push con «la fame ti porta verso».
-7-bis. Quest vinta che porta l'xp del compagno oltre una soglia: livello e vita massima nuovi nel Diario, vita corrente invariata.
-8. Flusso dell'oste: vita del compagno proposta dalla simulazione, corretta a 1, completamento: compagno sconfitto con la data. Correggendo l'eroe senza toccare il compagno, il valore simulato del compagno resta (la FE lo rimanda, A-08).
+7-bis. Quest vinta col compagno in piedi che porta il suo xp oltre una soglia: livello e vita massima nuovi nel Diario, vita corrente invariata. Lo stesso scontro con il compagno sconfitto non alza nulla (passo 5).
+8. Flusso dell'oste: vita del compagno proposta dalla simulazione, corretta a 1, completamento: compagno sconfitto con la data. Correggendo l'eroe senza toccare il compagno, il valore simulato del compagno resta (omesso = simulato, A-08).
 
 ### Diagnosi suggerita
 
@@ -328,15 +348,15 @@ Lettura di `assets.ownedPets`, `status.activeTravel` (compreso `mount`) e dei `Q
 - **W-8:** push `ambush` personale con `id` = id del `QuestResult`, testi del BE col nome mostrato; `ambushDefeat` NON parte più.
 - **W-9:** push `petRecovered` personale con `id` = id del pet, testo `<nome> è di nuovo in forze`.
 - **W-10:** `RenamePetRequest { id, name, petId }`, `CommonResponse`; regole del nome del personaggio senza filtro di parole; `PET_NAME_INVALID`, `BAD_USER_INPUT` (anche `name` omesso), `PET_NOT_OWNED`/`NOT_FOUND`; non bloccata dalla missione; emette `characterUpdated`; `name: null` toglie.
-- **W-11:** `MissionCompanion` e `companionLifeAfter` come chiesti; correzione `1..maxLifePoints`; nullo anche dopo una sconfitta in uno scontro precedente; regole d'invalidazione invariate. Contratto A-08: rimandare sempre il valore simulato quando si corregge il partecipante.
+- **W-11:** `MissionCompanion` e `companionLifeAfter` come chiesti; correzione `1..maxLifePoints`; nullo anche dopo una sconfitta in uno scontro precedente; regole d'invalidazione invariate. Contratto A-08: un campo omesso o `null` vale il simulato; rimandarlo resta lecito.
 - **W-12:** nome mostrato servito in `CompanionOutcome.name`, `MissionCompanion.name` e nei testi delle push.
 
 ### Domande aperte
 
-- **Per l'utente:** nel dungeon il compagno sconfitto alla prima tappa prende comunque l'xp di tutte le tappe (comportamento osservato nel piano 06): va bene così?
+- ~~**Per l'utente:** xp del compagno sconfitto alla prima tappa di un dungeon.~~ **Chiusa (fix/23), poi rivista in UAT il 2026-11-15** («Se il pet viene sconfitto non ottiene xp. Li ottiene solo quando vince.»): il compagno sconfitto non prende gli xp dello scontro della caduta; nelle sequenze (dungeon, flusso guidato, quest più guardia) prende quelli dei soli scontri da cui esce in piedi. L'xp del personaggio non cambia.
 - **Per l'utente:** `AmbushReport.onFoot` è un default dell'orchestratore (vetabile: senza la riga «Prosegui a piedi» basta la riga del compagno caduto).
 - **Per l'utente:** testi provvisori delle push `ambush` e `petRecovered`, da rivedere in UAT.
-- **Contratto A-08 (rinviato):** «omesso = valore d'inizio scontro» per tutti gli effetti di un partecipante corretto. Se si vuole «omesso = simulato», va cambiato per tutti gli effetti insieme (decisione di contratto, fase o quick successiva).
+- ~~**Contratto A-08 (rinviato).**~~ **Chiusa (fix/23):** nella bozza guidata omesso o `null` = simulato per tutti gli effetti insieme, valore esplicito vince; il completamento senza bozza resta com'era (§2 g).
 - Per la FE nessuna domanda: le risposte sopra chiudono W-1..W-12.
 
 ### Deviazioni dal disegno iniziale
@@ -347,7 +367,7 @@ Lettura di `assets.ownedPets`, `status.activeTravel` (compreso `mount`) e dei `Q
 - `MissionCompanion.name` è fotografato alla simulazione.
 - `AmbushReport.onFoot` è un default dell'orchestratore; in sconfitta vale solo per una cavalcatura (B-03, sostituisce la scelta del piano 14).
 - La FE pre-merge vede già i report d'imboscata in viaggio (D-28) e non riceve più `ambushDefeat` (né conosce `ambush`) finché la sua PR non entra.
-- Rinviati dalla review: A-08 (contratto, sopra), A-10 (sweeper senza paginazione, stesso limite della prigione), B-08 (b) (seconda imboscata già scaduta risolta dallo sweeper prima del riallineamento della prima), B-09 (pedina che salta indietro, sopra).
+- Rinviati dalla review: A-08 (contratto, poi deciso e realizzato in fix/23), A-10 (sweeper senza paginazione, stesso limite della prigione), B-08 (b) (seconda imboscata già scaduta risolta dallo sweeper prima del riallineamento della prima), B-09 (pedina che salta indietro, sopra).
 
 ### Casi verdi al primo colpo
 

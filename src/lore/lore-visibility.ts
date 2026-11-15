@@ -76,11 +76,23 @@ export function visibleLoreIdsOf(
     visibility: LoreVisibility,
     refs: readonly unknown[] | null | undefined,
 ): Types.ObjectId[] {
+    return readableLoreIdsOf(refs).filter((id) => isVisible(visibility, id));
+}
+
+// soggetto noto al viewer (UAT 2026-11-15): almeno una sua lore visibile, o nessuna lore da scoprire; stesse regole di visibleLoreIdsOf
+export function knowsAnyLoreOf(
+    visibility: LoreVisibility,
+    refs: readonly unknown[] | null | undefined,
+): boolean {
+    const ids = readableLoreIdsOf(refs);
+    return ids.length === 0 || ids.some((id) => isVisible(visibility, id));
+}
+
+function readableLoreIdsOf(
+    refs: readonly unknown[] | null | undefined,
+): Types.ObjectId[] {
     const hexes = new Set((refs ?? []).map(refHexOf).filter(isString));
     return [...hexes]
         .map(objectIdFromHex)
-        .filter(
-            (id): id is Types.ObjectId =>
-                id !== null && isVisible(visibility, id),
-        );
+        .filter((id): id is Types.ObjectId => id !== null);
 }
