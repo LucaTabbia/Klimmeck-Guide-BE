@@ -170,11 +170,14 @@ type PrizePetEntry = CatalogEntry<{
 type LearnableSpellEntry = CatalogEntry<{
     minLevelToLearn?: unknown;
     maxUsages?: unknown;
+    relatedLore?: unknown;
 }>;
 
 const LEARNABLE_SPELL_PROJECTION = {
     minLevelToLearn: 1,
     maxUsages: 1,
+    // le lore della magia, sbloccate quando viene imparata (Phase 24 D-24)
+    relatedLore: 1,
 } as const;
 
 // i campi di CombatEnemySnapshot, come le altre letture del catalogo
@@ -193,9 +196,15 @@ const learnableSpellOf = ({
     _id,
     minLevelToLearn,
     maxUsages,
+    relatedLore,
 }: LearnableSpellEntry): SpellCandidate | null =>
     isLearnLevel(minLevelToLearn) && isUsageCount(maxUsages)
-        ? { spellId: _id, minLevelToLearn, maxUsages }
+        ? {
+              spellId: _id,
+              minLevelToLearn,
+              maxUsages,
+              relatedLore: relatedLoreIdsOf(relatedLore),
+          }
         : null;
 
 const isSpellCandidate = (
@@ -685,10 +694,7 @@ export class ResolutionLoader {
             spells
                 .map(learnableSpellOf)
                 .filter(isSpellCandidate)
-                .map(({ spellId, minLevelToLearn, maxUsages }) => [
-                    spellId.toHexString(),
-                    { minLevelToLearn, maxUsages },
-                ]),
+                .map(({ spellId, ...spell }) => [spellId.toHexString(), spell]),
         );
     }
 

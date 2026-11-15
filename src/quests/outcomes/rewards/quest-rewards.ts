@@ -39,6 +39,8 @@ export interface SpellCandidate {
     spellId: Types.ObjectId;
     minLevelToLearn: number;
     maxUsages: number;
+    // lore sbloccate se la magia viene imparata (Phase 24 D-24); assente = nessuna lore
+    relatedLore?: readonly Types.ObjectId[];
 }
 
 // pool ordinato per id esadecimale crescente: gate decide se si impara, roll sceglie fra le imparabili (quick 261111-sdc)
@@ -74,7 +76,7 @@ export interface DrawnRewards {
 
 export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
-    spells: ReadonlyMap<string, { minLevelToLearn: number; maxUsages: number }>;
+    spells: ReadonlyMap<string, Omit<SpellCandidate, 'spellId'>>;
     spellPool: readonly SpellCandidate[];
     // hex dei pet esistenti fra quelli in premio (D-21) → `maxLifePoints` del catalogo (Phase 19 D-03)
     pets: ReadonlyMap<string, unknown>;
@@ -220,6 +222,7 @@ function spellCandidateOf(
               spellId,
               minLevelToLearn: spell.minLevelToLearn,
               maxUsages: spell.maxUsages,
+              relatedLore: spell.relatedLore,
           }
         : null;
 }

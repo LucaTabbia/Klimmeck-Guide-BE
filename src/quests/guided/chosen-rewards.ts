@@ -41,6 +41,7 @@ function chosenSpellOf(
               spellId: prize.spell,
               minLevelToLearn: spell.minLevelToLearn,
               maxUsages: spell.maxUsages,
+              relatedLore: spell.relatedLore,
           }
         : null;
 }

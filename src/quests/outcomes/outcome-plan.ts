@@ -532,10 +532,20 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             : null;
     // le lore del pet solo con la voce aggiunta in questo esito (Phase 19 D-26)
     const petLore = petWon ? rewards.petLore : [];
-    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto
+    // le lore della magia solo se imparata in questo esito, per qualunque via (Phase 24 D-24): la prima di un'origine sblocca la lore dell'origine
+    const spellLore =
+        spellLearned && spellCandidate
+            ? [...(spellCandidate.relatedLore ?? [])]
+            : [];
+    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto, poi quelle della magia imparata
     const learned = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        [...victoryLore, ...(studyLore ? [studyLore] : []), ...petLore],
+        [
+            ...victoryLore,
+            ...(studyLore ? [studyLore] : []),
+            ...petLore,
+            ...spellLore,
+        ],
         victory?.enemyIds ?? [],
     );
     const lanePath = lanePathOf(input.lane);
