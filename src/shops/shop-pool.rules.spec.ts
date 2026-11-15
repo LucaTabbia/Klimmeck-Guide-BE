@@ -1,11 +1,14 @@
 import { Types } from 'mongoose';
+import { citySizeOf } from 'src/cities/city-size';
 import { CitySize } from 'src/models/enums/city-size.enum';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import {
     allowedRaritiesOf,
     hasShopOf,
     isShelfEligible,
     shelfInPoolOrder,
+    shopTierOf,
 } from './shop-pool.rules';
 
 describe('hasShopOf', () => {
@@ -79,6 +82,34 @@ describe('allowedRaritiesOf', () => {
             city: ['common', 'uncommon', 'rare'],
             capital: ['common', 'uncommon', 'rare', 'ultrarare'],
         });
+    });
+});
+
+describe('shopTierOf', () => {
+    const CITY_TIER_CAPITALS: readonly CityType[] = [
+        CityType.aarakocraCapital,
+        CityType.dragonbornCapital,
+    ];
+
+    it('judges the shops of the two new capitals with the city tier (D-22)', () => {
+        expect(shopTierOf(CityType.aarakocraCapital)).toBe(CitySize.city);
+        expect(shopTierOf(CityType.dragonbornCapital)).toBe(CitySize.city);
+    });
+
+    it.each(
+        Object.values(CityType).filter(
+            (type) => !CITY_TIER_CAPITALS.includes(type),
+        ),
+    )(
+        'keeps every other city type on the tier of its size (D-22): %s',
+        (type) => {
+            expect(shopTierOf(type)).toBe(citySizeOf(type));
+        },
+    );
+
+    it('keeps an old capital and the dragonborn village on their size (D-22)', () => {
+        expect(shopTierOf(CityType.drusteaCapital)).toBe(CitySize.capital);
+        expect(shopTierOf(CityType.dragonbornVillage)).toBe(CitySize.village);
     });
 });
 

@@ -95,6 +95,50 @@ describe('shop pool report', () => {
         expect(hasViolations(violation)).toBe(true);
     });
 
+    it('flags an ultrarare item in the shop of a new capital as out of size (D-22)', () => {
+        const ultrarare = entry('Lama rara', RarityType.ultrarare);
+        const pool = { equipment: [ultrarare._id] };
+        const catalogue = catalogueOf([ultrarare]);
+
+        const murnborim = violationsOf(
+            village(pool, {
+                name: 'Murnborim',
+                type: CityType.aarakocraCapital,
+            }),
+            catalogue,
+        );
+        const drustea = violationsOf(
+            village(pool, { name: 'Drustea', type: CityType.drusteaCapital }),
+            catalogue,
+        );
+
+        expect(murnborim.size).toBe(CitySize.city);
+        expect(murnborim.outOfSize).toEqual([
+            {
+                id: ultrarare._id.toHexString(),
+                name: 'Lama rara',
+                rarity: RarityType.ultrarare,
+            },
+        ]);
+        expect(drustea.size).toBe(CitySize.capital);
+        expect(drustea.outOfSize).toEqual([]);
+    });
+
+    it('accepts a rare item in the shop of a new capital (D-22)', () => {
+        const rare = entry('Lama del vento', RarityType.rare);
+
+        const violation = violationsOf(
+            village(
+                { equipment: [rare._id] },
+                { name: 'Thengran', type: CityType.dragonbornCapital },
+            ),
+            catalogueOf([rare]),
+        );
+
+        expect(violation.outOfSize).toEqual([]);
+        expect(hasViolations(violation)).toBe(false);
+    });
+
     it('reports an item without rarity as out of size (D-06)', () => {
         const bare = entry('Senza rarità');
         const city = village({ loot: [bare._id] });
