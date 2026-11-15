@@ -2,6 +2,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model, Schema, Types } from 'mongoose';
 import type request from 'supertest';
 import { EnemiesModule } from 'src/enemies/enemies.module';
+import { Character } from 'src/models/character/character.model';
 import { LootItemsModule } from 'src/lootItems/loot-items.module';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
@@ -41,6 +42,8 @@ const LOOT_ITEM =
 const PETS = 'query { pets { id relatedLore { id name } } }';
 const PET =
     'query Pet($id: String!) { pet(id: $id) { id relatedLore { id name } } }';
+const PETS_KNOWN = 'query { pets { id known } }';
+const PET_KNOWN = 'query Pet($id: String!) { pet(id: $id) { id known } }';
 
 interface WireRelated {
     id: string;
@@ -50,6 +53,7 @@ interface WireRelated {
 interface WireWithRelated {
     id: string;
     imagePath?: string | null;
+    known?: boolean;
     relatedLore: WireRelated[];
 }
 
@@ -541,6 +545,113 @@ describe('related lore (wire)', () => {
             expect(relatedOf(body.data?.pets, pet._id)).toEqual([
                 wireOf(loreA, 'A'),
             ]);
+        });
+    });
+
+    describe('whether the viewer knows a pet', () => {
+        function knownOf(
+            entries: WireWithRelated[] | undefined,
+            id: Types.ObjectId,
+        ): boolean | undefined {
+            return entries?.find((entry) => entry.id === String(id))?.known;
+        }
+
+        it('knows a pet once one of its lore is unlocked (UAT 2026-11-15)', async () => {
+            const known = await petWith([loreC._id, loreA._id]);
+            const locked = await petWith([loreC._id]);
+
+            const body = await request(PETS_KNOWN);
+
+            expect(body.errors).toBeUndefined();
+            expect(knownOf(body.data?.pets, known._id)).toBe(true);
+            expect(knownOf(body.data?.pets, locked._id)).toBe(false);
+        });
+
+        it('knows a pet without any lore, there is nothing to discover (UAT 2026-11-15)', async () => {
+            const pet = await petWith([]);
+
+            const body = await request(PETS_KNOWN);
+
+            expect(body.errors).toBeUndefined();
+            expect(knownOf(body.data?.pets, pet._id)).toBe(true);
+        });
+
+        it('knows every pet as the innkeeper (UAT 2026-11-15)', async () => {
+            const pet = await petWith([loreC._id]);
+
+            const body = await request(
+                PETS_KNOWN,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(knownOf(body.data?.pets, pet._id)).toBe(true);
+        });
+
+        it('knows no pet with lore without a current character (UAT 2026-11-15)', async () => {
+            const withLore = await petWith([loreA._id]);
+            const withoutLore = await petWith([]);
+            const { bearer: homeless } = await createPlayer(harness, {
+                twitchId: 'twitch-pet-known-homeless',
+                withCharacter: false,
+            });
+
+            const body = await request(PETS_KNOWN, undefined, homeless);
+
+            expect(body.errors).toBeUndefined();
+            expect(knownOf(body.data?.pets, withLore._id)).toBe(false);
+            expect(knownOf(body.data?.pets, withoutLore._id)).toBe(true);
+        });
+
+        it('serves known on the single pet query too (UAT 2026-11-15)', async () => {
+            const pet = await petWith([loreC._id]);
+
+            const body = await request(PET_KNOWN, { id: String(pet._id) });
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.pet?.known).toBe(false);
+        });
+
+        it('reads a pet lore id written as a string by a content script (UAT 2026-11-15)', async () => {
+            const pet = await petWith([]);
+            await modelOf(Pet.name, PetSchema).collection.updateOne(
+                { _id: pet._id },
+                { $set: { relatedLore: [loreA._id.toHexString()] } },
+            );
+
+            const body = await request(PETS_KNOWN);
+
+            expect(body.errors).toBeUndefined();
+            expect(knownOf(body.data?.pets, pet._id)).toBe(true);
+        });
+
+        it('reads the viewer once and no lore for many pets (UAT 2026-11-15)', async () => {
+            await petWith([loreA._id]);
+            await petWith([loreC._id]);
+            await petWith([]);
+            const lore = harness.app.get<Model<unknown>>(
+                getModelToken(Lore.name),
+            );
+            const character = harness.app.get<Model<unknown>>(
+                getModelToken(Character.name),
+            );
+            const loreRead = jest.spyOn(lore, 'find');
+            const characterRead = jest.spyOn(character, 'findOne');
+
+            try {
+                const body = await request(PETS_KNOWN);
+
+                expect(body.errors).toBeUndefined();
+                expect(
+                    (body.data?.pets ?? []).map((pet) => pet.known).sort(),
+                ).toEqual([false, true, true]);
+                expect(loreRead).not.toHaveBeenCalled();
+                expect(characterRead).toHaveBeenCalledTimes(1);
+            } finally {
+                loreRead.mockRestore();
+                characterRead.mockRestore();
+            }
         });
     });
 });
