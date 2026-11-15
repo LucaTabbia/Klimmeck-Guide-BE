@@ -55,7 +55,7 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
-import { isSpellSchool } from '../spell-schools';
+import { isSpellSchool, schoolOriginOf } from '../spell-schools';
 import { isPetXpCap } from './pets/pet-xp';
 import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
@@ -112,6 +112,12 @@ export interface StandardLoad {
     character: ResolutionCharacter;
     quest: ResolutionQuest;
     ownerId: Types.ObjectId;
+}
+
+// la sorgente del sorteggio delle magie: i premi dicono se sorteggiare, il tipo della quest quale origine (Phase 24 D-10)
+export interface SpellPoolSource {
+    prizes: PrizesSnapshot | null | undefined;
+    questType: unknown;
 }
 
 export interface CatalogEnemy {
@@ -622,16 +628,16 @@ export class ResolutionLoader {
     private async readRewardCatalog(
         quest: ResolutionQuest,
     ): Promise<RewardCatalog> {
-        return this.readRewardCatalogFor(
-            rewardRefsOf(prizeBlocksOf(quest)),
-            quest.prizes,
-        );
+        return this.readRewardCatalogFor(rewardRefsOf(prizeBlocksOf(quest)), {
+            prizes: quest.prizes,
+            questType: quest.infos?.type,
+        });
     }
 
     // catalogo dei premi di ref arbitrari (D-22): una sorgente del pool nulla lascia vuoto il sorteggio delle magie
     async readRewardCatalogFor(
         refs: RewardRefs,
-        spellPoolSource: PrizesSnapshot | null | undefined,
+        spellPoolSource: SpellPoolSource | null,
     ): Promise<RewardCatalog> {
         const idsOf = (itemType: string) =>
             refs.items
@@ -731,13 +737,14 @@ export class ResolutionLoader {
             );
     }
 
-    // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile
+    // D-31, Phase 24 D-10: una scuola pesca solo la propria origine; ogni altro tipo che sorteggia l'intero catalogo; ordine per id così il tiro è riproducibile
     private async readSpellPool(
-        prizes: PrizesSnapshot | null | undefined,
+        source: SpellPoolSource | null,
     ): Promise<SpellCandidate[]> {
-        if (prizes?.spellDraw !== true) return [];
+        if (source?.prizes?.spellDraw !== true) return [];
+        const origin = schoolOriginOf(source.questType);
         const spells = await this.spellModel
-            .find({}, LEARNABLE_SPELL_PROJECTION)
+            .find(origin ? { origin } : {}, LEARNABLE_SPELL_PROJECTION)
             .lean<LearnableSpellEntry[]>()
             .exec();
         return spells
