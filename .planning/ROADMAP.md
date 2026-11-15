@@ -279,7 +279,7 @@ Plans:
 Plans:
 - [x] 24-01-PLAN.md — Tipi di città, fascia dei negozi e città di nascita
 - [x] 24-02-PLAN.md — Modello della magia: origine e livello minimo (solo aggiunte)
-- [ ] 24-03-PLAN.md — Cancello a livello nelle quest
+- [x] 24-03-PLAN.md — Cancello a livello nelle quest
 - [ ] 24-04-PLAN.md — Cancello a livello nelle opzioni dell'oste
 - [ ] 24-05-PLAN.md — Via `minXpToLearn`, reporter delle magie
 - [ ] 24-06-PLAN.md — Tipi di quest `arcane`, `shamanic`, `void`
@@ -336,7 +336,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
-| 24. Origini delle magie, quest void e shamanic | v1.1 | 2/12 | In Progress | - |
+| 24. Origini delle magie, quest void e shamanic | v1.1 | 3/12 | In Progress | - |
 
 ---
 
