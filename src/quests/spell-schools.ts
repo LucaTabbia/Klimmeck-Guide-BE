@@ -1,4 +1,4 @@
-// le tre quest di scuola e l'origine che insegnano (Phase 24 D-09, D-10, D-20): una tabella, tre consumatori (ripetibilità, pool dello studio, sorteggio)
+// le tre quest di scuola e l'origine che insegnano (Phase 24 D-09, D-10, D-20): la leggono il pool di lore dello studio e il sorteggio; la ripetibilità elenca i tre tipi a mano in REPEATABLE_TYPES
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 
