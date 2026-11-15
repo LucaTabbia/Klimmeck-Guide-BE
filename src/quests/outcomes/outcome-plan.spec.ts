@@ -19,13 +19,17 @@ import {
 } from 'src/quests/outcomes/outcome-plan';
 import {
     DrawnRewards,
+    drawRewards,
     NO_REWARDS,
+    RewardCatalog,
 } from 'src/quests/outcomes/rewards/quest-rewards';
+import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import {
     buildOwnedPet,
     type OwnedPetOverrides,
 } from '../../../test/fixtures/owned-pet.fixture';
 import { NO_TURNS } from '../../../test/quests/dungeon-turns.fixture';
+import { SequenceChance } from '../../../test/quests/sequence-chance';
 
 const NOW = new Date('2026-10-24T10:00:00.000Z');
 const CHARACTER_ID = new Types.ObjectId('64b0000000000000000000e1');
@@ -1600,7 +1604,7 @@ describe('planParticipant', () => {
                     xpPrize: 300,
                     spellCandidate: {
                         spellId: LEARNED_SPELL_ID,
-                        minXpToLearn: 300,
+                        minLevelToLearn: 2,
                         maxUsages: 4,
                     },
                 }),
@@ -1630,7 +1634,7 @@ describe('planParticipant', () => {
             active: false,
         };
         const studyWith = (
-            minXpToLearn: number,
+            minLevelToLearn: number,
             snapshot: SnapshotOverrides = {},
             overrides: Partial<ParticipantPlanInput> = {},
         ) =>
@@ -1642,7 +1646,7 @@ describe('planParticipant', () => {
                         xpPrize: 300,
                         spellCandidate: {
                             spellId: LEARNED_SPELL_ID,
-                            minXpToLearn,
+                            minLevelToLearn,
                             maxUsages: 4,
                         },
                     }),
@@ -1665,7 +1669,7 @@ describe('planParticipant', () => {
             };
             const snapshot = { status: { spellStates: [known] } };
 
-            const plan = studyWith(300, snapshot);
+            const plan = studyWith(2, snapshot);
 
             expect(plan.update.$set['status.spellStates']).toEqual([
                 {
@@ -1681,7 +1685,7 @@ describe('planParticipant', () => {
         });
 
         it('appends a learned spell as a state that is not active (D-07)', () => {
-            const plan = studyWith(300, {
+            const plan = studyWith(2, {
                 status: {
                     spellStates: [
                         {
@@ -1705,7 +1709,7 @@ describe('planParticipant', () => {
         });
 
         it('writes the spell states alone when a spell is learned (D-07)', () => {
-            const plan = studyWith(300);
+            const plan = studyWith(2);
 
             expect(Object.keys(plan.update.$set).sort()).toEqual([
                 'assets.ownedEquipments',
@@ -1721,13 +1725,13 @@ describe('planParticipant', () => {
             ]);
         });
 
-        it('only grants xp when the xp is not enough', () => {
-            expectNothingLearned(studyWith(400));
+        it('only grants xp when the level is not enough', () => {
+            expectNothingLearned(studyWith(3));
         });
 
         it('never learns a spell that already has a state (D-07)', () => {
             expectNothingLearned(
-                studyWith(300, {
+                studyWith(2, {
                     status: {
                         spellStates: [
                             {
@@ -1744,7 +1748,7 @@ describe('planParticipant', () => {
 
         it('does not learn a spell whose state holds a legacy string ref', () => {
             expectNothingLearned(
-                studyWith(300, {
+                studyWith(2, {
                     status: {
                         spellStates: [
                             {
@@ -1769,12 +1773,12 @@ describe('planParticipant', () => {
                             pool: [
                                 {
                                     spellId: LEARNED_SPELL_ID,
-                                    minXpToLearn: 100,
+                                    minLevelToLearn: 2,
                                     maxUsages: 4,
                                 },
                                 {
                                     spellId: DRAWN_SPELL_ID,
-                                    minXpToLearn: 200,
+                                    minLevelToLearn: 2,
                                     maxUsages: 2,
                                 },
                             ],
@@ -1820,7 +1824,7 @@ describe('planParticipant', () => {
                             pool: [
                                 {
                                     spellId: DRAWN_SPELL_ID,
-                                    minXpToLearn: 0,
+                                    minLevelToLearn: 1,
                                     maxUsages: 2,
                                 },
                             ],
@@ -1837,7 +1841,7 @@ describe('planParticipant', () => {
         it('learns no drawn spell when the gate misses the 30% chance (quick 261111-sdc)', () => {
             expectNothingLearned(
                 studyWith(
-                    300,
+                    2,
                     {},
                     {
                         rewards: rewardsWith({
@@ -1846,7 +1850,7 @@ describe('planParticipant', () => {
                                 pool: [
                                     {
                                         spellId: DRAWN_SPELL_ID,
-                                        minXpToLearn: 0,
+                                        minLevelToLearn: 1,
                                         maxUsages: 2,
                                     },
                                 ],
@@ -1861,21 +1865,21 @@ describe('planParticipant', () => {
 
         it('keeps the fixed spell of the study when present (D-31)', () => {
             const plan = studyWith(
-                300,
+                2,
                 {},
                 {
                     rewards: rewardsWith({
                         xpPrize: 300,
                         spellCandidate: {
                             spellId: LEARNED_SPELL_ID,
-                            minXpToLearn: 300,
+                            minLevelToLearn: 2,
                             maxUsages: 4,
                         },
                         spellDraw: {
                             pool: [
                                 {
                                     spellId: DRAWN_SPELL_ID,
-                                    minXpToLearn: 0,
+                                    minLevelToLearn: 1,
                                     maxUsages: 2,
                                 },
                             ],
@@ -1895,7 +1899,7 @@ describe('planParticipant', () => {
         it('learns no drawn spell from a lost fight (D-31)', () => {
             expectNothingLearned(
                 studyWith(
-                    0,
+                    1,
                     {},
                     {
                         verdict: QuestOutcome.failure,
@@ -1905,7 +1909,7 @@ describe('planParticipant', () => {
                                 pool: [
                                     {
                                         spellId: DRAWN_SPELL_ID,
-                                        minXpToLearn: 0,
+                                        minLevelToLearn: 1,
                                         maxUsages: 2,
                                     },
                                 ],
@@ -1921,7 +1925,7 @@ describe('planParticipant', () => {
         it('learns nothing from a lost fight', () => {
             expectNothingLearned(
                 studyWith(
-                    0,
+                    1,
                     {},
                     {
                         verdict: QuestOutcome.failure,
@@ -1932,14 +1936,105 @@ describe('planParticipant', () => {
         });
     });
 
+    describe('spell gate on the level after the outcome', () => {
+        // 3 900 xp = livello 5; +100 xp → 4 000 xp = livello 6; +49 xp → 3 949 xp = livello 5
+        const nearLevelSix = () =>
+            snapshotWith(asMage({ status: { xp: 3_900, level: 5 } }));
+        const learnedWith = (overrides: Partial<ParticipantPlanInput>) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.study),
+                    snapshot: nearLevelSix(),
+                    ...overrides,
+                }),
+            ).result.spellLearned;
+        const fixedAtSix = (xpPrize: number) =>
+            rewardsWith({
+                xpPrize,
+                spellCandidate: {
+                    spellId: LEARNED_SPELL_ID,
+                    minLevelToLearn: 6,
+                    maxUsages: 4,
+                },
+            });
+
+        it('gates a fixed spell on the level after the xp prizes, not on the xp (D-07)', () => {
+            expect(learnedWith({ rewards: fixedAtSix(100) })).toBe(
+                LEARNED_SPELL_ID,
+            );
+            expect(learnedWith({ rewards: fixedAtSix(49) })).toBeNull();
+        });
+
+        it('gates the spell of a rank prize block on the level (D-08)', () => {
+            const catalog: RewardCatalog = {
+                rarities: new Map(),
+                spells: new Map([
+                    [
+                        LEARNED_SPELL_ID.toHexString(),
+                        { minLevelToLearn: 6, maxUsages: 4 },
+                    ],
+                ]),
+                spellPool: [],
+                pets: new Map(),
+            };
+            const bossWith = (xpPrize: number) => ({
+                ...questOf(QuestType.boss, TitleType.paladin),
+                prizes: {
+                    rankPrizes: [
+                        { title: TitleType.paladin, xpPrize: 500 },
+                        {
+                            title: TitleType.mage,
+                            xpPrize,
+                            spell: LEARNED_SPELL_ID,
+                        },
+                    ],
+                },
+            });
+            const learnedFromBoss = (xpPrize: number) => {
+                const quest = bossWith(xpPrize);
+                const block = prizeBlockFor(quest, TitleType.mage);
+                return learnedWith({
+                    quest,
+                    rewards: drawRewards(block, catalog, new SequenceChance()),
+                });
+            };
+
+            expect(learnedFromBoss(100)).toBe(LEARNED_SPELL_ID);
+            expect(learnedFromBoss(49)).toBeNull();
+        });
+
+        it('gates a drawn spell on the level after the outcome (D-08)', () => {
+            const drawAt = (minLevelToLearn: number) =>
+                rewardsWith({
+                    xpPrize: 100,
+                    spellDraw: {
+                        pool: [
+                            {
+                                spellId: DRAWN_SPELL_ID,
+                                minLevelToLearn,
+                                maxUsages: 2,
+                            },
+                        ],
+                        gate: 0,
+                        roll: 0,
+                    },
+                });
+
+            expect(learnedWith({ rewards: drawAt(7) })).toBeNull();
+            expect(learnedWith({ rewards: drawAt(6) })).toBe(DRAWN_SPELL_ID);
+        });
+    });
+
     describe('spell learning by title', () => {
         const FIXED_SPELL = {
             spellId: LEARNED_SPELL_ID,
-            minXpToLearn: 0,
+            minLevelToLearn: 1,
             maxUsages: 4,
         };
         const spellDraw = {
-            pool: [{ spellId: DRAWN_SPELL_ID, minXpToLearn: 0, maxUsages: 2 }],
+            pool: [
+                { spellId: DRAWN_SPELL_ID, minLevelToLearn: 1, maxUsages: 2 },
+            ],
             gate: 0.1,
             roll: 0,
         };
@@ -1996,7 +2091,7 @@ describe('planParticipant', () => {
                     }),
                     rewards: rewardsWith({
                         xpPrize: 300,
-                        spellCandidate: { ...FIXED_SPELL, minXpToLearn: 300 },
+                        spellCandidate: { ...FIXED_SPELL, minLevelToLearn: 2 },
                     }),
                 }),
             );
@@ -2242,7 +2337,7 @@ describe('planParticipant', () => {
                         loreDraw,
                         spellCandidate: {
                             spellId: LEARNED_SPELL_ID,
-                            minXpToLearn: 0,
+                            minLevelToLearn: 1,
                             maxUsages: 4,
                         },
                     }),

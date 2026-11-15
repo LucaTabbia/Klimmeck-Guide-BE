@@ -276,7 +276,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
 
         it('cures and teaches on a study that carries a cure (D-07)', async () => {
             const spell = await persistSpell(world.models.spells, {
-                minXpToLearn: 200,
+                minLevelToLearn: 2,
                 maxUsages: 4,
             });
             const subject = await quester({
@@ -315,11 +315,11 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         });
     });
 
-    it('teaches the study spell when the xp after the prize is enough', async () => {
+    it('teaches the study spell when the level after the prize is enough', async () => {
         const recoveryAt = new Date('2026-10-24T13:00:00.000Z');
         const known = await persistSpell(world.models.spells);
         const spell = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 4,
         });
         const spellStates = spellStatesOf([
@@ -353,7 +353,7 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
 
     it('teaches no spell whose catalog entry has no max usages', async () => {
         const spell = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
         });
         await world.models.spells.collection.updateOne(
             { _id: spell._id },
@@ -375,9 +375,9 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         expect(result.spellLearned).toBeNull();
     });
 
-    it('teaches nothing when the xp after the prize is not enough', async () => {
+    it('teaches nothing when the level after the prize is not enough', async () => {
         const spell = await persistSpell(world.models.spells, {
-            minXpToLearn: 5000,
+            minLevelToLearn: 6,
         });
         const subject = await quester({
             questOverrides: jobQuest(
@@ -394,6 +394,49 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         const [result] = await resultsOf(subject);
         expect(result.spellLearned).toBeNull();
     });
+
+    // 300 xp dopo il premio = livello 2; la soglia in xp vecchia della fixture resta a 0
+    it.each([
+        [2, true],
+        [3, false],
+    ])(
+        'teaches the fixed spell of a quest only from its minimum level (D-07, D-08): level %p',
+        async (minLevelToLearn, learned) => {
+            const spell = await persistSpell(world.models.spells, {
+                minLevelToLearn,
+                minXpToLearn: 0,
+                maxUsages: 4,
+            });
+            const subject = await quester({
+                questOverrides: jobQuest(
+                    { xpPrize: 300, spell: spell._id },
+                    'study',
+                ),
+                characterOverrides: { status: { title: CASTER_TITLE } },
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.level).toBe(2);
+            expect(character.status.spellStates).toEqual(
+                learned
+                    ? [
+                          {
+                              spell: spell._id,
+                              usages: 4,
+                              recoveries: [],
+                              active: false,
+                          },
+                      ]
+                    : [],
+            );
+            const [result] = await resultsOf(subject);
+            expect(
+                result.spellLearned ? String(result.spellLearned) : null,
+            ).toBe(learned ? String(spell._id) : null);
+        },
+    );
 
     it('awards the rolled loot', async () => {
         const item = await potion({ rarity: 'common' });

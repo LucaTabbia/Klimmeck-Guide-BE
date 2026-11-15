@@ -26,7 +26,7 @@ const catalog: PrefillCatalog = {
         [`EquipmentItem:${SWORD_ID.toHexString()}`, RarityType.rare],
     ]),
     spells: new Map([
-        [SPELL_ID.toHexString(), { minXpToLearn: 100, maxUsages: 3 }],
+        [SPELL_ID.toHexString(), { minLevelToLearn: 2, maxUsages: 3 }],
     ]),
     pets: new Map([[PET_ID.toHexString(), 30]]),
 };

@@ -41,7 +41,7 @@ const catalog: RewardCatalog = {
         [`LootItem:${BONE_ID.toHexString()}`, RarityType.common],
     ]),
     spells: new Map([
-        [SPELL_ID.toHexString(), { minXpToLearn: 4000, maxUsages: 4 }],
+        [SPELL_ID.toHexString(), { minLevelToLearn: 6, maxUsages: 4 }],
     ]),
     spellPool: [],
     pets: new Map(),
@@ -49,18 +49,18 @@ const catalog: RewardCatalog = {
 
 const spellOf = (
     hex: string,
-    minXpToLearn: number,
+    minLevelToLearn: number,
     maxUsages = 3,
 ): SpellCandidate => ({
     spellId: new Types.ObjectId(hex),
-    minXpToLearn,
+    minLevelToLearn,
     maxUsages,
 });
 
-const SPELL_A = spellOf('64b0000000000000000000c1', 100);
-const SPELL_B = spellOf('64b0000000000000000000c2', 300);
-const SPELL_C = spellOf('64b0000000000000000000c3', 5000);
-const SPELL_D = spellOf('64b0000000000000000000c4', 200);
+const SPELL_A = spellOf('64b0000000000000000000c1', 2);
+const SPELL_B = spellOf('64b0000000000000000000c2', 2);
+const SPELL_C = spellOf('64b0000000000000000000c3', 7);
+const SPELL_D = spellOf('64b0000000000000000000c4', 2);
 
 const prizesWith = (overrides: PrizesSnapshot): PrizesSnapshot => ({
     prizeCoins: null,
@@ -192,7 +192,7 @@ describe('drawRewards', () => {
 
         expect(rewards.spellCandidate).toEqual({
             spellId: SPELL_ID,
-            minXpToLearn: 4000,
+            minLevelToLearn: 6,
             maxUsages: 4,
         });
     });
@@ -254,7 +254,7 @@ describe('drawRewards with a spell draw', () => {
 
         expect(rewards.spellCandidate).toEqual({
             spellId: SPELL_ID,
-            minXpToLearn: 4000,
+            minLevelToLearn: 6,
             maxUsages: 4,
         });
         expect(rewards.spellDraw).toBeNull();
@@ -531,11 +531,11 @@ describe('drawStudyLore', () => {
 });
 
 describe('drawLearnableSpell', () => {
-    it('picks among the unknown spells the xp after the prizes can learn (D-31)', () => {
+    it('picks among the unknown spells the level after the prizes can learn (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
         expect(
-            drawLearnableSpell(draw, 400, [SPELL_A.spellId], TitleType.mage),
+            drawLearnableSpell(draw, 2, [SPELL_A.spellId], TitleType.mage),
         ).toEqual(SPELL_B);
     });
 
@@ -545,7 +545,7 @@ describe('drawLearnableSpell', () => {
         expect(
             drawLearnableSpell(
                 draw,
-                400,
+                2,
                 [SPELL_A.spellId.toHexString()],
                 TitleType.mage,
             ),
@@ -555,7 +555,7 @@ describe('drawLearnableSpell', () => {
     it('returns no spell when nothing is learnable (D-31)', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_C], gate: 0, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
+        expect(drawLearnableSpell(draw, 1, [], TitleType.mage)).toBeNull();
     });
 
     it('maps the roll onto the learnable spells only (D-31)', () => {
@@ -564,7 +564,7 @@ describe('drawLearnableSpell', () => {
         expect(
             drawLearnableSpell(
                 { pool, gate: 0, roll: 0.99 },
-                400,
+                2,
                 [],
                 TitleType.mage,
             ),
@@ -572,7 +572,7 @@ describe('drawLearnableSpell', () => {
         expect(
             drawLearnableSpell(
                 { pool, gate: 0, roll: 0.34 },
-                400,
+                2,
                 [],
                 TitleType.mage,
             ),
@@ -582,7 +582,7 @@ describe('drawLearnableSpell', () => {
     it('teaches a learnable spell when the gate falls below 30% (quick 261111-sdc)', () => {
         const draw = { pool: [SPELL_A, SPELL_B], gate: 0.29, roll: 0 };
 
-        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+        expect(drawLearnableSpell(draw, 2, [], TitleType.mage)).toEqual(
             SPELL_A,
         );
     });
@@ -592,43 +592,97 @@ describe('drawLearnableSpell', () => {
         (gate) => {
             const draw = { pool: [SPELL_A, SPELL_B], gate, roll: 0 };
 
-            expect(
-                drawLearnableSpell(draw, 400, [], TitleType.mage),
-            ).toBeNull();
+            expect(drawLearnableSpell(draw, 2, [], TitleType.mage)).toBeNull();
         },
     );
 
+    it('draws only among the spells whose minimum level is reached (D-07, D-08)', () => {
+        const atTwo = spellOf('64b0000000000000000000e1', 2);
+        const atSix = spellOf('64b0000000000000000000e2', 6);
+        const atSeven = spellOf('64b0000000000000000000e3', 7);
+        const pool = [atTwo, atSix, atSeven];
+
+        expect(
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0 },
+                6,
+                [],
+                TitleType.mage,
+            ),
+        ).toEqual(atTwo);
+        expect(
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.99 },
+                6,
+                [],
+                TitleType.mage,
+            ),
+        ).toEqual(atSix);
+        expect(
+            drawLearnableSpell(
+                { pool, gate: 0, roll: 0.99 },
+                1,
+                [],
+                TitleType.mage,
+            ),
+        ).toBeNull();
+    });
+
     it('returns no spell without a draw', () => {
-        expect(drawLearnableSpell(null, 50000, [], TitleType.mage)).toBeNull();
+        expect(drawLearnableSpell(null, 20, [], TitleType.mage)).toBeNull();
     });
 
     it('clamps a roll out of range onto the last learnable spell', () => {
         const draw = { pool: [SPELL_A, SPELL_B, SPELL_D], gate: 0, roll: 1 };
 
-        expect(drawLearnableSpell(draw, 400, [], TitleType.mage)).toEqual(
+        expect(drawLearnableSpell(draw, 2, [], TitleType.mage)).toEqual(
             SPELL_D,
         );
     });
 });
 
 describe('canLearnSpell', () => {
-    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
+    const candidate = {
+        spellId: SPELL_ID,
+        minLevelToLearn: 6,
+        maxUsages: 4,
+    };
 
-    it('teaches the spell once the experience reaches the threshold', () => {
-        expect(canLearnSpell(candidate, 4000, [], TitleType.mage)).toBe(
-            SPELL_ID,
-        );
+    it('learns a spell when the level after the outcome equals its minimum level (D-07)', () => {
+        expect(
+            canLearnSpell(
+                { spellId: SPELL_ID, minLevelToLearn: 6, maxUsages: 4 },
+                6,
+                [],
+                TitleType.mage,
+            ),
+        ).toBe(SPELL_ID);
     });
 
-    it('does not teach it below the threshold', () => {
-        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
+    it('refuses a spell one level below its minimum (D-07)', () => {
+        expect(
+            canLearnSpell(
+                { spellId: SPELL_ID, minLevelToLearn: 6, maxUsages: 4 },
+                5,
+                [],
+                TitleType.mage,
+            ),
+        ).toBeNull();
+    });
+
+    it('teaches the spell once the level reaches the minimum', () => {
+        expect(canLearnSpell(candidate, 6, [], TitleType.mage)).toBe(SPELL_ID);
+    });
+
+    it('does not teach it below the minimum level', () => {
+        expect(canLearnSpell(candidate, 5, [], TitleType.mage)).toBeNull();
     });
 
     it('does not teach a spell already known, even as a legacy string', () => {
         expect(
             canLearnSpell(
                 candidate,
-                50000,
+                20,
                 [SPELL_ID.toHexString()],
                 TitleType.mage,
             ),
@@ -636,12 +690,16 @@ describe('canLearnSpell', () => {
     });
 
     it('teaches nothing without a candidate', () => {
-        expect(canLearnSpell(null, 50000, [], TitleType.mage)).toBeNull();
+        expect(canLearnSpell(null, 20, [], TitleType.mage)).toBeNull();
     });
 });
 
 describe('spell learning by title', () => {
-    const candidate = { spellId: SPELL_ID, minXpToLearn: 4000, maxUsages: 4 };
+    const candidate = {
+        spellId: SPELL_ID,
+        minLevelToLearn: 6,
+        maxUsages: 4,
+    };
     const draw = { pool: [SPELL_A, SPELL_B], gate: 0.1, roll: 0.99 };
 
     it.each([
@@ -656,7 +714,7 @@ describe('spell learning by title', () => {
     ])(
         'teaches a fixed spell only to a caster title (D-05b, D-25): %p',
         (title, expected) => {
-            expect(canLearnSpell(candidate, 50000, [], title)).toBe(expected);
+            expect(canLearnSpell(candidate, 20, [], title)).toBe(expected);
         },
     );
 
@@ -667,20 +725,20 @@ describe('spell learning by title', () => {
     ])(
         'draws a learnable spell only for a caster title (D-05b, D-25): %p',
         (title, expected) => {
-            expect(drawLearnableSpell(draw, 400, [], title)).toEqual(expected);
+            expect(drawLearnableSpell(draw, 2, [], title)).toEqual(expected);
         },
     );
 
-    it('keeps the xp and known spell gates for casters (D-05b)', () => {
-        expect(canLearnSpell(candidate, 3999, [], TitleType.mage)).toBeNull();
+    it('keeps the level and known spell gates for casters (D-05b)', () => {
+        expect(canLearnSpell(candidate, 5, [], TitleType.mage)).toBeNull();
         expect(
-            canLearnSpell(candidate, 50000, [SPELL_ID], TitleType.mage),
+            canLearnSpell(candidate, 20, [SPELL_ID], TitleType.mage),
         ).toBeNull();
-        expect(drawLearnableSpell(draw, 50, [], TitleType.mage)).toBeNull();
+        expect(drawLearnableSpell(draw, 1, [], TitleType.mage)).toBeNull();
         expect(
             drawLearnableSpell(
                 draw,
-                400,
+                2,
                 [SPELL_A.spellId, SPELL_B.spellId],
                 TitleType.mage,
             ),

@@ -312,6 +312,7 @@ const rewardLoaderWith = (models: {
     equipment?: CatalogDoc[];
     spells?: CatalogDoc[];
     pets?: CatalogDoc[];
+    spellModel?: ReturnType<typeof catalogModel>;
 }) =>
     new ResolutionLoader(
         null as never,
@@ -321,7 +322,7 @@ const rewardLoaderWith = (models: {
         catalogModel() as never,
         catalogModel(models.loot) as never,
         catalogModel(models.equipment) as never,
-        catalogModel(models.spells) as never,
+        (models.spellModel ?? catalogModel(models.spells)) as never,
         catalogModel(models.pets) as never,
         catalogModel() as never,
         undefined,
@@ -374,8 +375,8 @@ describe('ResolutionLoader reward catalog', () => {
         const S2 = new Types.ObjectId();
         const loader = rewardLoaderWith({
             spells: [
-                { _id: S1, minXpToLearn: 100, maxUsages: 2 },
-                { _id: S2, minXpToLearn: 300, maxUsages: 1 },
+                { _id: S1, minLevelToLearn: 2, maxUsages: 2 },
+                { _id: S2, minLevelToLearn: 3, maxUsages: 1 },
             ],
         });
         const quest = rankedBoss([
@@ -386,8 +387,8 @@ describe('ResolutionLoader reward catalog', () => {
         const { rewards } = await loader.readCatalog(quest as never, []);
 
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minXpToLearn: 100, maxUsages: 2 },
-            [S2.toHexString()]: { minXpToLearn: 300, maxUsages: 1 },
+            [S1.toHexString()]: { minLevelToLearn: 2, maxUsages: 2 },
+            [S2.toHexString()]: { minLevelToLearn: 3, maxUsages: 1 },
         });
     });
 
@@ -399,7 +400,7 @@ describe('ResolutionLoader reward catalog', () => {
         const loader = rewardLoaderWith({
             loot: [{ _id: L1, rarity: RarityType.uncommon }],
             equipment: [{ _id: E1, rarity: RarityType.rare }],
-            spells: [{ _id: S1, minXpToLearn: 200, maxUsages: 3 }],
+            spells: [{ _id: S1, minLevelToLearn: 2, maxUsages: 3 }],
             pets: [{ _id: P1, maxLifePoints: 40, relatedLore: [] }],
         });
 
@@ -420,11 +421,54 @@ describe('ResolutionLoader reward catalog', () => {
             [`EquipmentItem:${E1.toHexString()}`]: RarityType.rare,
         });
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minXpToLearn: 200, maxUsages: 3 },
+            [S1.toHexString()]: { minLevelToLearn: 2, maxUsages: 3 },
         });
         expect(Object.fromEntries(rewards.pets)).toEqual({
             [P1.toHexString()]: 40,
         });
         expect(rewards.spellPool).toEqual([]);
     });
+
+    it('projects the minimum level of the learnable spells (D-07)', async () => {
+        const S1 = new Types.ObjectId();
+        const spellModel = catalogModel([
+            { _id: S1, minLevelToLearn: 2, maxUsages: 3 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        await loader.readRewardCatalogFor(
+            { items: [], spellIds: [S1], petIds: [] },
+            { spellDraw: true },
+        );
+
+        expect(spellModel.find).toHaveBeenCalledTimes(2);
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toEqual({ minLevelToLearn: 1, maxUsages: 1 });
+        }
+    });
+
+    it.each([[0], [-1], [2.5], ['6'], [null], [undefined], [NaN]])(
+        'leaves a spell without an integer minimum level of at least one out of the catalogue (D-07): %p',
+        async (minLevelToLearn) => {
+            const valid = new Types.ObjectId('64b0000000000000000000f1');
+            const dirty = new Types.ObjectId('64b0000000000000000000f2');
+            const loader = rewardLoaderWith({
+                spells: [
+                    { _id: valid, minLevelToLearn: 1, maxUsages: 2 },
+                    { _id: dirty, minLevelToLearn, maxUsages: 2 },
+                ],
+            });
+
+            const rewards = await loader.readRewardCatalogFor(
+                { items: [], spellIds: [valid, dirty], petIds: [] },
+                { spellDraw: true },
+            );
+
+            expect([...rewards.spells.keys()]).toEqual([valid.toHexString()]);
+            expect(rewards.spellPool).toEqual([
+                { spellId: valid, minLevelToLearn: 1, maxUsages: 2 },
+            ]);
+        },
+    );
 });

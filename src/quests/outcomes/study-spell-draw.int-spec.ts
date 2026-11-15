@@ -104,14 +104,14 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
 
     it('teaches a spell drawn among the unknown learnable ones (D-31)', async () => {
         const known = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 3,
         });
         const drawn = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 4,
         });
-        await persistSpell(world.models.spells, { minXpToLearn: 9000 });
+        await persistSpell(world.models.spells, { minLevelToLearn: 8 });
         const spellStates = spellStatesOf([{ spell: known._id, usages: 3 }]);
         const subject = await quester({
             questOverrides: studyQuest({ xpPrize: 300 }),
@@ -137,11 +137,11 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
 
     it('adds the learned spell as a state that is not active (D-07)', async () => {
         const equipped = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 3,
         });
         const drawn = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 4,
         });
         const subject = await quester({
@@ -169,14 +169,14 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
 
     it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
         const known = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 3,
         });
         const drawn = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 4,
         });
-        await persistSpell(world.models.spells, { minXpToLearn: 9000 });
+        await persistSpell(world.models.spells, { minLevelToLearn: 8 });
         const spellStates = spellStatesOf([{ spell: known._id, usages: 3 }]);
         const subject = await quester({
             questOverrides: questOfType('magic', { xpPrize: 300 }),
@@ -203,11 +203,11 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
 
     it('leaves a catalog spell without max usages out of the draw (D-31)', async () => {
         const valid = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
             maxUsages: 4,
         });
         const malformed = await persistSpell(world.models.spells, {
-            minXpToLearn: 200,
+            minLevelToLearn: 2,
         });
         await world.models.spells.collection.updateOne(
             { _id: malformed._id },
@@ -226,8 +226,8 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         );
     });
 
-    it('teaches no spell when none is learnable after the prizes (D-31)', async () => {
-        await persistSpell(world.models.spells, { minXpToLearn: 9000 });
+    it('teaches no spell when none is learnable at the level after the prizes (D-31)', async () => {
+        await persistSpell(world.models.spells, { minLevelToLearn: 8 });
         const subject = await quester({
             questOverrides: studyQuest({ xpPrize: 300 }),
         });
@@ -242,8 +242,52 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect((await resultOf(subject)).spellLearned).toBeNull();
     });
 
+    // 300 xp dopo il premio = livello 2; la fixture tiene la soglia in xp vecchia a 0
+    it('teaches no spell below its minimum level, whatever its old xp threshold (D-07)', async () => {
+        await persistSpell(world.models.spells, {
+            minLevelToLearn: 3,
+            minXpToLearn: 0,
+        });
+        const subject = await quester({
+            questOverrides: studyQuest({ xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.spellStates).toEqual([]);
+        expect(character.status.level).toBe(2);
+        expect((await resultOf(subject)).spellLearned).toBeNull();
+        expect(chance.drawn).toEqual([0, 0]);
+    });
+
+    it('teaches a drawn spell exactly at its minimum level (D-07)', async () => {
+        const spell = await persistSpell(world.models.spells, {
+            minLevelToLearn: 2,
+            maxUsages: 4,
+        });
+        const subject = await quester({
+            questOverrides: studyQuest({ xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.level).toBe(2);
+        expect(character.status.spellStates).toEqual([
+            { spell: spell._id, usages: 4, recoveries: [], active: false },
+        ]);
+        expect(String((await resultOf(subject)).spellLearned)).toBe(
+            String(spell._id),
+        );
+    });
+
     it('teaches no spell from a learnable pool when the 30% gate misses (quick 261111-sdc)', async () => {
-        await persistSpell(world.models.spells, { minXpToLearn: 200 });
+        await persistSpell(world.models.spells, { minLevelToLearn: 2 });
         const subject = await quester({
             questOverrides: questOfType('magic', { xpPrize: 300 }),
         });
@@ -266,7 +310,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         'teaches the Valantar spell only to a caster (D-05b, D-25): %s',
         async (title, caster) => {
             const spell = await persistSpell(world.models.spells, {
-                minXpToLearn: 200,
+                minLevelToLearn: 2,
                 maxUsages: 4,
             });
             const studyLore = (await persistLore(
@@ -307,7 +351,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
     );
 
     it('ignores the spell catalog for a study without the flag', async () => {
-        await persistSpell(world.models.spells, { minXpToLearn: 0 });
+        await persistSpell(world.models.spells, { minLevelToLearn: 1 });
         const subject = await quester({
             questOverrides: studyQuest({ xpPrize: 300 }),
         });
