@@ -246,7 +246,6 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
     it('teaches no spell below its minimum level, whatever its old xp threshold (D-07)', async () => {
         await persistSpell(world.models.spells, {
             minLevelToLearn: 3,
-            minXpToLearn: 0,
         });
         const subject = await quester({
             questOverrides: studyQuest({ xpPrize: 300 }),

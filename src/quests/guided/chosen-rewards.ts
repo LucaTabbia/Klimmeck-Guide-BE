@@ -39,7 +39,7 @@ function chosenSpellOf(
     return prize.spell && spell
         ? {
               spellId: prize.spell,
-              minXpToLearn: spell.minXpToLearn,
+              minLevelToLearn: spell.minLevelToLearn,
               maxUsages: spell.maxUsages,
           }
         : null;

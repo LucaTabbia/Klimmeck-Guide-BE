@@ -404,7 +404,6 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         async (minLevelToLearn, learned) => {
             const spell = await persistSpell(world.models.spells, {
                 minLevelToLearn,
-                minXpToLearn: 0,
                 maxUsages: 4,
             });
             const subject = await quester({

@@ -1977,8 +1977,9 @@ describe('planParticipant', () => {
                 spellPool: [],
                 pets: new Map(),
             };
-            const bossWith = (xpPrize: number) => ({
-                ...questOf(QuestType.boss, TitleType.paladin),
+            const boss = questOf(QuestType.boss, TitleType.paladin);
+            const rankPrizesWith = (xpPrize: number) => ({
+                ...boss,
                 prizes: {
                     rankPrizes: [
                         { title: TitleType.paladin, xpPrize: 500 },
@@ -1991,10 +1992,12 @@ describe('planParticipant', () => {
                 },
             });
             const learnedFromBoss = (xpPrize: number) => {
-                const quest = bossWith(xpPrize);
-                const block = prizeBlockFor(quest, TitleType.mage);
+                const block = prizeBlockFor(
+                    rankPrizesWith(xpPrize),
+                    TitleType.mage,
+                );
                 return learnedWith({
-                    quest,
+                    quest: boss,
                     rewards: drawRewards(block, catalog, new SequenceChance()),
                 });
             };

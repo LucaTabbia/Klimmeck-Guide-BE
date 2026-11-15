@@ -477,12 +477,17 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         rewards.spellCandidate ??
         drawLearnableSpell(
             rewards.spellDraw,
-            progression.xp,
+            progression.level,
             knownSpells,
             titleAfter,
         );
     const spellLearned = won
-        ? canLearnSpell(spellCandidate, progression.xp, knownSpells, titleAfter)
+        ? canLearnSpell(
+              spellCandidate,
+              progression.level,
+              knownSpells,
+              titleAfter,
+          )
         : null;
     // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
     const learnedState =

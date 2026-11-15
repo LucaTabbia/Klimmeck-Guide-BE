@@ -160,11 +160,14 @@ type PrizePetEntry = CatalogEntry<{
 }>;
 
 type LearnableSpellEntry = CatalogEntry<{
-    minXpToLearn?: unknown;
+    minLevelToLearn?: unknown;
     maxUsages?: unknown;
 }>;
 
-const LEARNABLE_SPELL_PROJECTION = { minXpToLearn: 1, maxUsages: 1 } as const;
+const LEARNABLE_SPELL_PROJECTION = {
+    minLevelToLearn: 1,
+    maxUsages: 1,
+} as const;
 
 // i campi di CombatEnemySnapshot, come le altre letture del catalogo
 const COMBAT_ENEMY_PROJECTION = {
@@ -177,14 +180,17 @@ const COMBAT_ENEMY_PROJECTION = {
     relatedLore: 1,
 } as const;
 
-// una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
+const isLearnLevel = (value: unknown): value is number =>
+    Number.isInteger(value) && (value as number) >= 1;
+
+// una magia senza soglia valida (livello intero ≥ 1) o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07, Phase 24 D-07): mai valori impliciti
 const learnableSpellOf = ({
     _id,
-    minXpToLearn,
+    minLevelToLearn,
     maxUsages,
 }: LearnableSpellEntry): SpellCandidate | null =>
-    isFiniteNumber(minXpToLearn) && isUsageCount(maxUsages)
-        ? { spellId: _id, minXpToLearn, maxUsages }
+    isLearnLevel(minLevelToLearn) && isUsageCount(maxUsages)
+        ? { spellId: _id, minLevelToLearn, maxUsages }
         : null;
 
 const isSpellCandidate = (
@@ -674,9 +680,9 @@ export class ResolutionLoader {
             spells
                 .map(learnableSpellOf)
                 .filter(isSpellCandidate)
-                .map(({ spellId, minXpToLearn, maxUsages }) => [
+                .map(({ spellId, minLevelToLearn, maxUsages }) => [
                     spellId.toHexString(),
-                    { minXpToLearn, maxUsages },
+                    { minLevelToLearn, maxUsages },
                 ]),
         );
     }
