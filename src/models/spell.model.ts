@@ -1,13 +1,9 @@
-import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
+import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document } from 'mongoose';
 import { SpellOrigin } from './enums/spell-origin.enum';
 import { UseType } from './enums/use-type.enum';
-import {
-    EnergyDamage,
-    EnergyDamageInput,
-    EnergyDamageSchema,
-} from './common/energy-damage';
+import { EnergyDamage, EnergyDamageSchema } from './common/energy-damage';
 
 @ObjectType()
 @Schema()
@@ -60,33 +56,3 @@ export class Spell {
 
 export type SpellDocument = Spell & Document;
 export const SpellSchema = SchemaFactory.createForClass(Spell);
-
-@InputType()
-export class SpellInput {
-    @Field(() => ID, { nullable: true })
-    id?: string;
-
-    @Field(() => String)
-    name: string;
-
-    @Field(() => String)
-    description: string;
-
-    @Field(() => UseType)
-    useType: UseType;
-
-    @Field(() => EnergyDamageInput)
-    energyDamage: EnergyDamageInput;
-
-    @Field(() => Int)
-    requiredLearnTime: number;
-
-    @Field(() => Int)
-    minXpToLearn: number;
-
-    @Field(() => Int)
-    recoveryTime: number;
-
-    @Field(() => Int)
-    maxUsages: number;
-}
