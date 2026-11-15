@@ -204,3 +204,21 @@ export function overrideInputOf(
             : { companionLifeAfter: effects.companionLifeAfter }),
     };
 }
+
+// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince
+export function correctionOverSimulated(
+    correction: ParticipantOverrideInput,
+    simulated: ParticipantEffects,
+): ParticipantOverrideInput {
+    const base = overrideInputOf(correction.characterId, simulated);
+    const companionLifeAfter =
+        correction.companionLifeAfter ?? base.companionLifeAfter;
+    return {
+        characterId: correction.characterId,
+        hpAfter: correction.hpAfter ?? base.hpAfter,
+        injuries: correction.injuries ?? base.injuries,
+        consumablesUsed: correction.consumablesUsed ?? base.consumablesUsed,
+        spellsUsed: correction.spellsUsed ?? base.spellsUsed,
+        ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
+    };
+}

@@ -41,6 +41,7 @@ export class SpellUsageInput {
     usages: number;
 }
 
+// completamento senza bozza: un campo omesso vale lo stato d'inizio scontro; correzione della bozza guidata: omesso o null vale il simulato (A-08)
 @InputType()
 export class ParticipantOverrideInput {
     @Field(() => ID)
