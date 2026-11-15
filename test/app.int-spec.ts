@@ -577,11 +577,11 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
-    it('writes the spell with its origin and minimum level and without the minimum xp (D-01, D-07)', () => {
+    it('writes the spell with its origin, minimum level and related lore and without the minimum xp (D-01, D-07, D-24)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type Spell \{[^}]*\}/)?.[0]).toBe(
-            'type Spell {\n  description: String!\n  energyDamage: EnergyDamage!\n  id: ID!\n  maxUsages: Int!\n  minLevelToLearn: Int!\n  name: String!\n  origin: String!\n  recoveryTime: Int!\n  requiredLearnTime: Int!\n  useType: String!\n}',
+            'type Spell {\n  description: String!\n  energyDamage: EnergyDamage!\n  id: ID!\n  maxUsages: Int!\n  minLevelToLearn: Int!\n  name: String!\n  origin: String!\n  recoveryTime: Int!\n  relatedLore: [Lore!]!\n  requiredLearnTime: Int!\n  useType: String!\n}',
         );
         expect(schema).not.toMatch(/minXpToLearn/);
     });

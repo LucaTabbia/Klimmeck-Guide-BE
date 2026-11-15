@@ -11,13 +11,19 @@ import { Lore, LoreSchema } from 'src/models/lore.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
 import { PetsModule } from 'src/pets/pets.module';
+import { SpellsModule } from 'src/spells/spells.module';
 import {
     AuthTestApp,
     createAuthTestApp,
     graphqlRequest,
 } from '../../test/auth/auth-test-app';
 import { createPlayer } from '../../test/authz/player-fixture';
-import { persistEnemy, persistLore, persistSpell } from '../../test/fixtures';
+import {
+    buildSpell,
+    persistEnemy,
+    persistLore,
+    persistSpell,
+} from '../../test/fixtures';
 import { persistLootItem } from '../../test/fixtures/catalog-item.fixture';
 import { persistPet } from '../../test/fixtures/pet.fixture';
 import { playerKnowing } from '../../test/lore/lore-world';
@@ -43,6 +49,10 @@ const PETS = 'query { pets { id relatedLore { id name } } }';
 const PET =
     'query Pet($id: String!) { pet(id: $id) { id relatedLore { id name } } }';
 const PETS_KNOWN = 'query { pets { id known } }';
+
+const SPELLS = 'query { spells { id relatedLore { id name } } }';
+const SPELL =
+    'query Spell($id: String!) { spell(id: $id) { id relatedLore { id name } } }';
 const PET_KNOWN = 'query Pet($id: String!) { pet(id: $id) { id known } }';
 
 interface WireRelated {
@@ -67,6 +77,8 @@ interface WireBody {
         lootItem?: WireWithRelated;
         pets?: WireWithRelated[];
         pet?: WireWithRelated;
+        spells?: WireWithRelated[];
+        spell?: WireWithRelated;
     } | null;
     errors?: { message: string; extensions?: { code?: unknown } }[];
 }
@@ -123,6 +135,12 @@ describe('related lore (wire)', () => {
         return persistPet(modelOf(Pet.name, PetSchema), { relatedLore });
     }
 
+    async function spellWith(
+        relatedLore: unknown[],
+    ): Promise<{ _id: Types.ObjectId }> {
+        return persistSpell(modelOf(Spell.name, SpellSchema), { relatedLore });
+    }
+
     function idsOf(entries: { id: string }[] | undefined): string[] {
         return (entries ?? []).map((entry) => entry.id).sort();
     }
@@ -136,7 +154,13 @@ describe('related lore (wire)', () => {
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
-            imports: [LoreModule, EnemiesModule, LootItemsModule, PetsModule],
+            imports: [
+                LoreModule,
+                EnemiesModule,
+                LootItemsModule,
+                PetsModule,
+                SpellsModule,
+            ],
         });
     });
 
@@ -545,6 +569,108 @@ describe('related lore (wire)', () => {
             expect(relatedOf(body.data?.pets, pet._id)).toEqual([
                 wireOf(loreA, 'A'),
             ]);
+        });
+    });
+
+    describe('the related lore of a spell', () => {
+        const wireOf = (lore: { _id: Types.ObjectId }, name: string) => ({
+            id: String(lore._id),
+            name,
+        });
+
+        it('serves a player only the unlocked lore of a spell (D-24)', async () => {
+            const spell = await spellWith([loreA._id, loreC._id]);
+
+            const body = await request(SPELLS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, spell._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the innkeeper every lore of a spell in the order of the refs (D-24)', async () => {
+            const spell = await spellWith([loreC._id, loreA._id]);
+
+            const body = await request(
+                SPELLS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, spell._id)).toEqual([
+                wireOf(loreC, 'C'),
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves no lore of a spell to a user without a current character (D-24)', async () => {
+            const spell = await spellWith([loreA._id, loreC._id]);
+            const { bearer: homeless } = await createPlayer(harness, {
+                twitchId: 'twitch-spell-homeless',
+                withCharacter: false,
+            });
+
+            const body = await request(SPELLS, undefined, homeless);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, spell._id)).toEqual([]);
+        });
+
+        it('drops a lore of a spell that no longer exists (D-24)', async () => {
+            const spell = await spellWith([loreA._id, new Types.ObjectId()]);
+
+            const body = await request(
+                SPELLS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, spell._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves the unlocked lore on the single spell query too (D-24)', async () => {
+            const spell = await spellWith([loreA._id, loreC._id]);
+
+            const body = await request(SPELL, { id: String(spell._id) });
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.spell?.relatedLore).toEqual([wireOf(loreA, 'A')]);
+        });
+
+        it('reads a spell lore id written as a string by a content script (D-24)', async () => {
+            const spell = await spellWith([]);
+            await modelOf(Spell.name, SpellSchema).collection.updateOne(
+                { _id: spell._id },
+                { $set: { relatedLore: [loreA._id.toHexString()] } },
+            );
+
+            const body = await request(SPELLS);
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, spell._id)).toEqual([
+                wireOf(loreA, 'A'),
+            ]);
+        });
+
+        it('serves an empty list for a spell written without the field (D-24)', async () => {
+            const { insertedId } = await modelOf(
+                Spell.name,
+                SpellSchema,
+            ).collection.insertOne(buildSpell());
+
+            const body = await request(
+                SPELLS,
+                undefined,
+                await innkeeperBearer(),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(relatedOf(body.data?.spells, insertedId)).toEqual([]);
         });
     });
 

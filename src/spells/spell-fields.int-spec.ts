@@ -1,4 +1,4 @@
-import type { Model } from 'mongoose';
+import { type Model, Types } from 'mongoose';
 import { Spell } from 'src/models/spell.model';
 import {
     AuthTestApp,
@@ -127,6 +127,20 @@ describe('Spell origin and minimum level', () => {
             'requiredLearnTime',
             'useType',
         ]);
+    });
+
+    it('stores the related lore of a spell as a list of ids, empty by default (D-24)', async () => {
+        const lore = new Types.ObjectId();
+        const linked = await persistSpell(spells, { relatedLore: [lore] });
+        const bare = await persistSpell(spells);
+
+        const storedLinked = await spells.collection.findOne({
+            _id: linked._id,
+        });
+        const storedBare = await spells.collection.findOne({ _id: bare._id });
+
+        expect(storedLinked?.relatedLore).toEqual([lore]);
+        expect(storedBare?.relatedLore).toEqual([]);
     });
 
     it('serves the fixture spell as arcane from level one (D-01, D-07)', () => {
