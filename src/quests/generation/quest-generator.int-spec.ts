@@ -8,6 +8,7 @@ import {
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
 import { CitySize } from 'src/models/enums/city-size.enum';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
@@ -1054,6 +1055,171 @@ describe('QuestGenerator (replSet)', () => {
                 .toArray();
             expect(before).toHaveLength(2);
             expect(after).toEqual(before);
+        });
+    });
+
+    describe('Necrorian rank floor (D-12)', () => {
+        const FLOOR_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        const AT_OR_ABOVE_MAGE: readonly string[] = ['mage', 'hero'];
+        const NECRORIAN_WORLD = {
+            cities: 4,
+            poisPerCity: 3,
+            cityTypes: { 0: CityType.necrorianCity },
+        };
+
+        interface FloorRun {
+            necrorian: LeanQuest[];
+            elsewhere: LeanQuest[];
+        }
+
+        const runs = new Map<number, FloorRun>();
+
+        async function floorRunOf(seed: number): Promise<FloorRun> {
+            const cached = runs.get(seed);
+            if (cached !== undefined) return cached;
+            const world = await persistGenerationWorld(models, NECRORIAN_WORLD);
+            const [necrorianCity] = world.cities;
+            const necrorianPois = [
+                necrorianCity.markerId,
+                ...necrorianCity.poiIds,
+            ];
+            await generatorWith(
+                { target: 12 },
+                { chance: new SeededChanceSource(seed) },
+            ).generate();
+            const created = await generatedQuests();
+            await harness.clearDatabase();
+            const inNecrorian = (quest: LeanQuest): boolean =>
+                necrorianPois.some((id) =>
+                    id.equals(quest.infos.markerLocation),
+                );
+            const run = {
+                necrorian: created.filter(inNecrorian),
+                elsewhere: created.filter((quest) => !inNecrorian(quest)),
+            };
+            runs.set(seed, run);
+            return run;
+        }
+
+        async function necrorianQuestsOfAllSeeds(): Promise<LeanQuest[]> {
+            const collected: LeanQuest[] = [];
+            for (const seed of FLOOR_SEEDS) {
+                collected.push(...(await floorRunOf(seed)).necrorian);
+            }
+            return collected;
+        }
+
+        const seatTitlesOf = (quest: LeanQuest): string[] =>
+            quest.requirements.requiredAdventurers
+                .map((seat) => seat.title)
+                .filter((title): title is string => title !== null);
+
+        it.each(FLOOR_SEEDS)(
+            'never writes a generated quest below mage on a poi of a Necrorian city (D-12): seed %i',
+            async (seed) => {
+                const { necrorian } = await floorRunOf(seed);
+
+                const belowFloor = necrorian.filter(
+                    (quest) =>
+                        !AT_OR_ABOVE_MAGE.includes(
+                            quest.requirements.minTitle,
+                        ) ||
+                        seatTitlesOf(quest).some(
+                            (title) => !AT_OR_ABOVE_MAGE.includes(title),
+                        ),
+                );
+                expect(belowFloor).toEqual([]);
+            },
+        );
+
+        it('writes generated quests on the Necrorian pois over the seeds (D-12)', async () => {
+            expect((await necrorianQuestsOfAllSeeds()).length).toBeGreaterThan(
+                0,
+            );
+        });
+
+        it('never mixes a mage boss of Necrorian with paladin seats (D-12)', async () => {
+            const withPaladinSeats = (await necrorianQuestsOfAllSeeds()).filter(
+                (quest) => seatTitlesOf(quest).includes(TitleType.paladin),
+            );
+
+            expect(withPaladinSeats).toEqual([]);
+        });
+
+        it('still generates every rank in the cities without a floor of the same world (D-12)', async () => {
+            const ranksElsewhere = new Set<string>();
+            for (const seed of FLOOR_SEEDS) {
+                for (const quest of (await floorRunOf(seed)).elsewhere) {
+                    ranksElsewhere.add(quest.requirements.minTitle);
+                }
+            }
+
+            expect(ranksElsewhere).toEqual(
+                new Set([
+                    TitleType.rookie,
+                    TitleType.adventurer,
+                    TitleType.paladin,
+                    TitleType.mage,
+                    TitleType.hero,
+                ]),
+            );
+        });
+
+        it('leaves a Necrorian poi empty when only lower ranks can be composed there (D-12)', async () => {
+            await persistGenerationWorld(models, {
+                cities: 1,
+                poisPerCity: 2,
+                enemyXps: [8, 12, 22, 30, 80, 120],
+                cityTypes: { 0: CityType.necrorianCity },
+            });
+
+            await expect(generatorWith({ target: 2 }).generate()).resolves.toBe(
+                0,
+            );
+            expect(await quests.countDocuments()).toBe(0);
+        });
+
+        it('keeps a world without Necrorian identical draw by draw (D-12)', async () => {
+            async function runWorld(cityTypes?: Record<number, CityType>) {
+                const world = await persistGenerationWorld(models, {
+                    cities: 4,
+                    poisPerCity: 3,
+                    cityTypes,
+                });
+                const seeded = new SeededChanceSource(7);
+                let draws = 0;
+                const counting = new (class extends ChanceSource {
+                    next(): number {
+                        draws += 1;
+                        return seeded.next();
+                    }
+                })();
+                await generatorWith(
+                    { target: 8 },
+                    { chance: counting },
+                ).generate();
+                const created = await generatedQuests();
+                await harness.clearDatabase();
+                return {
+                    draws,
+                    quests: created.map((quest) => ({
+                        title: quest.infos.title,
+                        city: world.cities.findIndex((city) =>
+                            city.poiIds.some((id) =>
+                                id.equals(quest.infos.markerLocation),
+                            ),
+                        ),
+                        rank: quest.requirements.minTitle,
+                        seats: quest.requirements.requiredAdventurers,
+                    })),
+                };
+            }
+
+            const reference = await runWorld();
+            const withoutFloor = await runWorld({ 0: CityType.ferrionCity });
+
+            expect(reference.quests).toHaveLength(8);
+            expect(withoutFloor).toEqual(reference);
         });
     });
 });
