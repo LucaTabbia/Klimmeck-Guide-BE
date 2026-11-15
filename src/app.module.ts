@@ -26,7 +26,6 @@ import { AmbushModule } from './travel/ambush/ambush.module';
 import { TravelModule } from './travel/travel.module';
 import { QuestOutcomesModule } from './quests/outcomes/quest-outcomes.module';
 import { QuestMaintenanceModule } from './quests/maintenance/quest-maintenance.module';
-import { SpellOriginsMigrationModule } from './migrations/spell-origins/spell-origins.module';
 import { QuestGenerationModule } from './quests/generation/quest-generation.module';
 import { QuestResultsModule } from './quests/results/quest-results.module';
 import { PartyLifecycleModule } from './quests/party/party-lifecycle.module';
@@ -115,8 +114,6 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         AmbushModule,
         QuestOutcomesModule,
         QuestMaintenanceModule,
-        // origini delle magie una tantum (Phase 24 D-07, D-20): esce dal repo dopo il boot reale
-        SpellOriginsMigrationModule,
         QuestGenerationModule,
         PartyLifecycleModule,
         QuestResultsModule,
