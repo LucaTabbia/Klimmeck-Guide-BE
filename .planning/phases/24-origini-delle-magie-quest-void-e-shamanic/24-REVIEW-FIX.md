@@ -4,8 +4,8 @@ fixed_at: 2026-11-15T21:30:00Z
 review_path: .planning/phases/24-origini-delle-magie-quest-void-e-shamanic/24-REVIEW.md
 iteration: 1
 findings_in_scope: 12
-fixed: 7
-skipped: 5
+fixed: 8
+skipped: 4
 status: partial
 ---
 
@@ -17,12 +17,20 @@ status: partial
 
 **Summary:**
 - Finding in scope: 12 (4 warning, 8 info)
-- Applicati: WR-02 (solo nota), WR-03, WR-04, IN-02 (nota), IN-04, IN-07, IN-08 (nota); più la citazione sbagliata del §6
-- Non applicati: WR-01 (attende l'utente), IN-01, IN-03, IN-05, IN-06
+- Applicati: WR-01 (ruling dell'utente D-25), WR-02 (solo nota), WR-03, WR-04, IN-02 (nota), IN-04, IN-07, IN-08 (nota); più la citazione sbagliata del §6
+- Non applicati: IN-01, IN-03, IN-05, IN-06
 
 Spec toccate, alla fine: unit 224/224 verdi (7 suite: `level-table`, `quest-rewards`, `spell-catalogue.reporter`, `resolution-loader.service`, `mission-prizes`, `spell-schools`, `generation-rules`); integration 55/55 verdi (`spell-fields.int-spec.ts` 9, `quest-generator.int-spec.ts` 46). `npx tsc --noEmit -p tsconfig.json` esce 0.
 
 ## Fixed Issues
+
+### WR-01: lore d'origine anche dal tiro di lore dello studio
+
+**Commit:** `f3ebac7b` (RED), `3c722b65` (GREEN)
+**Files modified:** `src/quests/outcomes/resolution-loader.service.ts`, `src/quests/outcomes/resolution-loader.service.spec.ts`, `src/quests/outcomes/study-lore-draw.int-spec.ts`, `src/quests/outcomes/study-spell-draw.int-spec.ts`
+**Applied fix:** ruling dell'utente del 2026-11-15 (D-25): la lore di un'origine si sblocca SOLO imparando una magia. `readStudyLorePool` (pool di `study`, `arcane`, `shamanic`, `void`) esclude ogni lore presente nella `relatedLore` di una magia qualsiasi, letta dai dati con `relatedLoreIdsOf` (id o esadecimale, voci illeggibili scartate): nessun id, nome o tipo nel codice. Le magie si leggono solo se il pool delle lore non è vuoto, così le letture del catalogo delle quest senza lore dello studio non cambiano. Ordine per id e tiri invariati: cambia solo l'insieme dei candidati.
+RED: unit (4 tipi + pool di sole lore di magie = vuoto, 5 casi), int-spec dello studio (la lore della magia non esce mai, il tiro pesca l'altra; con sole lore di magie nessun tiro consumato per i 4 tipi, come oggi con il catalogo senza lore dello studio: `STUDY_ROLLS_BEFORE_LORE`, cioè zero tiri) e int-spec del sorteggio (lore d'origine di tipo `knowledge` sbloccata dalla sola magia imparata, tiri `[0, 0]` invece di quattro).
+Verifica: unit `src/quests/outcomes` 42 suite / 927 test; integration `src/quests/outcomes` 16 / 251; `study-lore-draw` + `study-spell-draw` + `quest-acceptance.service.int-spec.ts` 3 / 196; `tsc` 0. SDL invariato (nessun modello né resolver toccato). `BACKEND-NOTES.md` §0, §2 (d), §6, §7 aggiornati (domanda aperta tolta).
 
 ### WR-03: `minLevelToLearn` senza tetto
 
@@ -71,11 +79,6 @@ Nota: la mutazione «togliere `floor !== null` dalla guardia del misto» NON fa 
 **Applied fix:** IN-02: cosa contano «già a posto» e «senza corrispondenza», e cosa cercare a DB se compare il WARN `Magie: …`. IN-08: dopo la scrittura delle quest, verificare a DB che ogni quest aperta su un POI di Necrorian abbia `requirements.minTitle` in `mage` / `hero`. Nessun codice.
 
 ## Skipped Issues
-
-### WR-01: lore d'origine anche dal tiro di lore dello studio
-
-**File:** `src/quests/outcomes/resolution-loader.service.ts:730-744`
-**Reason:** ruling dell'orchestratore: NON toccare, attende la decisione dell'utente (già fra le domande aperte del handoff §7).
 
 ### IN-01: oste sul livello prima dell'esito, quest sul livello dopo
 

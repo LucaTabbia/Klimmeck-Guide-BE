@@ -1,6 +1,6 @@
 # BACKEND-NOTES — Phase 24 Origini delle magie, quest void e shamanic (handoff per la FE Phase 23 e per l'orchestratore)
 
-- **Fase BE:** 24-origini-delle-magie-quest-void-e-shamanic (requisiti BE-ORIGIN-01..12; decisioni D-01..D-24 nel CONTEXT della FE Phase 23, autorevole per entrambi i repo; gli emendamenti D-20..D-24 vincono sul resto; nomi fissati in `24-REPO-RULES.md`). **Companion:** FE Phase 23 «spell origins, void and shamanic quests», ramo FE `feat/23-spell-origins-void-and-shamanic-quests`.
+- **Fase BE:** 24-origini-delle-magie-quest-void-e-shamanic (requisiti BE-ORIGIN-01..12; decisioni D-01..D-24 nel CONTEXT della FE Phase 23, autorevole per entrambi i repo; gli emendamenti D-20..D-24 vincono sul resto; D-25 è il ruling dell'utente del 2026-11-15 sul finding WR-01; nomi fissati in `24-REPO-RULES.md`). **Companion:** FE Phase 23 «spell origins, void and shamanic quests», ramo FE `feat/23-spell-origins-void-and-shamanic-quests`.
 - **Data:** 2026-11-15. Scritto dopo il gate 24-11 (`24-11-SUMMARY.md`), sulla HEAD del ramo più i soli commit di documentazione.
 - **Branch:** `feat/24-origini-magie-quest-void-shamanic`, impilato su `fix/23-dungeon-xp-and-innkeeper-corrections` (PR #43) → PR verso `develop` a cura dell'orchestratore, dopo `npm run test:cov`, verifica, audit, boot reale col migratore e sua rimozione (§4).
 - **Gate 24-11:** `npx tsc --noEmit` 0; unit 310 suite / 4 419 test; integration 163 suite / 2 558 test in cinque blocchi `--runInBand` (`src/quests/outcomes` 16 / 245, resto di `src/quests` 30 / 572, `src/characters` 30 / 476, `src/travel` 13 / 277, resto 74 / 988); boot reale `test/app.int-spec.ts` 107 test, SDL rigenerato identico al committato; boot reale più matrice authz 2 suite / 238 test; coverage per cartella sopra soglia (acceptance 99,11 / 92,83 / 99,75; generation 98,95 / 88,59 / 99,70; shops 100 / 83,87 / 100); lint mirato pulito su 72 file. **`npm run test:cov` completo: a cura dell'orchestratore.**
@@ -13,7 +13,7 @@
 
 1. **Cambio NON additivo (D-07, BE-ORIGIN-04):** `Spell.minXpToLearn` è TOLTO dallo SDL; al suo posto `Spell.minLevelToLearn: Int!` (intero 1..20). L'app stampa il livello che arriva, non calcola nulla (D-08).
 2. **`Spell.origin: String!`** (D-01, BE-ORIGIN-03): valori sul filo `void`, `arcane`, `shamanic`. Nessun effetto su combattimento, slot o apprendimento (D-04). Nomi italiani e icone a cura della FE (D-05, D-06).
-3. **`Spell.relatedLore: [Lore!]!`** (D-24, BE-ORIGIN-12): solo le lore che il viewer ha sbloccato (l'oste le vede tutte). Imparare una magia sblocca le sue lore come ogni altro sblocco: `status.unlockedLore` e `QuestResult.loreUnlocked`.
+3. **`Spell.relatedLore: [Lore!]!`** (D-24, BE-ORIGIN-12): solo le lore che il viewer ha sbloccato (l'oste le vede tutte). Imparare una magia sblocca le sue lore come ogni altro sblocco: `status.unlockedLore` e `QuestResult.loreUnlocked`. La lore di una magia si sblocca SOLO imparando la magia (D-25): il tiro di lore dello studio non la pesca mai.
 4. **Tipi di quest (D-09, D-20, BE-ORIGIN-07):** `magic` non esiste più, rinominato `arcane`; nuovi `shamanic` e `void`. Nessun cambio SDL (il tipo è `String!`), ma `magic` non arriva più sul filo dopo il migratore.
 5. **Tre `CityType` nuovi (D-15, D-16, BE-ORIGIN-01):** `aarakocraCapital`, `dragonbornCapital` (taglia `capital`), `dragonbornVillage` (`village`). Additivi; la query `cities` torna a servire Murnborim, Thengran e Veg Faldir.
 6. **Città di nascita (D-18, BE-ORIGIN-02):** un dragonborn nuovo nasce in `dragonbornCapital`, un aarakocra nuovo in `aarakocraCapital`; i personaggi esistenti non si spostano.
@@ -135,6 +135,7 @@ Prova: `git diff a208ad3d -- src/schema.gql` (base della fase) ha **una riga tol
 - `Spell.relatedLore` a DB: lista di id di lore (default vuota). Sul filo `[Lore!]!` filtrata per viewer da `SpellRelatedLoreResolver` (gemello di quello dei pet): il giocatore vede solo le lore sbloccate, l'oste tutte, un utente senza personaggio nessuna di quelle chiuse; id inesistenti scartati.
 - Quando una magia viene imparata, per QUALUNQUE via (sorteggio della quest, premio fisso, blocco per titolo, premio dell'oste; anche completamento del GM e quest con combattimento passano dallo stesso piano), le sue lore entrano nell'unico aggiornamento della conoscenza di `planParticipant`: aggiunta a `status.unlockedLore` (solo le novità, subscription del personaggio) e `QuestResult.loreUnlocked` con le stesse.
 - Ogni magia di un'origine punta a DB alla lore della propria origine: la prima magia dell'origine la sblocca, le successive non cambiano nulla. Una magia non imparata (sotto livello, già nota, non caster, quest persa) non sblocca nulla.
+- **D-25 (ruling dell'utente, 2026-11-15, finding WR-01):** la lore di un'origine si sblocca SOLO imparando una magia. `readStudyLorePool` (`src/quests/outcomes/resolution-loader.service.ts`, pool delle quest `study`, `arcane`, `shamanic`, `void`) esclude ogni lore che compare nella `relatedLore` di una magia qualsiasi, letta dai dati (id o esadecimale da script, voci illeggibili scartate): nessun id, nome o tipo di lore nel codice. Ordine del pool per id e tiri invariati: cambia solo l'insieme dei candidati. Un pool che resta vuoto si comporta come un catalogo senza lore dello studio (nessun tiro consumato, come prima). Le quattro vie d'apprendimento del piano 24-08 sbloccano la lore come prima.
 
 ### (e) Necrorian (D-12; BE-ORIGIN-09)
 
@@ -271,6 +272,7 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - `Spell.relatedLore` sul filo: sbloccata per il giocatore, tutte per l'oste, chiuse nascoste, lista vuota per una magia senza campo (D-24) — `src/lore/lore-related.int-spec.ts`.
 - Sblocco per premio fisso, sorteggio, blocco per titolo; nulla di nuovo se già sbloccata; nulla se la magia non è imparata (D-24) — `src/quests/outcomes/outcome-plan.spec.ts`, `rewards/quest-rewards.spec.ts`, `src/quests/guided/chosen-rewards.spec.ts`, `resolution-loader.service.spec.ts`.
 - Prima magia di un'origine sblocca la lore, la seconda nulla; magia fissa; premio dell'oste (D-24) — `src/quests/outcomes/study-spell-draw.int-spec.ts`, `quest-resolution.service.int-spec.ts`, `src/quests/guided/guided-completion.service.int-spec.ts`.
+- Lore delle magie fuori dal pool dello studio per `study` e le tre scuole, ordine per id, id salvati come esadecimale; pool di sole lore di magie vuoto e nessun tiro consumato; lore d'origine di tipo `knowledge` sbloccata dalla sola magia imparata con due tiri (D-25) — `src/quests/outcomes/resolution-loader.service.spec.ts`, `study-lore-draw.int-spec.ts`, `study-spell-draw.int-spec.ts`.
 
 ---
 
@@ -303,7 +305,6 @@ Diagnosi suggerita: `spells` (`origin`, `minLevelToLearn`, `relatedLore`), `stat
 - **A3 (contenuto):** magie dei soli nemici sorteggiabili: oggi non c'è modo di escluderle dal sorteggio; con ~45 magie nuove il problema cresce. Decisione dell'utente.
 - **Fascia del negozio nel campo `size` del report:** il report scrive la fascia (`city`) per le due capitali nuove, non la taglia (`capital`): default del piano 01, vetabile.
 - **Reporter d'avvio delle magie** (proposta della ricerca, piano 05): un solo WARN col conteggio, senza id; se serve l'elenco, va chiesto.
-- **Lore d'origine anche dal pool dello studio (osservazione del gate):** il pool di lore delle quest `study` e di scuola pesca le lore di tipo `knowledge` (`STUDY_LORE_TYPES`); con le tre lore d'origine in `knowledge` (W-8) una di esse può essere sbloccata anche dal tiro di lore dello studio (30 %), prima di imparare una magia di quell'origine. D-24 non lo vieta; se l'utente vuole lo sblocco SOLO con la prima magia, le tre lore vanno escluse dal pool (cambio di codice o di tipo, decisione dell'utente).
 
 ### Deviazioni dai piani
 
@@ -312,7 +313,7 @@ Diagnosi suggerita: `spells` (`origin`, `minLevelToLearn`, `relatedLore`), `stat
 - 24-03: il caso del blocco per titolo passa a `planParticipant` il boss senza blocchi (tipo di `OutcomeQuestSnapshot.prizes`); titoli dei test in xp riscritti a livello.
 - 24-04 / 24-05: `isLearnLevel` condiviso da `quest-rewards.ts` (oste, lettore delle quest, reporter delle magie) invece di duplicarlo.
 - 24-06: `origin: 'magic'` nella spec del reporter cambiato in `'fire'`; un secondo uso di `magic` in `study-spell-draw.int-spec.ts` convertito; caso esaustivo delle liste d'avvio aggiunto.
-- 24-08: la lore d'origine nella int-spec è di tipo `region` per non entrare nel pool dello studio (vedi l'osservazione sopra); `RewardCatalog.spells` tipizzata con `Omit`.
+- 24-08: la lore d'origine nella int-spec è di tipo `region` per non entrare nel pool dello studio (dopo D-25 non serve più: la lore di una magia è fuori dal pool qualunque sia il tipo; il caso `knowledge` è in `study-spell-draw.int-spec.ts`); `RewardCatalog.spells` tipizzata con `Omit`.
 - 24-09: mondo «solo ranghi inferiori» con xp più bassi (un branco arrivava alla fascia mage); mondo dei semi ingrandito per esercitare la guardia del boss misto.
 - 24-10: riga della scrittura non applicata riformulata; guardia della corsa provata con una scrittura concorrente vera; solo due copie persistite del tipo (`quests.infos.type`, `questresults.quest.type`).
 - 24-11: nessuna correzione; tre esiti di grep annotati (tabella con annotazione di tipo, sottostringa del nome del modulo, URI finto della prova T-24-31 nella cartella una tantum).
