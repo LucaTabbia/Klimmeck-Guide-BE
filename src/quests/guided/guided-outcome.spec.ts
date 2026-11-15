@@ -3,6 +3,7 @@ import { InjuryType } from 'src/models/enums/injury-type.enum';
 import {
     aggregateEffectsOf,
     assertFightsComplete,
+    correctionOverSimulated,
     effectiveSequenceOf,
     mergedEnemiesOf,
     overrideInputOf,
@@ -224,5 +225,82 @@ describe('guided outcome', () => {
             consumablesUsed: [{ item: POTION_ID.toHexString(), quantity: 1 }],
             spellsUsed: [{ spell: SPARK_ID.toHexString(), usages: 1 }],
         });
+    });
+});
+
+// A-08: nel flusso guidato ciò che l'oste non tocca vale il simulato dello scontro
+describe('correctionOverSimulated', () => {
+    const simulated = {
+        characterId: HERO,
+        hpAfter: 640,
+        injuriesAdded: [InjuryType.blackEye],
+        consumablesUsed: [{ itemId: POTION_ID.toHexString(), quantity: 1 }],
+        spellsUsed: [{ spellId: SPARK_ID.toHexString(), usages: 2 }],
+        companionLifeAfter: 35,
+    };
+    const simulatedInput = {
+        characterId: HERO,
+        hpAfter: 640,
+        injuries: [InjuryType.blackEye],
+        consumablesUsed: [{ item: POTION_ID.toHexString(), quantity: 1 }],
+        spellsUsed: [{ spell: SPARK_ID.toHexString(), usages: 2 }],
+        companionLifeAfter: 35,
+    };
+
+    it('fills every omitted field with the simulated value', () => {
+        expect(
+            correctionOverSimulated({ characterId: HERO }, simulated),
+        ).toEqual(simulatedInput);
+    });
+
+    it('fills every null field with the simulated value', () => {
+        expect(
+            correctionOverSimulated(
+                {
+                    characterId: HERO,
+                    hpAfter: null,
+                    injuries: null,
+                    consumablesUsed: null,
+                    spellsUsed: null,
+                    companionLifeAfter: null,
+                },
+                simulated,
+            ),
+        ).toEqual(simulatedInput);
+    });
+
+    it('keeps every explicit value, empty lists and zeros included', () => {
+        expect(
+            correctionOverSimulated(
+                {
+                    characterId: HERO,
+                    hpAfter: 0,
+                    injuries: [],
+                    consumablesUsed: [],
+                    spellsUsed: [],
+                    companionLifeAfter: 0,
+                },
+                simulated,
+            ),
+        ).toEqual({
+            characterId: HERO,
+            hpAfter: 0,
+            injuries: [],
+            consumablesUsed: [],
+            spellsUsed: [],
+            companionLifeAfter: 0,
+        });
+    });
+
+    it('omits the companion life when the simulated fight had no companion', () => {
+        const { companionLifeAfter, ...withoutCompanion } = simulated;
+
+        expect(companionLifeAfter).toBe(35);
+        expect(
+            correctionOverSimulated(
+                { characterId: HERO, hpAfter: 500 },
+                withoutCompanion,
+            ),
+        ).not.toHaveProperty('companionLifeAfter');
     });
 });

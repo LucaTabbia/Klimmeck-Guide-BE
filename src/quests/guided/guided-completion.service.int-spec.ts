@@ -894,6 +894,10 @@ describe('GuidedCompletionService (replSet)', () => {
             const { slot, entry } = await fenrirOf(first);
             expect(slot).toEqual(worg);
             expect(entry.currentLifePoints).toBe(30);
+            // A-08: la vita omessa nella correzione vale la simulata
+            expect((await characterOf(first)).status.currentLifePoints).toBe(
+                900,
+            );
             expect(entry).not.toHaveProperty('lifeAsOf');
             expect(entry).not.toHaveProperty('defeatedUntil');
             expect((await resultOf(first)).companion).toMatchObject({
