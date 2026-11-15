@@ -55,6 +55,7 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
+import { isSpellSchool } from '../spell-schools';
 import { isPetXpCap } from './pets/pet-xp';
 import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
@@ -718,7 +719,7 @@ export class ResolutionLoader {
         quest: ResolutionQuest,
     ): Promise<Types.ObjectId[]> {
         const type = quest.infos?.type;
-        if (type !== QuestType.study && type !== QuestType.magic) return [];
+        if (type !== QuestType.study && !isSpellSchool(type)) return [];
         const lore = await this.loreModel
             .find({ type: { $in: [...STUDY_LORE_TYPES] } }, { _id: 1 })
             .lean<{ _id: Types.ObjectId }[]>()

@@ -59,7 +59,7 @@ function distinctAidsOf(due: readonly DueAidTimeout[]): Types.ObjectId[] {
     return [...aids.values()];
 }
 
-// tryStart avvia tutto il party di una quest registrata, ma solo la PendingQuest passata per hunt, dungeon, job, heal, study e magic
+// tryStart avvia tutto il party di una quest registrata, ma solo la PendingQuest passata per hunt, dungeon, job, heal, study e le tre scuole
 function startKeyOf(
     questId: Types.ObjectId,
     pendingQuestId: Types.ObjectId,

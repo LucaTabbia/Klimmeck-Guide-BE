@@ -53,7 +53,7 @@ describe('isServableSpell', () => {
         expect(
             unservableSpellCount([
                 SOUND_SPELL,
-                { origin: 'magic', minLevelToLearn: 1 },
+                { origin: 'fire', minLevelToLearn: 1 },
                 { origin: 'void' },
             ]),
         ).toBe(2);
