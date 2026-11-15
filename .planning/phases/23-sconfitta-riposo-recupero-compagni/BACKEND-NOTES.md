@@ -20,7 +20,7 @@
 6. **`QuestResult.companion: CompanionOutcome`** ogni volta che un compagno ha combattuto, nullo altrimenti (D-27), anche nei risultati d'imboscata.
 7. **Report d'imboscata scritti all'istante** come `QuestResult` `kind: ambush` (D-28): visibili a viaggio in corso, «visto» = `acknowledgeQuestResult`. `AmbushReport.onFoot: Boolean!` (riga «Prosegui a piedi»).
 8. **Push** (D-30, D-11): `ambush` per OGNI imboscata, vinta o persa (`id` = id del `QuestResult`); `ambushDefeat` non parte più (resta nell'enum e in `sendTestPush`). **La FE di oggi non conosce `ambush` e non riceve più `ambushDefeat` finché non entra la sua PR: da gestire alla merge.** `petRecovered` quando un compagno sconfitto torna in forze (`id` = id del pet).
-9. **Flusso guidato** (D-33): `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter: Int`, `ParticipantOverrideInput.companionLifeAfter: Int`. **Correggendo un partecipante che ha un compagno, la FE rimanda SEMPRE `companionLifeAfter` col valore simulato** (§2 g, A-08).
+9. **Flusso guidato** (D-33): `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter: Int`, `ParticipantOverrideInput.companionLifeAfter: Int`. Correggendo un partecipante, ogni campo omesso o `null` vale il valore simulato di quello scontro (anche `companionLifeAfter`); un valore esplicito, anche `[]`, vince. Rimandare i valori simulati resta lecito (§2 g, A-08, fix/23).
 10. **Codici nuovi:** `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `PET_NAME_INVALID`.
 11. **Non selezionare i compagni nella query dell'oste `characters`**: lì `assets.ownedPets.pet` non è popolato (W-1, W-3).
 
@@ -168,7 +168,7 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 - Dungeon e scontri in sequenza: il compagno sconfitto è fuori dagli scontri seguenti; lo slot si svuota a fine missione (D-12).
 - Sconfitto: slot svuotato con guardia sullo slot letto, ancora `lifeAsOf` = istante dell'esito, marcatore della sconfitta = istante + `T`.
 - `CompanionOutcome` è una fotografia dell'esito: `name` mostrato, `lifeBefore`, `lifePoints`, `maxLifePoints` (dopo l'xp dello scontro), `defeated`, `fullLifeAt` (nullo se non sconfitto o con `T` non curato). Durata della sconfitta da mostrare in un foglio storico = `fullLifeAt − resolvedAt`.
-- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0.
+- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0. Negli scontri in sequenza (tappe di un dungeon, scontri del flusso guidato) il compagno caduto prende gli xp dei soli scontri combattuti, quello della caduta compreso (D-13, fix/23); mai caduto o caduto nell'ultimo = tutti. L'xp del personaggio non cambia. Nel guidato conta la vita effettiva del compagno (corretta se corretta) alla fine di ogni scontro.
 
 ### (f) Imboscate e viaggio (D-13, D-14, D-15, D-16, D-28, D-29; W-6, W-7)
 
@@ -184,7 +184,7 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 
 - La simulazione propone per ogni partecipante e per ogni scontro `MissionFightOutcome.companion` (pet, nome mostrato fotografato alla simulazione, `maxLifePoints` del compagno, `lifeBefore`) e `MissionFightEffects.companionLifeAfter`. `companion` è nullo se il partecipante non ha un compagno o se il compagno è stato sconfitto in uno scontro precedente.
 - Correzione dell'oste: `ParticipantOverrideInput.companionLifeAfter` in `1..maxLifePoints` (1 = sconfitto); fuori intervallo o senza compagno a inizio scontro → `OUTCOME_OVERRIDE_INVALID`. Lo accetta anche il legacy `completePendingRequest`.
-- **Contratto delle correzioni (A-08) — DA RISPETTARE NELLA FE:** correggere un partecipante SOSTITUISCE per intero i suoi effetti di quello scontro. Ciò che si omette torna al valore d'INIZIO scontro, NON al simulato: `hpAfter`, ferite, consumi, magie e ANCHE `companionLifeAfter`. Solo i partecipanti non elencati restano al simulato. **Quando corregge un partecipante che ha un compagno, la FE deve rimandare sempre `companionLifeAfter` col valore simulato (o corretto), altrimenti annulla il danno o la sconfitta simulati.** Lo stesso vale per `hpAfter`.
+- **Contratto delle correzioni (A-08, deciso dall'utente, fix/23):** nella bozza guidata ciò che l'oste non tocca vale il SIMULATO dello scontro: un campo omesso o `null` (`hpAfter`, `injuries`, `consumablesUsed`, `spellsUsed`, `companionLifeAfter`) prende il valore simulato; un valore esplicito, anche una lista vuota `[]`, vince. Limiti di validazione invariati (vita 1..max, compagno 1..max, usi entro il disponibile). Il record `corrected` salvato contiene gli effetti già fusi, così il completamento non rilegge il simulato. I partecipanti non elencati restano al simulato. La FE di oggi, che rimanda sempre i valori simulati, resta compatibile. Il legacy `completePendingRequest` senza bozza non cambia: nessun override = nessun combattimento, campo omesso = stato d'inizio scontro.
 - Il completamento applica le stesse regole degli esiti (sconfitta a 1, sconfitto fuori dagli scontri seguenti, slot svuotato).
 
 ### (h) Livelli del compagno (D-37, D-38, D-39; W-1 aggiornato)
@@ -264,7 +264,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Strada a piedi: riscrittura dal punto, job di completamento e della prossima imboscata spostati, push con «prosegui a piedi», viaggio senza mount intatto, arrivo e piano del cibo chiuso una volta, job vecchi del viaggio a cavallo e della camminata no-op senza push `travelEnd` (D-13, D-29, A3, Pitfall 5, B-08) — `src/travel/ambush/ambush-on-foot.int-spec.ts`, `ambush-on-foot.spec.ts`.
 - Fame: ridirezionamento alla città più vicina con quest abbandonata, nessun ridirezionamento senza città raggiungibile, job spostati senza imboscata, push col ridirezionamento, deviazione della sconfitta a piedi col compagno caduto e a cavallo col compagno in piedi, `onFoot` in sconfitta solo per una cavalcatura, ferite nuove sulla strada a piedi (D-14, D-16, C-11, B-02, B-03, B-05) — `src/travel/ambush/ambush-on-foot.int-spec.ts` (describe «the hunger redirection (Phase 23)»), `ambush-plan.spec.ts`.
 - Guidato, proposta: vita del compagno di ogni partecipante, compagno sconfitto nel primo scontro fuori dal secondo, nessuna scrittura fuori dalla bozza (D-12, D-17, D-26) — `src/quests/guided/mission-simulation.service.int-spec.ts`, `fight-state.spec.ts`.
-- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter` (D-17, D-26, D-27, D-33) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
+- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter`, campi omessi o `null` della correzione = simulato e valori espliciti che vincono (G-1 chiuso), xp del compagno caduto in uno scontro precedente solo da quello (D-13, D-17, D-26, D-27, D-33, A-08) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `guided-outcome.spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
+- xp del compagno nelle tappe: solo le tappe combattute, quella della caduta compresa; il personaggio le prende tutte (D-13) — `src/quests/outcomes/pets/companion-enemies-xp.spec.ts`, `dungeon/placeholder-dungeon-resolver.spec.ts`, `outcome-plan.spec.ts`, `companion-defeat.int-spec.ts`.
 - SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33) — `test/app.int-spec.ts`.
 
 ---
@@ -306,7 +307,7 @@ Per l'orchestratore e l'utente. Ogni semina si fa con uno script FUORI dal repo.
 6. Viaggio con la cavalcatura, imboscata vinta con la cavalcatura sconfitta: push con «prosegui a piedi», pergamena visibile a viaggio in corso, «Prosegui a piedi», arrivo più tardi (attenzione alla pedina, B-09).
 7. Imboscata con poco cibo e cavalcatura caduta: ridirezionamento alla città più vicina, quest abbandonata, push con «la fame ti porta verso».
 7-bis. Quest vinta che porta l'xp del compagno oltre una soglia: livello e vita massima nuovi nel Diario, vita corrente invariata.
-8. Flusso dell'oste: vita del compagno proposta dalla simulazione, corretta a 1, completamento: compagno sconfitto con la data. Correggendo l'eroe senza toccare il compagno, il valore simulato del compagno resta (la FE lo rimanda, A-08).
+8. Flusso dell'oste: vita del compagno proposta dalla simulazione, corretta a 1, completamento: compagno sconfitto con la data. Correggendo l'eroe senza toccare il compagno, il valore simulato del compagno resta (omesso = simulato, A-08).
 
 ### Diagnosi suggerita
 
@@ -328,15 +329,15 @@ Lettura di `assets.ownedPets`, `status.activeTravel` (compreso `mount`) e dei `Q
 - **W-8:** push `ambush` personale con `id` = id del `QuestResult`, testi del BE col nome mostrato; `ambushDefeat` NON parte più.
 - **W-9:** push `petRecovered` personale con `id` = id del pet, testo `<nome> è di nuovo in forze`.
 - **W-10:** `RenamePetRequest { id, name, petId }`, `CommonResponse`; regole del nome del personaggio senza filtro di parole; `PET_NAME_INVALID`, `BAD_USER_INPUT` (anche `name` omesso), `PET_NOT_OWNED`/`NOT_FOUND`; non bloccata dalla missione; emette `characterUpdated`; `name: null` toglie.
-- **W-11:** `MissionCompanion` e `companionLifeAfter` come chiesti; correzione `1..maxLifePoints`; nullo anche dopo una sconfitta in uno scontro precedente; regole d'invalidazione invariate. Contratto A-08: rimandare sempre il valore simulato quando si corregge il partecipante.
+- **W-11:** `MissionCompanion` e `companionLifeAfter` come chiesti; correzione `1..maxLifePoints`; nullo anche dopo una sconfitta in uno scontro precedente; regole d'invalidazione invariate. Contratto A-08: un campo omesso o `null` vale il simulato; rimandarlo resta lecito.
 - **W-12:** nome mostrato servito in `CompanionOutcome.name`, `MissionCompanion.name` e nei testi delle push.
 
 ### Domande aperte
 
-- **Per l'utente:** nel dungeon il compagno sconfitto alla prima tappa prende comunque l'xp di tutte le tappe (comportamento osservato nel piano 06): va bene così?
+- ~~**Per l'utente:** xp del compagno sconfitto alla prima tappa di un dungeon.~~ **Chiusa (fix/23):** prende gli xp delle sole tappe combattute, quella della caduta compresa; vale anche per gli scontri del flusso guidato. L'xp del personaggio non cambia.
 - **Per l'utente:** `AmbushReport.onFoot` è un default dell'orchestratore (vetabile: senza la riga «Prosegui a piedi» basta la riga del compagno caduto).
 - **Per l'utente:** testi provvisori delle push `ambush` e `petRecovered`, da rivedere in UAT.
-- **Contratto A-08 (rinviato):** «omesso = valore d'inizio scontro» per tutti gli effetti di un partecipante corretto. Se si vuole «omesso = simulato», va cambiato per tutti gli effetti insieme (decisione di contratto, fase o quick successiva).
+- ~~**Contratto A-08 (rinviato).**~~ **Chiusa (fix/23):** nella bozza guidata omesso o `null` = simulato per tutti gli effetti insieme, valore esplicito vince; il completamento senza bozza resta com'era (§2 g).
 - Per la FE nessuna domanda: le risposte sopra chiudono W-1..W-12.
 
 ### Deviazioni dal disegno iniziale
@@ -347,7 +348,7 @@ Lettura di `assets.ownedPets`, `status.activeTravel` (compreso `mount`) e dei `Q
 - `MissionCompanion.name` è fotografato alla simulazione.
 - `AmbushReport.onFoot` è un default dell'orchestratore; in sconfitta vale solo per una cavalcatura (B-03, sostituisce la scelta del piano 14).
 - La FE pre-merge vede già i report d'imboscata in viaggio (D-28) e non riceve più `ambushDefeat` (né conosce `ambush`) finché la sua PR non entra.
-- Rinviati dalla review: A-08 (contratto, sopra), A-10 (sweeper senza paginazione, stesso limite della prigione), B-08 (b) (seconda imboscata già scaduta risolta dallo sweeper prima del riallineamento della prima), B-09 (pedina che salta indietro, sopra).
+- Rinviati dalla review: A-08 (contratto, poi deciso e realizzato in fix/23), A-10 (sweeper senza paginazione, stesso limite della prigione), B-08 (b) (seconda imboscata già scaduta risolta dallo sweeper prima del riallineamento della prima), B-09 (pedina che salta indietro, sopra).
 
 ### Casi verdi al primo colpo
 
