@@ -10,13 +10,14 @@ import { Enemy } from 'src/models/enemy.model';
 import { LootItem } from 'src/models/loot-item.model';
 import { Lore, LoreDocument } from 'src/models/lore.model';
 import { Pet } from 'src/models/pet.model';
+import { Spell } from 'src/models/spell.model';
 import { isResolvedRef } from 'src/quests/quest-catalog.populate';
 import { isVisible, visibleLoreIdsOf, visibleRelated } from './lore-visibility';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
 
 // relatedLore per viewer (Phase 16 D-10, Phase 18 D-19): sul tipo, non sulla query, così copre ogni percorso
-// (cityShop.city, PointOfInterest.city, lore annidate, LootItem e Pet in negozio, inventario, premi e fogli);
-// i ref non popolati si scartano (Pitfall 9), tranne per LootItem e Pet che le caricano per id
+// (cityShop.city, PointOfInterest.city, lore annidate, LootItem e Pet in negozio, inventario, premi e fogli, magie);
+// i ref non popolati si scartano (Pitfall 9), tranne per LootItem, Pet e Spell che le caricano per id
 
 @Resolver(() => Lore)
 export class LoreRelatedLoreResolver {
@@ -68,7 +69,7 @@ export class EnemyRelatedLoreResolver {
     }
 }
 
-// le lore di un oggetto o di un pet non arrivano mai popolate (Phase 18 D-19, Phase 19 D-26): si caricano per id
+// le lore di un oggetto, di un pet o di una magia non arrivano mai popolate (Phase 18 D-19, Phase 19 D-26, Phase 24 D-24): si caricano per id
 // le sole visibili al viewer; nessuna query se non ce ne sono; nessuna memo per richiesta, l'N+1 dell'oste è dichiarato
 @Injectable()
 export class VisibleLoreLoader {
@@ -119,5 +120,20 @@ export class PetRelatedLoreResolver {
         @Info() info: GraphQLResolveInfo,
     ): Promise<Lore[]> {
         return this.lore.load(pet.relatedLore, identity, context, info);
+    }
+}
+
+@Resolver(() => Spell)
+export class SpellRelatedLoreResolver {
+    constructor(private readonly lore: VisibleLoreLoader) {}
+
+    @ResolveField('relatedLore', () => [Lore])
+    relatedLore(
+        @Parent() spell: Spell,
+        @CurrentUser() identity: AuthIdentity | undefined,
+        @Context() context: object,
+        @Info() info: GraphQLResolveInfo,
+    ): Promise<Lore[]> {
+        return this.lore.load(spell.relatedLore, identity, context, info);
     }
 }

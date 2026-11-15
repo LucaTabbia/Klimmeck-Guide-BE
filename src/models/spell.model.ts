@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Lore } from './lore.model';
 import { SpellOrigin } from './enums/spell-origin.enum';
 import { UseType } from './enums/use-type.enum';
 import { EnergyDamage, EnergyDamageSchema } from './common/energy-damage';
@@ -48,6 +49,15 @@ export class Spell {
     @Field(() => Int)
     @Prop({ type: Number })
     maxUsages: number;
+
+    // lore sbloccate quando la magia viene imparata (Phase 24 D-24): ogni magia punta alla lore della sua origine; sul filo filtrate per viewer dal resolver sul tipo
+    @Field(() => [Lore])
+    @Prop({
+        type: [MongooseSchema.Types.ObjectId],
+        ref: Lore.name,
+        default: [],
+    })
+    relatedLore: Lore[];
 }
 
 export type SpellDocument = Spell & Document;

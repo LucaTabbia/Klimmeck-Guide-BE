@@ -14,6 +14,7 @@ import {
     LootItemRelatedLoreResolver,
     LoreRelatedLoreResolver,
     PetRelatedLoreResolver,
+    SpellRelatedLoreResolver,
     VisibleLoreLoader,
 } from './related-lore.resolvers';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
@@ -34,6 +35,7 @@ import { ViewerKnowledgeService } from './viewer-knowledge.service';
         VisibleLoreLoader,
         LootItemRelatedLoreResolver,
         PetRelatedLoreResolver,
+        SpellRelatedLoreResolver,
         KnownEnemiesResolver,
         KnownPetsResolver,
     ],
