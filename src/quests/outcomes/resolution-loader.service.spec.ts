@@ -398,8 +398,16 @@ describe('ResolutionLoader reward catalog', () => {
         const { rewards } = await loader.readCatalog(quest as never, []);
 
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minLevelToLearn: 2, maxUsages: 2 },
-            [S2.toHexString()]: { minLevelToLearn: 3, maxUsages: 1 },
+            [S1.toHexString()]: {
+                minLevelToLearn: 2,
+                maxUsages: 2,
+                relatedLore: [],
+            },
+            [S2.toHexString()]: {
+                minLevelToLearn: 3,
+                maxUsages: 1,
+                relatedLore: [],
+            },
         });
     });
 
@@ -432,7 +440,11 @@ describe('ResolutionLoader reward catalog', () => {
             [`EquipmentItem:${E1.toHexString()}`]: RarityType.rare,
         });
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minLevelToLearn: 2, maxUsages: 3 },
+            [S1.toHexString()]: {
+                minLevelToLearn: 2,
+                maxUsages: 3,
+                relatedLore: [],
+            },
         });
         expect(Object.fromEntries(rewards.pets)).toEqual({
             [P1.toHexString()]: 40,
@@ -455,7 +467,11 @@ describe('ResolutionLoader reward catalog', () => {
         expect(spellModel.find).toHaveBeenCalledTimes(2);
         for (const [, projection] of spellModel.find.mock
             .calls as unknown[][]) {
-            expect(projection).toEqual({ minLevelToLearn: 1, maxUsages: 1 });
+            expect(projection).toEqual({
+                minLevelToLearn: 1,
+                maxUsages: 1,
+                relatedLore: 1,
+            });
         }
     });
 
@@ -478,10 +494,67 @@ describe('ResolutionLoader reward catalog', () => {
 
             expect([...rewards.spells.keys()]).toEqual([valid.toHexString()]);
             expect(rewards.spellPool).toEqual([
-                { spellId: valid, minLevelToLearn: 1, maxUsages: 2 },
+                {
+                    spellId: valid,
+                    minLevelToLearn: 1,
+                    maxUsages: 2,
+                    relatedLore: [],
+                },
             ]);
         },
     );
+    it('reads the related lore of the fixed spells and of the spell pool (D-24)', async () => {
+        const S1 = new Types.ObjectId('64b0000000000000000000a1');
+        const S2 = new Types.ObjectId('64b0000000000000000000a2');
+        const L1 = new Types.ObjectId('64b0000000000000000000d1');
+        const L2 = new Types.ObjectId('64b0000000000000000000d2');
+        const spellModel = catalogModel([
+            {
+                _id: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2.toHexString(), 'not-an-id', null],
+            },
+            { _id: S2, minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [S1, S2], petIds: [] },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
+        );
+
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toEqual({
+                minLevelToLearn: 1,
+                maxUsages: 1,
+                relatedLore: 1,
+            });
+        }
+        expect(Object.fromEntries(rewards.spells)).toEqual({
+            [S1.toHexString()]: {
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2],
+            },
+            [S2.toHexString()]: {
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [],
+            },
+        });
+        expect(rewards.spellPool).toEqual([
+            {
+                spellId: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2],
+            },
+            { spellId: S2, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+        ]);
+    });
+
     it.each([
         [QuestType.arcane, SpellOrigin.arcane],
         [QuestType.shamanic, SpellOrigin.shamanic],

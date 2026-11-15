@@ -351,6 +351,33 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
         expect(String(result.spellLearned)).toBe(String(spell._id));
     });
 
+    it('unlocks the lore of the fixed spell of a quest (D-24)', async () => {
+        const originLore = new Types.ObjectId();
+        const spell = await persistSpell(world.models.spells, {
+            origin: 'shamanic',
+            minLevelToLearn: 2,
+            maxUsages: 4,
+            relatedLore: [originLore],
+        });
+        const subject = await quester({
+            questOverrides: jobQuest(
+                { xpPrize: 300, spell: spell._id },
+                'shamanic',
+            ),
+            characterOverrides: { status: { title: CASTER_TITLE } },
+        });
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.unlockedLore.map(String)).toEqual([
+            String(originLore),
+        ]);
+        const [result] = await resultsOf(subject);
+        expect(String(result.spellLearned)).toBe(String(spell._id));
+        expect(result.loreUnlocked.map(String)).toEqual([String(originLore)]);
+    });
+
     it('teaches no spell whose catalog entry has no max usages', async () => {
         const spell = await persistSpell(world.models.spells, {
             minLevelToLearn: 2,

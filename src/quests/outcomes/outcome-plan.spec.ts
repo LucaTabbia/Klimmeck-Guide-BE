@@ -646,6 +646,205 @@ describe('planParticipant', () => {
         });
     });
 
+    describe('the lore of the learned spell', () => {
+        const ORIGIN_LORE = new Types.ObjectId('64b0000000000000000000f8');
+        const PET_PAGE_ID = new Types.ObjectId('64b0000000000000000000f9');
+        const fixedSpell = (minLevelToLearn = 1) =>
+            rewardsWith({
+                spellCandidate: {
+                    spellId: LEARNED_SPELL_ID,
+                    minLevelToLearn,
+                    maxUsages: 4,
+                    relatedLore: [ORIGIN_LORE],
+                },
+            });
+        const learnWith = (
+            rewards: DrawnRewards,
+            snapshot: SnapshotOverrides = {},
+            overrides: Partial<ParticipantPlanInput> = {},
+        ) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.arcane),
+                    snapshot: snapshotWith(asMage(snapshot)),
+                    rewards,
+                    ...overrides,
+                }),
+            );
+        const expectOriginLoreUnlocked = (plan: ParticipantPlan) => {
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': { $each: [ORIGIN_LORE] },
+            });
+            expect(plan.result.loreUnlocked).toEqual([ORIGIN_LORE]);
+        };
+
+        it('unlocks the lore of a learned fixed spell (D-24)', () => {
+            const plan = learnWith(fixedSpell());
+
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+            expectOriginLoreUnlocked(plan);
+        });
+
+        it('unlocks the lore of a spell learned from the draw (D-24)', () => {
+            const plan = learnWith(
+                rewardsWith({
+                    spellDraw: {
+                        pool: [
+                            {
+                                spellId: DRAWN_SPELL_ID,
+                                minLevelToLearn: 1,
+                                maxUsages: 2,
+                                relatedLore: [ORIGIN_LORE],
+                            },
+                        ],
+                        gate: 0,
+                        roll: 0,
+                    },
+                }),
+            );
+
+            expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+            expectOriginLoreUnlocked(plan);
+        });
+
+        it('unlocks the lore of a spell learned from a rank prize block (D-24)', () => {
+            const catalog: RewardCatalog = {
+                rarities: new Map(),
+                spells: new Map([
+                    [
+                        LEARNED_SPELL_ID.toHexString(),
+                        {
+                            minLevelToLearn: 1,
+                            maxUsages: 4,
+                            relatedLore: [ORIGIN_LORE],
+                        },
+                    ],
+                ]),
+                spellPool: [],
+                pets: new Map(),
+            };
+            const boss = questOf(QuestType.boss, TitleType.paladin);
+            const block = prizeBlockFor(
+                {
+                    ...boss,
+                    prizes: {
+                        rankPrizes: [
+                            { title: TitleType.paladin, xpPrize: 500 },
+                            {
+                                title: TitleType.mage,
+                                xpPrize: 0,
+                                spell: LEARNED_SPELL_ID,
+                            },
+                        ],
+                    },
+                },
+                TitleType.mage,
+            );
+
+            const plan = learnWith(
+                drawRewards(block, catalog, new SequenceChance()),
+                {},
+                { quest: boss },
+            );
+
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+            expectOriginLoreUnlocked(plan);
+        });
+
+        it('unlocks nothing new when the origin lore is already unlocked (D-24)', () => {
+            const plan = learnWith(fixedSpell(), {
+                status: { unlockedLore: [ORIGIN_LORE] },
+            });
+
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+            expect(plan.update.$addToSet).toBeUndefined();
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
+
+        it.each([
+            ['below its minimum level', fixedSpell(7), {}, {}],
+            [
+                'already known',
+                fixedSpell(),
+                {
+                    status: {
+                        spellStates: [
+                            {
+                                spell: LEARNED_SPELL_ID,
+                                usages: 4,
+                                recoveries: [],
+                                active: false,
+                            },
+                        ],
+                    },
+                },
+                {},
+            ],
+            [
+                'by a paladin',
+                fixedSpell(),
+                { status: { title: TitleType.paladin } },
+                {},
+            ],
+            [
+                'on a lost quest',
+                fixedSpell(),
+                {},
+                {
+                    verdict: QuestOutcome.failure,
+                    aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+                },
+            ],
+        ] as [
+            string,
+            DrawnRewards,
+            SnapshotOverrides,
+            Partial<ParticipantPlanInput>,
+        ][])(
+            'unlocks no spell lore when the spell is not learned (D-24): %s',
+            (_case, rewards, snapshot, overrides) => {
+                const plan = learnWith(rewards, snapshot, overrides);
+
+                expect(plan.result.spellLearned).toBeNull();
+                expect(plan.update.$addToSet).toBeUndefined();
+                expect(plan.result.loreUnlocked).toEqual([]);
+            },
+        );
+
+        it('lists the spell lore after the enemy and the pet lore (D-24)', () => {
+            const plan = learnWith(
+                {
+                    ...fixedSpell(),
+                    pet: PET_ID,
+                    petLifePoints: 450,
+                    petLore: [PET_PAGE_ID],
+                },
+                {},
+                {
+                    quest: questOf(QuestType.enemy),
+                    battle: battleWith(),
+                    enemies: {
+                        entries: [{ enemy: ENEMY_ID, quantity: 1 }],
+                        xp: 100,
+                    },
+                    victory: { enemyIds: [ENEMY_ID], loreIds: [NEW_PAGE_ID] },
+                },
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([
+                NEW_PAGE_ID,
+                PET_PAGE_ID,
+                ORIGIN_LORE,
+            ]);
+            expect(plan.update.$addToSet).toEqual({
+                'status.unlockedLore': {
+                    $each: [NEW_PAGE_ID, PET_PAGE_ID, ORIGIN_LORE],
+                },
+                'status.knownEnemies': { $each: [ENEMY_ID] },
+            });
+        });
+    });
+
     describe('the xp of the equipped companion', () => {
         const COMPANION_ID = OWNED_PET_ID;
         const companionAssets = (

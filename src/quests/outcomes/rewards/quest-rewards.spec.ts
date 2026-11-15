@@ -197,6 +197,31 @@ describe('drawRewards', () => {
         });
     });
 
+    it('carries the related lore of the fixed spell into the candidate (D-24)', () => {
+        const withLore: RewardCatalog = {
+            ...catalog,
+            spells: new Map([
+                [
+                    SPELL_ID.toHexString(),
+                    { minLevelToLearn: 6, maxUsages: 4, relatedLore: [LORE_1] },
+                ],
+            ]),
+        };
+
+        const rewards = drawRewards(
+            prizesWith({ spell: SPELL_ID }),
+            withLore,
+            new SequenceChance(),
+        );
+
+        expect(rewards.spellCandidate).toEqual({
+            spellId: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+            relatedLore: [LORE_1],
+        });
+    });
+
     it('drops an orphan spell', () => {
         const rewards = drawRewards(
             prizesWith({ spell: ORPHAN_SPELL_ID }),

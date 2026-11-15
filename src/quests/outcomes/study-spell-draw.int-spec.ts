@@ -6,12 +6,14 @@ import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
     persistLore,
+    persistQuest,
     persistSpell,
     spellStatesOf,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
+    OUTCOME_WAITING_TIME_MS,
     type OutcomeHarness,
     persistQuester,
     type Quester,
@@ -500,6 +502,76 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(character.status.level).toBe(2);
         expect(character.status.spellStates).toEqual([]);
         expect(await learnedBy(subject)).toBeNull();
+    });
+
+    // una seconda quest per lo stesso personaggio: quest e richiesta nuove sulla corsia standard, col flag del sorteggio
+    async function nextDrawingQuestFor(
+        subject: Quester,
+        type: string,
+    ): Promise<Types.ObjectId> {
+        const quest = await persistQuest(world.models.quests, {
+            ...buildQuest(),
+            ...questOfType(type, { xpPrize: 0, spellDraw: true }),
+        });
+        const pending = await world.models.pendingQuests.create({
+            startDate: OUTCOME_START,
+            arrivedAt: OUTCOME_START,
+            waitingTime: OUTCOME_WAITING_TIME_MS,
+            pointsSpent: 0,
+            quest: quest._id,
+        });
+        await world.models.characters.updateOne(
+            { _id: subject.characterId },
+            { $set: { 'quests.pendingQuest': pending._id } },
+        );
+        return pending._id as Types.ObjectId;
+    }
+
+    // la lore dell'origine fuori dal pool dello studio, così i tiri restano due per esito
+    it('unlocks the origin lore with the first spell of an origin and nothing with the second (D-24)', async () => {
+        const originLore = (await persistLore(
+            world.harness.connection.model(Lore.name),
+            { type: LoreType.region, name: 'Il Vuoto' },
+        )) as { _id: Types.ObjectId };
+        const first = await learnableOf(SpellOrigin.void, {
+            relatedLore: [originLore._id],
+        });
+        const second = await learnableOf(SpellOrigin.void, {
+            relatedLore: [originLore._id],
+        });
+        const subject = await quester({
+            questOverrides: questOfType('void', { xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0, 0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+        const afterFirst = await characterOf(subject);
+        const nextPending = await nextDrawingQuestFor(subject, 'void');
+        await service.resolveStandard({
+            pendingQuestId: nextPending,
+            startDate: OUTCOME_START,
+        });
+
+        const character = await characterOf(subject);
+        const results = await world.models.questResults
+            .find({ character: subject.characterId })
+            .sort({ _id: 1 })
+            .lean<any[]>();
+        expect(afterFirst.status.unlockedLore.map(String)).toEqual([
+            String(originLore._id),
+        ]);
+        expect(results.map((result) => String(result.spellLearned))).toEqual([
+            String(first._id),
+            String(second._id),
+        ]);
+        expect(
+            results.map((result) => result.loreUnlocked.map(String)),
+        ).toEqual([[String(originLore._id)], []]);
+        expect(character.status.unlockedLore.map(String)).toEqual([
+            String(originLore._id),
+        ]);
+        expect(chance.drawn).toEqual([0, 0, 0, 0]);
     });
 
     it('does not filter the fixed spell of a school quest by origin (D-10)', async () => {

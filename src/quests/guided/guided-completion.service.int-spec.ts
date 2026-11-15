@@ -500,6 +500,40 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(result.injuriesAdded).toEqual([]);
     });
 
+    it('unlocks the lore of the spell the innkeeper awards (D-24)', async () => {
+        const originLore = new Types.ObjectId();
+        const spell = idOf(
+            await world.models.spells.create(
+                buildSpell({
+                    name: 'Eco del Vuoto',
+                    origin: 'void',
+                    minLevelToLearn: 1,
+                    relatedLore: [originLore],
+                }),
+            ),
+        );
+        const subject = await quester({
+            lane: QuestLane.story,
+            questOverrides: gmQuest('story'),
+            characterOverrides: { status: { title: 'mage' } },
+        });
+        await drafts.start(hexOf(subject), null);
+        await saver.save({
+            pendingQuestId: hexOf(subject),
+            prizes: [prizeOf(subject, { spell: String(spell) })],
+        });
+
+        await service.complete(hexOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.unlockedLore.map(String)).toEqual([
+            String(originLore),
+        ]);
+        const result = await resultOf(subject);
+        expect(String(result.spellLearned)).toBe(String(spell));
+        expect(result.loreUnlocked.map(String)).toEqual([String(originLore)]);
+    });
+
     it('deletes the draft and frees the participants (D-11, D-25)', async () => {
         const mission = await guidedWorldMission();
         await playTwoFights(mission);

@@ -97,6 +97,31 @@ describe('chosenRewardsOf', () => {
         ).toEqual({ spellId: SPELL_ID, minLevelToLearn: 6, maxUsages: 1 });
     });
 
+    it('carries the related lore of the spell chosen by the innkeeper (D-24)', () => {
+        const withLore: RewardCatalog = {
+            ...catalog,
+            spells: new Map([
+                [
+                    SPELL_ID.toHexString(),
+                    {
+                        minLevelToLearn: 2,
+                        maxUsages: 4,
+                        relatedLore: [LORE_ID],
+                    },
+                ],
+            ]),
+        };
+
+        expect(chosenRewardsOf(chosenPrize(), withLore).spellCandidate).toEqual(
+            {
+                spellId: SPELL_ID,
+                minLevelToLearn: 2,
+                maxUsages: 4,
+                relatedLore: [LORE_ID],
+            },
+        );
+    });
+
     it('answers no rewards without a prize (D-08)', () => {
         expect(chosenRewardsOf(null, catalog)).toBe(NO_REWARDS);
     });
