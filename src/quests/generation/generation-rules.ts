@@ -1,3 +1,4 @@
+import { CityType } from 'src/models/enums/city-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { slotsOf } from 'src/quests/acceptance/quest-capacity';
@@ -126,6 +127,35 @@ export function mixedSeatsOf(seats: number, chance: ChanceSource): number {
     const half = Math.floor(seats / 2);
     if (half <= 1) return 1;
     return Math.min(half, 1 + Math.floor(chance.next() * half));
+}
+
+// pavimento di titolo per tipo di città (Phase 24 D-12): a Necrorian nessuna generata sotto mage, boss misti compresi
+export const CITY_RANK_FLOORS: Readonly<
+    Partial<Record<CityType, GeneratedRank>>
+> = {
+    [CityType.necrorianCity]: TitleType.mage,
+};
+
+export function rankFloorOf(cityType: unknown): GeneratedRank | null {
+    if (typeof cityType !== 'string') return null;
+    if (!Object.hasOwn(CITY_RANK_FLOORS, cityType)) return null;
+    return CITY_RANK_FLOORS[cityType as CityType] ?? null;
+}
+
+export function allowsRank(
+    floor: GeneratedRank | null,
+    rank: GeneratedRank,
+): boolean {
+    if (floor === null) return true;
+    return GENERATED_RANKS.indexOf(rank) >= GENERATED_RANKS.indexOf(floor);
+}
+
+export function allowsMixedLower(
+    floor: GeneratedRank | null,
+    rank: GeneratedRank,
+): boolean {
+    const lower = lowerRankOf(rank);
+    return lower !== null && allowsRank(floor, lower);
 }
 
 export interface CoverageQuest {
