@@ -51,6 +51,9 @@ import {
     leastCoveredRank,
     lowerRankOf,
     mixedSeatsOf,
+    rankFloorOf,
+    allowsRank,
+    allowsMixedLower,
 } from 'src/quests/generation/generation-rules';
 import {
     Composition,
@@ -98,6 +101,7 @@ interface GenerationWorld {
     enemies: EnemyCandidate[];
     catalog: PrizeCatalogItem[];
     pets: PetCandidate[];
+    poiRankFloor: Map<string, GeneratedRank>;
 }
 
 const hexOf = (id: Types.ObjectId | null | undefined): string | null =>
@@ -108,6 +112,23 @@ function locationOf(poi: LeanPoi | undefined): [number, number] | null {
     if (!Array.isArray(location) || location.length < 2) return null;
     const [x, y] = location as unknown[];
     return typeof x === 'number' && typeof y === 'number' ? [x, y] : null;
+}
+
+// marker e POI di ogni città con un pavimento, anche se la città poi esce dal mondo (Phase 24 D-12)
+function poiRankFloorOf(
+    cities: readonly LeanCity[],
+): Map<string, GeneratedRank> {
+    const floors = new Map<string, GeneratedRank>();
+    for (const city of cities) {
+        const floor = rankFloorOf(city.type);
+        if (floor === null) continue;
+        const ids = [city.markerLocation, ...(city.pointsOfInterest ?? [])];
+        for (const id of ids) {
+            const hex = hexOf(id);
+            if (hex !== null) floors.set(hex, floor);
+        }
+    }
+    return floors;
 }
 
 // meno coperto prima (leastCoveredRank), poi gli altri per copertura crescente; parità → rango più basso (D-15)
@@ -204,6 +225,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
     // Phase 19 D-28: vedi generated-prizes.ts) → announcementOf (1, in generated-quest-draft.ts)
     // → solo per i boss, in coda (D-23): cancello del misto (1) → proporzione (1, se metà dei posti > 1)
     // → prizesOf del titolo inferiore (se misto)
+    // con un pavimento (Phase 24 D-12): meno ranghi provati e nessun tiro del misto sotto il pavimento
     private async runOnce(): Promise<number> {
         const world = await this.readWorld();
         const target = this.config.target ?? world.cityCount;
@@ -265,7 +287,8 @@ export class QuestGenerator extends QuestGenerationTrigger {
         poiId: string,
     ): Promise<GeneratedRank | null> {
         const poiTypes = world.poiTypes.get(poiId) ?? [];
-        const composition = this.compositionFor(world, poiTypes);
+        const floor = world.poiRankFloor.get(poiId) ?? null;
+        const composition = this.compositionFor(world, poiTypes, floor);
         if (composition === null) return null;
         const prizes = prizesOf({
             type: composition.type,
@@ -293,6 +316,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
             composition,
             world,
             poiTypes,
+            floor,
         );
         try {
             await this.questModel.create(draft);
@@ -312,8 +336,11 @@ export class QuestGenerator extends QuestGenerationTrigger {
         composition: Composition,
         world: GenerationWorld,
         poiTypes: readonly string[],
+        floor: GeneratedRank | null,
     ): GeneratedQuestDraft {
         if (composition.type !== QuestType.boss) return draft;
+        if (floor !== null && !allowsMixedLower(floor, composition.rank))
+            return draft;
         const lowerSeats = mixedSeatsOf(composition.seats, this.chance);
         const lower = lowerRankOf(composition.rank);
         if (lowerSeats === 0 || lower === null) return draft;
@@ -333,8 +360,12 @@ export class QuestGenerator extends QuestGenerationTrigger {
     private compositionFor(
         world: GenerationWorld,
         poiTypes: readonly string[],
+        floor: GeneratedRank | null,
     ): Composition | null {
-        for (const rank of ranksByCoverage(world.rankCounts)) {
+        const ranks = ranksByCoverage(world.rankCounts).filter((rank) =>
+            allowsRank(floor, rank),
+        );
+        for (const rank of ranks) {
             const composition = composeQuest({
                 rank,
                 enemies: world.enemies,
@@ -383,6 +414,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
                 .filter((id): id is string => id !== null),
         );
         const poiCity = new Map<string, string>();
+        const poiRankFloor = poiRankFloorOf(cities);
         const worldCities: WorldCity[] = [];
         const unknownTypes: string[] = [];
         for (const city of cities) {
@@ -445,6 +477,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
             enemies: await this.readEnemies(),
             catalog: await this.readCatalog(),
             pets: await this.readPets(),
+            poiRankFloor,
         };
     }
 

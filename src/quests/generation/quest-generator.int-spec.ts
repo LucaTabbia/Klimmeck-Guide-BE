@@ -1063,7 +1063,7 @@ describe('QuestGenerator (replSet)', () => {
         const AT_OR_ABOVE_MAGE: readonly string[] = ['mage', 'hero'];
         const NECRORIAN_WORLD = {
             cities: 4,
-            poisPerCity: 3,
+            poisPerCity: 6,
             cityTypes: { 0: CityType.necrorianCity },
         };
 
@@ -1084,7 +1084,7 @@ describe('QuestGenerator (replSet)', () => {
                 ...necrorianCity.poiIds,
             ];
             await generatorWith(
-                { target: 12 },
+                { target: 24 },
                 { chance: new SeededChanceSource(seed) },
             ).generate();
             const created = await generatedQuests();
@@ -1139,10 +1139,15 @@ describe('QuestGenerator (replSet)', () => {
         });
 
         it('never mixes a mage boss of Necrorian with paladin seats (D-12)', async () => {
-            const withPaladinSeats = (await necrorianQuestsOfAllSeeds()).filter(
-                (quest) => seatTitlesOf(quest).includes(TitleType.paladin),
+            const necrorian = await necrorianQuestsOfAllSeeds();
+            const withPaladinSeats = necrorian.filter((quest) =>
+                seatTitlesOf(quest).includes(TitleType.paladin),
             );
 
+            expect(
+                necrorian.filter((quest) => quest.infos.type === QuestType.boss)
+                    .length,
+            ).toBeGreaterThan(0);
             expect(withPaladinSeats).toEqual([]);
         });
 
@@ -1169,7 +1174,8 @@ describe('QuestGenerator (replSet)', () => {
             await persistGenerationWorld(models, {
                 cities: 1,
                 poisPerCity: 2,
-                enemyXps: [8, 12, 22, 30, 80, 120],
+                // 8 unità da 22 xp restano sotto la fascia mage (225): nessun branco la raggiunge
+                enemyXps: [8, 12, 22],
                 cityTypes: { 0: CityType.necrorianCity },
             });
 
