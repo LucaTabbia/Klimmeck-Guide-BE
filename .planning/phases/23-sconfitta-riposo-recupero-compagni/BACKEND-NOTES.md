@@ -24,12 +24,13 @@
 10. **Codici nuovi:** `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `PET_NAME_INVALID`.
 11. **Non selezionare i compagni nella query dell'oste `characters`**: lì `assets.ownedPets.pet` non è popolato (W-1, W-3).
 12. **xp del compagno solo da vincitore** (D-13, UAT 2026-11-15): il compagno che esce sconfitto da uno scontro non prende xp di quello scontro (quindi niente salita di livello); nelle sequenze (dungeon, flusso guidato, quest più guardia) prende gli xp dei soli scontri da cui esce in piedi. Nessun campo nuovo: `CompanionOutcome` non espone xp, lo si vede su `QuestResult.petXpGained` e su `OwnedPet.level`/`xp` (§2 e).
+13. **`Pet.known: Boolean!`** (UAT 2026-11-15): il BE dice se il viewer conosce il compagno. `false` → la FE non apre il foglio del dettaglio e mostra l'immagine nera, come per i nemici (`QuestEnemy.known`). Vale ovunque compaia `Pet` (§2 i).
 
 ---
 
 ## 1. SDL aggiunto (verbatim)
 
-Blocchi copiati da `src/schema.gql` (ordine alfabetico di `sortSchema`). Prova: `git diff 2c462cbe -- src/schema.gql` = 36 righe aggiunte e 1 tolta; la tolta e una delle aggiunte sono la riga di `useItem`, che guadagna l'argomento opzionale `petId` (SDL additivo nella sostanza: le chiamate di oggi restano valide). Conteggio identico al gate 23-17; i fix della review non hanno toccato lo SDL.
+Blocchi copiati da `src/schema.gql` (ordine alfabetico di `sortSchema`). Prova: `git diff 2c462cbe -- src/schema.gql` = 36 righe aggiunte e 1 tolta; la tolta e una delle aggiunte sono la riga di `useItem`, che guadagna l'argomento opzionale `petId` (SDL additivo nella sostanza: le chiamate di oggi restano valide). Conteggio identico al gate 23-17; i fix della review non hanno toccato lo SDL. Il 2026-11-15 (UAT) si aggiunge in `type Pet` la sola riga `known: Boolean!` (`e4268b72`): ora 37 righe non vuote aggiunte (più 3 righe vuote fra i tipi nuovi) e 1 tolta.
 
 Tipi nuovi:
 
@@ -105,6 +106,7 @@ input ParticipantOverrideInput {
 
 type Pet {
   # … campi esistenti invariati …
+  known: Boolean!   # aggiunto il 2026-11-15 (UAT), risolto per viewer
   recoveryTime: Int
 }
 
@@ -198,6 +200,21 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 - Se l'utente cambia `Pet.maxXp` a DB, il livello salvato di un compagno resta quello vecchio finché non riceve un premio di xp, poi si riallinea (A-06, D-39).
 - Con tetti piccoli (`maxXp` < 23) le soglie non si duplicano più a 0: livello 1 a xp 0, mai decrescente, mai oltre 10, 10 al tetto (A-07).
 
+### (i) Compagno noto al viewer (UAT 2026-11-15)
+
+Richiesta dell'utente: «Se non hai ancora ottenuto la lore corrispondente, il foglio non si deve aprire per dare il dettaglio e l'immagine deve essere nera (come succede per gli enemies).»
+
+- **Contratto:** `Pet.known: Boolean!`, `@ResolveField` per viewer (`src/lore/known-pets.resolver.ts`, `KnownPetsResolver`), mai salvato a DB. Vale su ogni percorso che serve un `Pet`: `pets`/`pet`, negozi, premi delle quest e dei ranghi, `CharacterAssets.pet`, `OwnedPet.pet`. (`MissionCompanion.pet` è un `ID!`, non un `Pet`: lì il campo non c'è.)
+- **Regola** (`knowsAnyLoreOf` in `src/lore/lore-visibility.ts`, stessa lettura dei ref e stessa visibilità che filtrano `Pet.relatedLore`):
+  - `true` se almeno una lore di `Pet.relatedLore` è visibile al viewer (cioè in `status.unlockedLore` del suo personaggio corrente attivo; ref come ObjectId, stringa esadecimale o documento popolato);
+  - `true` per un pet senza lore leggibili (lista vuota, o solo ref illeggibili): niente da scoprire;
+  - `true` sempre per l'oste (vede tutto);
+  - `false` altrimenti, compreso il viewer senza personaggio corrente attivo, il morto in attesa del foglio e il viewer anonimo (per tutti la vista è «nulla»): per loro `known` è `true` solo sui pet senza lore.
+- Un pet ottenuto davvero sblocca la sua lore (Phase 19 D-26): un compagno posseduto risulta noto. A DB i 44 pet hanno oggi una lore ciascuno.
+- **Caso limite:** una lore collegata ma cancellata dal DB conta ancora per `known` se il viewer la ha in `unlockedLore` (il campo non legge le lore, a differenza di `relatedLore` che la scarta). Nessun dato reale oggi in questa condizione.
+- **Costo:** una sola lettura della conoscenza del viewer per richiesta HTTP o per evento WS (la cache di `ViewerKnowledgeService`, la stessa di `QuestEnemy.known`), nessuna query delle lore: niente N+1 su liste di pet.
+- **Per la FE:** selezionare `known` accanto a `relatedLore` dove compare un `Pet`; con `false` niente foglio del dettaglio e immagine nera (stesso trattamento dei nemici con `known: false`). Non dedurre la conoscenza da `relatedLore` vuota: un pet senza lore ha `relatedLore: []` e `known: true`.
+
 ---
 
 ## 3. Codici di rifiuto per mutation
@@ -267,7 +284,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Guidato, proposta: vita del compagno di ogni partecipante, compagno sconfitto nel primo scontro fuori dal secondo, nessuna scrittura fuori dalla bozza (D-12, D-17, D-26) — `src/quests/guided/mission-simulation.service.int-spec.ts`, `fight-state.spec.ts`.
 - Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter`, campi omessi o `null` della correzione = simulato e valori espliciti che vincono (G-1 chiuso), xp del compagno solo dagli scontri da cui esce in piedi (caduto nel primo = 0, caduto nell'ultimo = i precedenti) (D-13, D-17, D-26, D-27, D-33, A-08) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `guided-outcome.spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
 - xp del compagno: nessuno per lo sconfitto in uno scontro singolo (quest, boss, soccorso, imboscata); nelle tappe e nella quest con guardia solo gli scontri da cui esce in piedi, non quello della caduta; il personaggio li prende tutti (D-13) — `src/quests/outcomes/pets/companion-enemies-xp.spec.ts`, `dungeon/placeholder-dungeon-resolver.spec.ts`, `outcome-plan.spec.ts`, `companion-defeat.int-spec.ts`, `companion-defeat-rescue.int-spec.ts`, `src/travel/ambush/ambush-plan.spec.ts`, `ambush-resolution.int-spec.ts`.
-- SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33) — `test/app.int-spec.ts`.
+- `Pet.known`: noto con una lore sbloccata, non noto con le lore tutte chiuse, noto senza lore, oste sempre, senza personaggio solo i pet senza lore, query singola, id scritto come stringa, una lettura del viewer e nessuna query delle lore per una lista (UAT 2026-11-15) — `src/lore/lore-visibility.spec.ts` (describe `knowsAnyLoreOf`), `src/lore/lore-related.int-spec.ts` (describe «whether the viewer knows a pet»).
+- SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33); blocco `type Pet` con `known: Boolean!` — `test/app.int-spec.ts`.
 
 ---
 

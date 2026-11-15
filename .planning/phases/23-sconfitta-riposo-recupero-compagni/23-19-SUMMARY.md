@@ -111,3 +111,40 @@ Regola dell'utente in UAT: «Se il pet viene sconfitto non ottiene xp. Li ottien
 ### Deviazioni
 
 Nessuna rispetto al brief. La guardia è risolta qui (prima era fuori perimetro, vedi Deviazioni sopra).
+
+## Aggiunta del 2026-11-15: il compagno non noto resta nero (UAT)
+
+Richiesta dell'utente in UAT: «Se non hai ancora ottenuto la lore corrispondente, il foglio non si deve aprire per dare il dettaglio e l'immagine deve essere nera (come succede per gli enemies).» Il BE decide, la FE legge un campo.
+
+### Cosa
+
+- Campo nuovo `Pet.known: Boolean!`, `@ResolveField` per viewer in `src/lore/known-pets.resolver.ts` (`KnownPetsResolver`, registrato in `LoreVisibilityModule` accanto a `KnownEnemiesResolver`), mai salvato a DB. Vale ovunque il filo serve un `Pet` (catalogo, negozi, premi delle quest e dei ranghi, `CharacterAssets.pet`, `OwnedPet.pet`).
+- Regola in `src/lore/lore-visibility.ts`: `knowsAnyLoreOf(visibility, refs)` = nessun ref leggibile → `true`; altrimenti `true` se almeno uno è visibile (`isVisible`). `visibleLoreIdsOf` e `knowsAnyLoreOf` condividono il nuovo helper privato `readableLoreIdsOf(refs)` (esadecimale, duplicati e illeggibili scartati): stessa lettura e stessa visibilità di `Pet.relatedLore`, nessuna regola duplicata.
+- Viewer: oste → `true` sempre; giocatore → lore del personaggio corrente attivo; senza personaggio, morto in attesa del foglio o anonimo → vista nulla, quindi `true` solo per i pet senza lore.
+- Costo: la sola lettura del viewer già in cache per richiesta/evento (`ViewerKnowledgeService.of`), nessuna query delle lore.
+- SDL: una riga, `known: Boolean!` dentro `type Pet`.
+
+### Commit
+
+- `c62ef79e` test(lore): expect a pet known once one of its lore is unlocked
+- `e4268b72` feat(lore): serve whether the viewer knows a pet
+
+### Pin cambiati
+
+- `test/app.int-spec.ts` `CATALOGUE_PET_BLOCK`: + `known: Boolean!` dopo `imagePath` (letto da tre casi del boot reale).
+
+### Prove nuove
+
+- `src/lore/lore-visibility.spec.ts`: describe `knowsAnyLoreOf` (5 casi).
+- `src/lore/lore-related.int-spec.ts`: describe «whether the viewer knows a pet» (7 casi: lore sbloccata / tutte chiuse, senza lore, oste, senza personaggio, query singola, id stringa, una lettura del viewer e zero `Lore.find` per tre pet).
+
+### Verifica
+
+- RED: unit 5 test rossi (`knowsAnyLoreOf` non esiste), integration 10 rossi (7 «Cannot query field "known" on type "Pet"», 3 pin del boot reale).
+- `npx tsc --noEmit -p tsconfig.json`: 0. eslint pulito sui file toccati (un warning preesistente `no-base-to-string` a `test/app.int-spec.ts:1232`, fuori dal diff); prettier pulito.
+- Unit `src/lore` + `src/pets`: 4 suite / 25 test verdi.
+- Integration `src/lore` + `src/pets` + `test/app.int-spec.ts`: 6 suite / 160 test verdi (boot reale 102/102); matrice authz 1 / 131 verde. `git diff` di `src/schema.gql` = la sola riga `known: Boolean!` in `type Pet`.
+
+### Deviazioni
+
+Nessuna rispetto al brief. Note: `MissionCompanion.pet` è un `ID!`, non un `Pet`, quindi lì `known` non compare; una lore collegata ma cancellata dal DB conta ancora per `known` se il viewer la ha sbloccata (il campo non legge le lore, a differenza di `relatedLore` che la scarta), nessun dato reale oggi in quella condizione.
