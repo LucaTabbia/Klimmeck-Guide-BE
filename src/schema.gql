@@ -1019,7 +1019,6 @@ type Spell {
   id: ID!
   maxUsages: Int!
   minLevelToLearn: Int!
-  minXpToLearn: Int!
   name: String!
   origin: String!
   recoveryTime: Int!

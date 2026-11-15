@@ -36,14 +36,10 @@ export class Spell {
     @Prop({ type: Number })
     requiredLearnTime: number;
 
-    // livello minimo del personaggio per impararla (Phase 24 D-07); minXpToLearn esce nel piano 05
+    // livello minimo del personaggio per impararla (Phase 24 D-07)
     @Field(() => Int)
     @Prop({ type: Number, required: true, min: 1 })
     minLevelToLearn: number;
-
-    @Field(() => Int)
-    @Prop({ type: Number })
-    minXpToLearn: number;
 
     @Field(() => Int)
     @Prop({ type: Number })
