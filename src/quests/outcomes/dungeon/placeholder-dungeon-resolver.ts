@@ -14,6 +14,7 @@ import {
 import {
     type CompanionFight,
     companionEnemiesXpOf,
+    companionFightOf,
 } from '../pets/companion-enemies-xp';
 import {
     DungeonContext,
@@ -133,21 +134,16 @@ const mergeEffects = (
     ...lastCompanionLifeOf(merged, stage),
 });
 
-const stageFightOf = (
-    enemy: CombatEnemy,
-    { companionLifeAfter }: ParticipantEffects,
-): CompanionFight => ({
-    enemiesXp: enemy.xp * enemy.quantity,
-    ...(companionLifeAfter === undefined ? {} : { companionLifeAfter }),
-});
-
 const trackedStage = (
     track: ParticipantTrack,
     enemy: CombatEnemy,
     stage: ParticipantEffects,
 ): ParticipantTrack => ({
     effects: mergeEffects(track.effects, stage),
-    fights: [...track.fights, stageFightOf(enemy, stage)],
+    fights: [
+        ...track.fights,
+        companionFightOf(stage, enemy.xp * enemy.quantity),
+    ],
 });
 
 const trackedEffectsOf = ({

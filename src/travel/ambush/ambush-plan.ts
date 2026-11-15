@@ -31,6 +31,7 @@ import {
     type CompanionCatalogEntry,
     type CompanionOutcomeDraft,
 } from 'src/quests/outcomes/pets/companion-after-fight';
+import { companionShareOf } from 'src/quests/outcomes/pets/companion-enemies-xp';
 import type { KnowledgeAddition } from 'src/lore/knowledge-addition';
 import {
     lifePointsWithin,
@@ -229,11 +230,11 @@ function foughtOutcomeOf(input: AmbushPlanInput, won: boolean): FoughtOutcome {
             input.spellRecoveryTimes,
             input.identity.at,
         ),
-        // quota sugli xp grezzi dei nemici, non sul premio di grado (Phase 19 D-04); vita e sconfitta all'istante dell'imboscata (D-03, D-26)
+        // quota sugli xp grezzi dei nemici, non sul premio di grado (Phase 19 D-04), niente al compagno caduto (D-13); vita e sconfitta all'istante dell'imboscata (D-03, D-26)
         companion: companionAfterFight({
             assets: snapshot.assets,
             effects,
-            enemiesXp: won ? input.enemies.xp : 0,
+            enemiesXp: won ? companionShareOf(effects, input.enemies.xp) : 0,
             petMaxXp: input.petMaxXp,
             petCatalog: input.petCatalog,
             at: input.identity.at,
