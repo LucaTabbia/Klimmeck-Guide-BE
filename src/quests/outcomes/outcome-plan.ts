@@ -500,11 +500,11 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         : null;
     const coinsDelta = won ? rewards.coinsCopper : 0;
     const petWon = petWonBy(snapshot, won, rewards.pet, rewards.petLifePoints);
-    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18)
+    // la quota del compagno viene dai soli nemici, mai dal premio della quest (Phase 19 D-04, D-18); il compagno caduto prima dell'ultimo scontro, solo da quelli combattuti (D-13)
     const companion = companionAfterFight({
         assets: snapshot.assets,
         effects: battle,
-        enemiesXp,
+        enemiesXp: won ? (battle?.companionEnemiesXp ?? enemiesXp) : 0,
         petMaxXp: input.petMaxXp,
         petCatalog: input.petCatalog,
         at: input.now,

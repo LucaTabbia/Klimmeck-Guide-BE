@@ -24,6 +24,7 @@ import {
     planParticipant,
 } from './outcome-plan';
 import {
+    type CatalogEnemy,
     isFiniteNumber,
     type ResolutionCatalog,
     type ResolutionCharacter,
@@ -77,7 +78,11 @@ export function combatContextOf(
     });
 }
 
-// XP dei nemici × quantità sommata al premio di chi vince (D-11, D-02): un valore non numerico vale 0
+// un valore non numerico vale 0
+const enemyXpOf = ({ snapshot }: CatalogEnemy): number =>
+    isFiniteNumber(snapshot.xp) ? snapshot.xp : 0;
+
+// XP dei nemici × quantità sommata al premio di chi vince (D-11, D-02)
 export function enemyFactsOf(
     catalog: Pick<ResolutionCatalog, 'enemies'>,
 ): EnemyFacts | null {
@@ -88,12 +93,22 @@ export function enemyFactsOf(
             quantity,
         })),
         xp: catalog.enemies.reduce(
-            (total, { snapshot, quantity }) =>
-                total +
-                (isFiniteNumber(snapshot.xp) ? snapshot.xp : 0) * quantity,
+            (total, enemy) => total + enemyXpOf(enemy) * enemy.quantity,
             0,
         ),
     };
+}
+
+// xp di un nemico per esadecimale, per gli scontri in sequenza (D-13)
+export function enemyXpByIdOf(
+    catalog: Pick<ResolutionCatalog, 'enemies'>,
+): Map<string, number> {
+    return new Map(
+        catalog.enemies.map((enemy) => [
+            enemy.snapshot._id.toHexString(),
+            enemyXpOf(enemy),
+        ]),
+    );
 }
 
 // il verdetto è del combattimento (A3), gli effetti si prendono per characterId, mai per posizione (D-05); null = nessun combattimento

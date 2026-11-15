@@ -3,7 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import { enemyFactsOf } from 'src/quests/outcomes/combatant-plan';
+import {
+    enemyFactsOf,
+    enemyXpByIdOf,
+} from 'src/quests/outcomes/combatant-plan';
 import {
     GmCompletionService,
     type GmSeatOutcome,
@@ -39,6 +42,7 @@ import {
     assertFightsComplete,
     type EffectiveFight,
     effectiveSequenceOf,
+    guidedBattleOf,
     mergedEnemiesOf,
     overrideInputOf,
 } from './guided-outcome';
@@ -102,6 +106,7 @@ function assertSequenceAllowed(
 
 interface GuidedCatalogs {
     seatBase: Pick<GmSeatOutcome, 'enemies' | 'victory'>;
+    enemyXp: ReadonlyMap<string, number>;
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>;
     prizeCatalogue: MissionPrizeCatalogue;
     rewardCatalog: RewardCatalog;
@@ -138,6 +143,7 @@ export class GuidedCompletionService {
                 enemies: enemyFactsOf(combat),
                 victory: victoryKnowledgeOf(combat),
             },
+            enemyXp: enemyXpByIdOf(combat),
             petCatalog: combat.pets,
             prizeCatalogue: await this.prizeOptions.readCatalogue(),
             rewardCatalog: await this.loader.readRewardCatalogFor(
@@ -222,7 +228,11 @@ export class GuidedCompletionService {
             );
         return {
             ...catalogs.seatBase,
-            battle: aggregateEffectsOf(draft.fights, characterHex),
+            battle: guidedBattleOf(
+                draft.fights,
+                characterHex,
+                catalogs.enemyXp,
+            ),
             rewards: chosenRewardsOf(prize, catalogs.rewardCatalog),
         };
     }

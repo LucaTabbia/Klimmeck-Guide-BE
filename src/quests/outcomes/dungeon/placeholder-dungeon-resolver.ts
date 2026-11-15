@@ -5,11 +5,16 @@ import { DungeonTurnKind } from 'src/models/enums/dungeon-turn-kind.enum';
 import { ChanceSource } from 'src/quests/outcomes/chance-source';
 import {
     CombatCompanion,
+    CombatEnemy,
     CombatParticipant,
     CombatResolver,
     lastCompanionLifeOf,
     ParticipantEffects,
 } from '../combat/combat-resolver';
+import {
+    type CompanionFight,
+    companionEnemiesXpOf,
+} from '../pets/companion-enemies-xp';
 import {
     DungeonContext,
     DungeonResolution,
@@ -22,6 +27,12 @@ type DungeonProgress = Pick<
     DungeonResolution,
     'stagesCleared' | 'stagesTotal' | 'turnsCompleted' | 'turnsTotal'
 >;
+
+// effetti fusi delle tappe giocate e tappe viste dal compagno (D-13)
+interface ParticipantTrack {
+    effects: ParticipantEffects;
+    fights: CompanionFight[];
+}
 
 const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];
 
@@ -122,6 +133,31 @@ const mergeEffects = (
     ...lastCompanionLifeOf(merged, stage),
 });
 
+const stageFightOf = (
+    enemy: CombatEnemy,
+    { companionLifeAfter }: ParticipantEffects,
+): CompanionFight => ({
+    enemiesXp: enemy.xp * enemy.quantity,
+    ...(companionLifeAfter === undefined ? {} : { companionLifeAfter }),
+});
+
+const trackedStage = (
+    track: ParticipantTrack,
+    enemy: CombatEnemy,
+    stage: ParticipantEffects,
+): ParticipantTrack => ({
+    effects: mergeEffects(track.effects, stage),
+    fights: [...track.fights, stageFightOf(enemy, stage)],
+});
+
+const trackedEffectsOf = ({
+    effects,
+    fights,
+}: ParticipantTrack): ParticipantEffects => ({
+    ...effects,
+    ...companionEnemiesXpOf(fights),
+});
+
 @Injectable()
 export class PlaceholderDungeonResolver extends DungeonResolver {
     constructor(private readonly combat: CombatResolver) {
@@ -148,10 +184,10 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
         }
         const lastTurnIndex = context.lastTurnIndex ?? turns.length - 1;
         let participants = context.participants;
-        const merged = new Map(
+        const merged = new Map<string, ParticipantTrack>(
             participants.map((participant) => [
                 participant.characterId,
-                noEffects(participant),
+                { effects: noEffects(participant), fights: [] },
             ]),
         );
         const progress = { stagesCleared: 0, turnsCompleted: 0, ...totals };
@@ -163,10 +199,11 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
                 progress.turnsCompleted += 1;
                 continue;
             }
+            const enemy = context.enemies[turn.enemyIndex];
             const stage = this.combat.resolve(
                 {
                     quest: context.quest,
-                    enemies: [context.enemies[turn.enemyIndex]],
+                    enemies: [enemy],
                     participants,
                 },
                 chance,
@@ -180,7 +217,10 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
             for (const [characterId, effects] of effectsById) {
                 const current = merged.get(characterId);
                 if (current)
-                    merged.set(characterId, mergeEffects(current, effects));
+                    merged.set(
+                        characterId,
+                        trackedStage(current, enemy, effects),
+                    );
             }
             participants = participants.map((participant) =>
                 afterStage(
@@ -202,15 +242,15 @@ export class PlaceholderDungeonResolver extends DungeonResolver {
 
     private resolutionOf(
         verdict: DungeonResolution['verdict'],
-        merged: ReadonlyMap<string, ParticipantEffects>,
+        merged: ReadonlyMap<string, ParticipantTrack>,
         progress: DungeonProgress,
         failedTurn: FailedTurn | null,
     ): DungeonResolution {
         return {
             verdict,
-            participants: [...merged.values()].sort((a, b) =>
-                a.characterId.localeCompare(b.characterId),
-            ),
+            participants: [...merged.values()]
+                .map(trackedEffectsOf)
+                .sort((a, b) => a.characterId.localeCompare(b.characterId)),
             ...progress,
             failedTurn,
         };
