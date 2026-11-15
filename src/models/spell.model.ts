@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { SpellOrigin } from './enums/spell-origin.enum';
 import { UseType } from './enums/use-type.enum';
 import {
     EnergyDamage,
@@ -26,6 +27,11 @@ export class Spell {
     @Prop({ type: String, enum: Object.values(UseType) })
     useType: UseType;
 
+    // macroclasse (Phase 24 D-01): decide solo quale quest di scuola insegna la magia
+    @Field(() => String)
+    @Prop({ type: String, enum: Object.values(SpellOrigin), required: true })
+    origin: SpellOrigin;
+
     @Field(() => EnergyDamage)
     @Prop({ type: EnergyDamageSchema })
     energyDamage: EnergyDamage;
@@ -33,6 +39,11 @@ export class Spell {
     @Field(() => Int)
     @Prop({ type: Number })
     requiredLearnTime: number;
+
+    // livello minimo del personaggio per impararla (Phase 24 D-07); minXpToLearn esce nel piano 05
+    @Field(() => Int)
+    @Prop({ type: Number, required: true, min: 1 })
+    minLevelToLearn: number;
 
     @Field(() => Int)
     @Prop({ type: Number })

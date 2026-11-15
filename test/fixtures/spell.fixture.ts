@@ -10,8 +10,10 @@ export function buildSpell(overrides: Record<string, any> = {}) {
         name: 'Test Spell',
         description: 'Deterministic test spell',
         useType: 'attack', // UseType.attack
+        origin: 'arcane', // SpellOrigin.arcane
         energyDamage: { type: 'fire', power: 10 }, // EnergyType.fire
         requiredLearnTime: 0,
+        minLevelToLearn: 1,
         minXpToLearn: 0,
         recoveryTime: 1000,
         maxUsages: 3,
