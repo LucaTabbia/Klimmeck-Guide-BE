@@ -282,7 +282,7 @@ Plans:
 - [x] 24-03-PLAN.md — Cancello a livello nelle quest
 - [x] 24-04-PLAN.md — Cancello a livello nelle opzioni dell'oste
 - [x] 24-05-PLAN.md — Via `minXpToLearn`, reporter delle magie
-- [ ] 24-06-PLAN.md — Tipi di quest `arcane`, `shamanic`, `void`
+- [x] 24-06-PLAN.md — Tipi di quest `arcane`, `shamanic`, `void`
 - [ ] 24-07-PLAN.md — Sorteggio della magia per origine
 - [ ] 24-08-PLAN.md — Lore dell'origine: `Spell.relatedLore`
 - [ ] 24-09-PLAN.md — Pavimento di titolo di Necrorian nel generatore
@@ -336,7 +336,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
-| 24. Origini delle magie, quest void e shamanic | v1.1 | 5/12 | In Progress | - |
+| 24. Origini delle magie, quest void e shamanic | v1.1 | 6/12 | In Progress | - |
 
 ---
 
