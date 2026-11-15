@@ -7,7 +7,7 @@ Parte del contesto di OGNI piano `24-NN-PLAN.md` (citato con `@`). Scritto dall'
 Le sezioni «Repo, branch, esecuzione», «Lint, format, test» e «Segreti e database reale» di `.planning/phases/23-sconfitta-riposo-recupero-compagni/23-REPO-RULES.md` valgono parola per parola (leggerle), con queste differenze:
 
 - Branch `feat/24-origini-magie-quest-void-shamanic` già attivo, impilato su `fix/23-dungeon-xp-and-innkeeper-corrections` (PR #43).
-- Scope dei commit di codice: `spells`, `quests`, `cities`, `characters`, `generation`, `gm`; documenti `docs(phase-24)`. Nessun trailer di attribuzione (`Co-Authored-By`, `Generated with`, `Claude-Session`), mai.
+- Scope dei commit di codice: `spells`, `quests`, `cities`, `characters`, `generation`, `gm`, `shop`, `migrations`; documenti `docs(phase-24)`. Nessun trailer di attribuzione (`Co-Authored-By`, `Generated with`, `Claude-Session`), mai.
 - Requisiti `BE-ORIGIN-NN`, da aggiungere a `REQUIREMENTS.md` nel primo piano.
 - **Nessun file di contenuto nel repo:** origini, magie nuove, livelli e le tre quest nuove le scrive a DB l'orchestratore con script fuori dal repo dopo la revisione dell'utente. Il migratore è one-off: l'orchestratore lo toglie dopo il boot reale.
 - Mai `npm run build` / `nest build` / `npm run lint`: il BE dell'utente gira da `dist/`.

@@ -495,18 +495,26 @@ export const allowsRank = (floor: GeneratedRank | null, rank: GeneratedRank): bo
 | A6 | Un POI può comparire fra i POI di più città | Q4 | se non succede mai, il pavimento per POI e quello per città scelta coincidono (nessun danno) |
 | A7 | La FE di oggi non regge i tipi di quest sconosciuti | C-9 | se li regge, le quest si possono scrivere prima |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 Per l'orchestratore o per l'utente:
 
 1. **Anticipare i tipi di città?** `cities` è verosimilmente rotta sul BE in esecuzione (C-1). Si aspetta la fine della fase o si porta subito il piano 01 sul BE in esecuzione?
+   RESOLVED: `24-REPO-RULES.md` «Tipi di città»: è il primo piano della fase (24-01); nessun anticipo fuori fase.
 2. **`origin: String!` oppure `SpellOrigin!` sul filo?** (C-3; raccomandato `String!`.)
+   RESOLVED: `24-REPO-RULES.md` «Origine»: `String!` sul filo, enum TypeScript con validazione Mongoose.
 3. **Sorteggio fuori dalle tre scuole** (C-4): catalogo intero come oggi, oppure nessun sorteggio? Serve il conteggio a DB delle quest con `spellDraw: true` per tipo.
+   RESOLVED: `24-REPO-RULES.md` «Sorteggio»: fuori dalle tre scuole si pesca dall'intero catalogo come oggi.
 4. **`$unset` di `minXpToLearn`**: nel migratore o nello script di contenuto dopo la merge? (C-5; raccomandato il secondo.) E conferma dell'origine di default `arcane` prima della tabella rivista.
+   RESOLVED: `24-REPO-RULES.md` «Migratore»: lascia `minXpToLearn` a DB (lo toglie l'orchestratore dopo la merge) e scrive `origin: 'arcane'` dove manca.
 5. **Heal e negozio delle due capitali nuove** (C-6): vanno riscritti col contenuto da capitale? Decisione dell'utente.
+   RESOLVED: `24-REPO-RULES.md` «Emendamenti del 2026-11-15» (D-22): contenuto a DB da città, la taglia resta `capital`; nel codice solo la fascia del report dei negozi (piano 24-01).
 6. **Magie dei nemici nel sorteggio** (A3): fra le 96 e le ~45 nuove ce ne sono che un personaggio non deve poter imparare? Oggi non esiste un modo per escluderle.
+   RESOLVED: `24-REPO-RULES.md` «Sorteggio»: le magie dei soli nemici restano sorteggiabili come oggi; la domanda di contenuto va nel handoff (piano 24-12 §7).
 7. **Report di sola lettura** per le quest scritte a mano su un POI di Necrorian sotto mage (stile `group-prize-report`): utile o fuori scope? Raccomandato fuori scope (il generatore è l'unica fonte automatica).
+   RESOLVED: `24-REPO-RULES.md` «Necrorian»: nessun report di boot per le quest scritte a mano.
 8. **`24-REPO-RULES.md`**: da scrivere prima dei piani (nomi fissati: `minLevelToLearn`, `origin`, `SpellOrigin`, `BE-ORIGIN-NN`, scope dei commit).
+   RESOLVED: `24-REPO-RULES.md` scritto il 2026-11-15 ed emendato lo stesso giorno (D-20..D-24).
 
 ## Environment Availability
 
