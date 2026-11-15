@@ -169,6 +169,66 @@ describe('CitiesResolver size and hasShop', () => {
         });
     });
 
+    async function persistWithRawType(name: string, type: string) {
+        const city = await persist({ type: CityType.valanVillage, name });
+        await cities.collection.updateOne(
+            { _id: city._id },
+            { $set: { type } },
+        );
+        return city;
+    }
+
+    it('serves a city written at DB with one of the three new types, with its type and size (D-15, D-16)', async () => {
+        await persistWithRawType('Murnborim', 'aarakocraCapital');
+        await persistWithRawType('Thengran', 'dragonbornCapital');
+        await persistWithRawType('Veg Faldir', 'dragonbornVillage');
+
+        const response = await graphqlRequest(
+            harness.app,
+            '{ cities { name type size } }',
+            undefined,
+            bearer,
+        ).expect(200);
+
+        expect(response.body.errors).toBeUndefined();
+        expect(
+            Object.fromEntries(
+                (
+                    response.body.data.cities as {
+                        name: string;
+                        type: string;
+                        size: string;
+                    }[]
+                ).map(({ name, type, size }) => [name, { type, size }]),
+            ),
+        ).toEqual({
+            Murnborim: { type: 'aarakocraCapital', size: 'capital' },
+            Thengran: { type: 'dragonbornCapital', size: 'capital' },
+            'Veg Faldir': { type: 'dragonbornVillage', size: 'village' },
+        });
+    });
+
+    it('serves one of the new capitals with city (D-15)', async () => {
+        const city = await persistWithRawType('Thengran', 'dragonbornCapital');
+
+        const response = await graphqlRequest(
+            harness.app,
+            CITY,
+            { id: city._id.toString() },
+            bearer,
+        ).expect(200);
+
+        expect(response.body).toEqual({
+            data: {
+                city: {
+                    id: city._id.toString(),
+                    size: 'capital',
+                    hasShop: false,
+                },
+            },
+        });
+    });
+
     it('serves the points of interest of a city without the quest back link (D-09)', async () => {
         const ruins = await persistPoi(pointsOfInterest, {
             type: ['ruins'],

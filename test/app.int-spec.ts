@@ -587,6 +587,16 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
     });
 
+    it('writes the three new city types into the generated schema (D-15)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const cityTypes = schema.match(/enum CityType \{[^}]*\}/)?.[0];
+
+        expect(cityTypes).toContain('  aarakocraCapital\n  aarakocraVillage\n');
+        expect(cityTypes).toContain(
+            '  dragonbornCapital\n  dragonbornVillage\n',
+        );
+    });
+
     it('writes the point of interest without the quest back link (D-09)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 

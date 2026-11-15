@@ -38,7 +38,25 @@ describe('citySizeOf', () => {
         expect(citySizeOf(CityType.mirwaSeaCity)).toBe(CitySize.city);
     });
 
-    it('counts 13 villages, 9 cities and 11 capitals (quick 261109-cap)', () => {
+    it('sizes the two new capitals as capitals and the dragonborn village as a village (D-15, D-16)', () => {
+        expect(citySizeOf('aarakocraCapital' as CityType)).toBe(
+            CitySize.capital,
+        );
+        expect(citySizeOf('dragonbornCapital' as CityType)).toBe(
+            CitySize.capital,
+        );
+        expect(citySizeOf('dragonbornVillage' as CityType)).toBe(
+            CitySize.village,
+        );
+    });
+
+    it('recognises the three new city types (D-15)', () => {
+        expect(isCityType('aarakocraCapital')).toBe(true);
+        expect(isCityType('dragonbornCapital')).toBe(true);
+        expect(isCityType('dragonbornVillage')).toBe(true);
+    });
+
+    it('counts 14 villages, 9 cities and 13 capitals (D-16)', () => {
         const sizes: CitySize[] = Object.values(CITY_SIZE_BY_TYPE);
         const countOf = (size: CitySize) =>
             sizes.filter((value) => value === size).length;
@@ -47,7 +65,7 @@ describe('citySizeOf', () => {
             village: countOf(CitySize.village),
             city: countOf(CitySize.city),
             capital: countOf(CitySize.capital),
-        }).toEqual({ village: 13, city: 9, capital: 11 });
+        }).toEqual({ village: 14, city: 9, capital: 13 });
     });
 
     it('recognises only the city types of the size table (D-04)', () => {
