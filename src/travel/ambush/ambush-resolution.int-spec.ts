@@ -395,7 +395,7 @@ describe('AmbushResolutionService (replica set)', () => {
         expect(await unseen()).toEqual([]);
     });
 
-    it('writes the companion of the ambush in the result (D-10, D-26)', async () => {
+    it('writes the companion of the ambush in the result, without xp for the fallen one (D-10, D-13, D-26)', async () => {
         const { subject, companion } = await travellerWithCompanion();
         await world.models.pets.updateOne(
             { _id: companion },
@@ -413,7 +413,7 @@ describe('AmbushResolutionService (replica set)', () => {
         expect(raw.assets.pet).toBeNull();
         expect(raw.assets.ownedPets[1]).toEqual({
             pet: companion,
-            xp: COMPANION_SHARE,
+            xp: 0,
             currentLifePoints: 1,
             level: 1,
             lifeAsOf: subject.identity.at,

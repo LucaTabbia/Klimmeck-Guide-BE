@@ -960,7 +960,7 @@ describe('GuidedCompletionService (replSet)', () => {
             });
         });
 
-        it('gives a companion fallen in an early fight the xp of that fight only (D-13)', async () => {
+        it('gives a companion fallen in the first fight no xp (D-13)', async () => {
             const { first, second, wolf } = await missionWithFenrir();
             combat
                 .willResolve(first.characterId, {
@@ -989,6 +989,34 @@ describe('GuidedCompletionService (replSet)', () => {
             await service.complete(hexOf(first));
 
             const { entry } = await fenrirOf(first);
+            expect(entry.xp).toBe(0);
+            expect(await resultOf(first)).toMatchObject({
+                xpGained: 3 * 50,
+                petXpGained: 0,
+            });
+        });
+
+        it('gives a companion fallen in the last fight the xp of the fights it left standing (D-13)', async () => {
+            const { first, second, wolf } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 40,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 800,
+                    companionLifeAfter: 1,
+                })
+                .willResolve(second.characterId, { hpAfter: 900 });
+            await simulate(first, 1, [wolf, 2]);
+
+            await service.complete(hexOf(first));
+
+            const { slot, entry } = await fenrirOf(first);
+            expect(slot).toBeNull();
             expect(entry.xp).toBe(5);
             expect(await resultOf(first)).toMatchObject({
                 xpGained: 3 * 50,

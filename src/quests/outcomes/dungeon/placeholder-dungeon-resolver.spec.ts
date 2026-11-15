@@ -323,7 +323,7 @@ describe('PlaceholderDungeonResolver', () => {
             expect(heroEffectsOf(resolution)?.companionLifeAfter).toBe(1);
         });
 
-        it('gives the companion the xp of the stages it fought only, the stage of its fall included (D-13)', () => {
+        it('gives the companion the xp of the stages it leaves standing only, not the stage of its fall (D-13)', () => {
             const fallingOn = (stage: number) =>
                 explore(
                     [0, 1, 2].map((index) => ({
@@ -337,11 +337,9 @@ describe('PlaceholderDungeonResolver', () => {
                     withCompanion(),
                 ).resolution;
 
-            expect(heroEffectsOf(fallingOn(0))?.companionEnemiesXp).toBe(60);
-            expect(heroEffectsOf(fallingOn(1))?.companionEnemiesXp).toBe(80);
-            expect(heroEffectsOf(fallingOn(2))).not.toHaveProperty(
-                'companionEnemiesXp',
-            );
+            expect(heroEffectsOf(fallingOn(0))?.companionEnemiesXp).toBe(0);
+            expect(heroEffectsOf(fallingOn(1))?.companionEnemiesXp).toBe(60);
+            expect(heroEffectsOf(fallingOn(2))?.companionEnemiesXp).toBe(80);
         });
 
         it('keeps the companion life of the last stage it fought in the merged effects (D-12)', () => {

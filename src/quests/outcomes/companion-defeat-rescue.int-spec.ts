@@ -288,7 +288,7 @@ describe('companion defeat on rescues, guards and GM completion', () => {
         return result;
     }
 
-    it('defeats the companion of a rescuer that ends the rescue fight at 1 (D-03, D-26)', async () => {
+    it('defeats the companion of a rescuer that ends the rescue fight at 1, without xp (D-03, D-13, D-26)', async () => {
         const pet = await worg();
         const rescuer = await rescuerWith(pet._id);
         scripted.willResolve(rescuer.characterId, { companionLifeAfter: 1 });
@@ -297,13 +297,13 @@ describe('companion defeat on rescues, guards and GM completion', () => {
 
         const result = await expectDefeated(
             rescuer,
-            defeatedFenrir(pet._id, 10),
+            defeatedFenrir(pet._id, 0),
         );
         expect(result.outcome).toBe('success');
         expect(result.rescuedCharacters).toHaveLength(1);
     });
 
-    it('fights the guard without a companion defeated by the quest and keeps it defeated (D-12, D-26)', async () => {
+    it('fights the guard without a companion defeated by the quest, keeps it defeated and gives it no xp (D-12, D-13, D-26)', async () => {
         await thief();
         const pet = await worg();
         const subject = await fighterWith('guard', [await enemy()], pet._id);
@@ -319,11 +319,37 @@ describe('companion defeat on rescues, guards and GM completion', () => {
         ).toEqual([String(pet._id), null]);
         const result = await expectDefeated(
             subject,
-            defeatedFenrir(pet._id, 11),
+            defeatedFenrir(pet._id, 0),
         );
         expect(result).toMatchObject({
             outcome: 'success',
             guardEncounter: true,
+            petXpGained: 0,
+        });
+    });
+
+    it('gives a companion fallen in a won guard fight the xp of the quest fight only (D-13)', async () => {
+        await thief();
+        const pet = await worg();
+        const subject = await fighterWith('guard', [await enemy()], pet._id);
+        scripted.willResolve(subject.characterId, () => ({
+            companionLifeAfter: scripted.contexts.length === 1 ? 35 : 1,
+        }));
+        chance.load([HIT, 0]);
+
+        await expect(resolve(subject)).resolves.toBe('resolved');
+
+        expect(
+            scripted.contexts[1].participants[0].companion?.currentLifePoints,
+        ).toBe(35);
+        const result = await expectDefeated(
+            subject,
+            defeatedFenrir(pet._id, 10),
+        );
+        expect(result).toMatchObject({
+            outcome: 'success',
+            guardEncounter: true,
+            petXpGained: 10,
         });
     });
 
