@@ -727,6 +727,7 @@ export class ResolutionLoader {
     }
 
     // D-08, C-3: pool intero fuori transazione, il piano lo filtra contro lo snapshot in sessione; ordine per id così il tiro è riproducibile
+    // Phase 24 D-25: la lore di una magia si sblocca solo imparando la magia, quindi resta fuori dal pool (cambia il pool, non i tiri)
     private async readStudyLorePool(
         quest: ResolutionQuest,
     ): Promise<Types.ObjectId[]> {
@@ -736,11 +737,27 @@ export class ResolutionLoader {
             .find({ type: { $in: [...STUDY_LORE_TYPES] } }, { _id: 1 })
             .lean<{ _id: Types.ObjectId }[]>()
             .exec();
+        if (lore.length === 0) return [];
+        const spellLore = await this.readSpellLoreHexes();
         return lore
             .map(({ _id }) => _id)
+            .filter((id) => !spellLore.has(id.toHexString()))
             .sort((left, right) =>
                 left.toHexString().localeCompare(right.toHexString()),
             );
+    }
+
+    // ogni lore puntata da una magia, in qualunque forma salvata (id o esadecimale da script di contenuto)
+    private async readSpellLoreHexes(): Promise<Set<string>> {
+        const spells = await this.spellModel
+            .find({ 'relatedLore.0': { $exists: true } }, { relatedLore: 1 })
+            .lean<CatalogEntry<{ relatedLore?: unknown }>[]>()
+            .exec();
+        return new Set(
+            spells.flatMap(({ relatedLore }) =>
+                relatedLoreIdsOf(relatedLore).map((id) => id.toHexString()),
+            ),
+        );
     }
 
     // D-31, Phase 24 D-10: una scuola pesca solo la propria origine; ogni altro tipo che sorteggia l'intero catalogo; ordine per id così il tiro è riproducibile
