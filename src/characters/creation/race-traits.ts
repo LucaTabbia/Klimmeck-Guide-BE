@@ -32,15 +32,15 @@ const HUMAN_HOME_CITY_TYPES: readonly CityType[] = [
     CityType.liberiaCapital,
 ];
 
-// tipi di City in cui nasce ogni razza (D-10); più tipi = scelta casuale tra tutte le città esistenti di quei tipi
+// tipi di City in cui nasce ogni razza (D-10, Phase 24 D-18); più tipi = scelta casuale tra tutte le città esistenti di quei tipi
 export const RACE_HOME_CITY_TYPES: RaceHomeCityTypes = Object.freeze({
     [RaceType.elf]: [CityType.elfCapital],
     [RaceType.gnome]: [CityType.motherCapital],
     [RaceType.dwarf]: [CityType.motherCapital],
     [RaceType.tiefling]: [CityType.motherCapital],
     [RaceType.halfling]: [CityType.liberiaCapital],
-    [RaceType.aarakocra]: [CityType.aarakocraVillage],
-    [RaceType.dragonborn]: [CityType.mountainVillage],
+    [RaceType.aarakocra]: [CityType.aarakocraCapital],
+    [RaceType.dragonborn]: [CityType.dragonbornCapital],
     [RaceType.human]: HUMAN_HOME_CITY_TYPES,
     [RaceType.halfelf]: HUMAN_HOME_CITY_TYPES,
 });
