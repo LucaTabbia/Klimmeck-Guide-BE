@@ -157,6 +157,16 @@ const COMPLETE_PENDING_REQUEST =
     'mutation { completePendingRequest(input: { pendingQuestId: "64b000000000000000000001" }) { id } }';
 const TELEPORT_CHARACTER =
     'mutation { teleportCharacter(request: { id: "64b000000000000000000001", poiId: "64b000000000000000000002" }) { successful } }';
+// UNA TANTUM (Phase 24 D-07, D-20): righe dei tre passi su database vuoto, nell'ordine — escono col migratore
+const SPELL_ORIGINS_PREFIX = 'Origini delle magie, ';
+const SPELL_ORIGINS_STEP_LINES = [
+    'magie',
+    'tipo delle quest',
+    'tipo nei risultati',
+].map(
+    (label) =>
+        `${SPELL_ORIGINS_PREFIX}${label}: trovati 0, migrati 0, già a posto 0, senza corrispondenza 0`,
+);
 // whitelist enumerata (D-12): ogni aggiunta di @Public() deve passare da qui
 const EXPECTED_PUBLIC_HANDLERS = [
     'AppController.getHello',
@@ -276,10 +286,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     let app: INestApplication;
     let fetchSpy: jest.SpiedFunction<typeof fetch>;
     let warnSpy: jest.SpiedFunction<Logger['warn']>;
+    let logSpy: jest.SpiedFunction<Logger['log']>;
     beforeAll(async () => {
         // spie passthrough attive prima del boot: catturano le chiamate di rete e il WARN di avvio
         fetchSpy = jest.spyOn(global, 'fetch');
         warnSpy = jest.spyOn(Logger.prototype, 'warn');
+        logSpy = jest.spyOn(Logger.prototype, 'log');
         boot = await bootRealApp({ dbName: 'app-boot-test' });
         app = boot.app;
     }, REAL_BOOT_TIMEOUT_MS);
@@ -1135,6 +1147,26 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
 
         expect(moduleNames).not.toContain('ModelReviewMigrationModule');
+    });
+
+    it('mounts the one-off spell origins migration until its real boot (D-07, D-20)', () => {
+        const moduleNames = [...app.get(ModulesContainer).values()].map(
+            (moduleRef) => moduleRef.metatype.name,
+        );
+
+        expect(moduleNames).toContain('SpellOriginsMigrationModule');
+    });
+
+    it('runs the three spell origins steps on the empty database, in order (D-07, D-20)', () => {
+        const spellOriginsLines = logSpy.mock.calls
+            .map(([message]): unknown => message)
+            .filter(
+                (message): message is string =>
+                    typeof message === 'string' &&
+                    message.startsWith(SPELL_ORIGINS_PREFIX),
+            );
+
+        expect(spellOriginsLines).toEqual(SPELL_ORIGINS_STEP_LINES);
     });
 
     it('mounts the quest result maintenance', () => {
