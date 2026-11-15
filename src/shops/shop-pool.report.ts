@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import { citySizeOf } from 'src/cities/city-size';
 import { CitySize } from 'src/models/enums/city-size.enum';
 import { CityType } from 'src/models/enums/city-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
@@ -8,6 +7,7 @@ import {
     allowedRaritiesOf,
     isShelfEligible,
     ShopPoolLists,
+    shopTierOf,
 } from './shop-pool.rules';
 
 export interface ReportedItem {
@@ -63,7 +63,7 @@ export function violationsOf(
     city: ReportedCity,
     catalogue: ShopCatalogue,
 ): ShopPoolViolation {
-    const size = citySizeOf(city.type);
+    const size = shopTierOf(city.type);
     const allowed: readonly string[] = allowedRaritiesOf(size);
     const violation: ShopPoolViolation = {
         cityId: city._id.toHexString(),

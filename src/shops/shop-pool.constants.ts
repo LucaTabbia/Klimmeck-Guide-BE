@@ -18,4 +18,10 @@ export const SHOP_ALLOWED_RARITIES = {
 // Necrorian ha solo la dungeon (Phase 11 D-17): pool vuoto esplicito (D-04)
 export const NO_SHOP_CITY_TYPES: readonly CityType[] = [CityType.necrorianCity];
 
+// capitali col negozio da città (Phase 24 D-22): la taglia resta capital, la fascia del negozio no
+export const CITY_TIER_SHOP_TYPES: readonly CityType[] = [
+    CityType.aarakocraCapital,
+    CityType.dragonbornCapital,
+];
+
 export const SHOP_REPORT_WARNINGS_LIMIT = 50;
