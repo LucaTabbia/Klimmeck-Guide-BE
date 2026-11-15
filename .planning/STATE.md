@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
-Plan: 11 of 12
+Plan: 12 of 12
 Status: Phase 24 eseguita (12/12): gate 24-11 verde (tsc 0, unit 310 / 4 419, integration 163 / 2 558, boot reale 107, SDL: 1 riga tolta `minXpToLearn`, 6 aggiunte), handoff `BACKEND-NOTES.md` scritto, BE-ORIGIN-01..12 chiusi; test:cov, verifica e audit, PR, boot reale dal ramo col migratore e sua rimozione, script di contenuto (origini, magie nuove, lore, quest, heal e negozi delle due capitali, lore delle città) e UAT su device con la FE Phase 23 a cura dell'orchestratore.
 Last activity: 2026-11-15 -- 24-12 eseguito (handoff `BACKEND-NOTES.md` per la FE Phase 23 e runbook del migratore, VALIDATION firmata, BE-ORIGIN-01..12 chiusi)
 Next step: orchestratore: `npm run test:cov`, verifica e audit, PR verso `develop`; backup e boot reale dal ramo col migratore (log in `BACKEND-NOTES.md` §4), secondo boot, rimozione del migratore in TDD; contenuto a DB dopo la revisione dell'utente (§5); UAT su device con la FE Phase 23 (§7, 8 passi). Domande aperte in §7 (A2, A3, fascia nel report dei negozi, lore d'origine anche dal pool dello studio).
