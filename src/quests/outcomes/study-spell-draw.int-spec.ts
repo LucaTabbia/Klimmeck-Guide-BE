@@ -574,6 +574,31 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(chance.drawn).toEqual([0, 0, 0, 0]);
     });
 
+    // la stessa lore di un tipo dello studio: fuori dal pool dello studio, la porta solo la magia imparata e i tiri restano due
+    it('unlocks a study-type origin lore only through the learned spell (D-24, D-25)', async () => {
+        const originLore = (await persistLore(
+            world.harness.connection.model(Lore.name),
+            { type: LoreType.knowledge, name: 'Il Vuoto' },
+        )) as { _id: Types.ObjectId };
+        const spell = await learnableOf(SpellOrigin.void, {
+            relatedLore: [originLore._id],
+        });
+        const subject = await quester({
+            questOverrides: questOfType('void', { xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0, 0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const result = await resultOf(subject);
+        expect(String(result.spellLearned)).toBe(String(spell._id));
+        expect(result.loreUnlocked.map(String)).toEqual([
+            String(originLore._id),
+        ]);
+        expect(chance.drawn).toEqual([0, 0]);
+    });
+
     it('does not filter the fixed spell of a school quest by origin (D-10)', async () => {
         const fixed = await learnableOf(SpellOrigin.arcane);
         const subject = await quester({

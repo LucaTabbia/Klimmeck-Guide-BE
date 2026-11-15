@@ -314,6 +314,7 @@ const rewardLoaderWith = (models: {
     equipment?: CatalogDoc[];
     spells?: CatalogDoc[];
     pets?: CatalogDoc[];
+    lore?: CatalogDoc[];
     spellModel?: ReturnType<typeof catalogModel>;
 }) =>
     new ResolutionLoader(
@@ -326,7 +327,7 @@ const rewardLoaderWith = (models: {
         catalogModel(models.equipment) as never,
         (models.spellModel ?? catalogModel(models.spells)) as never,
         catalogModel(models.pets) as never,
-        catalogModel() as never,
+        catalogModel(models.lore) as never,
         undefined,
     );
 
@@ -629,5 +630,61 @@ describe('ResolutionLoader reward catalog', () => {
 
         expect(spellModel.find).not.toHaveBeenCalled();
         expect(rewards.spellPool).toEqual([]);
+    });
+});
+
+const sortedIds = (...ids: Types.ObjectId[]) =>
+    [...ids].sort((left, right) =>
+        left.toHexString().localeCompare(right.toHexString()),
+    );
+
+describe('ResolutionLoader study lore pool', () => {
+    it.each([
+        [QuestType.study],
+        [QuestType.arcane],
+        [QuestType.shamanic],
+        [QuestType.void],
+    ])(
+        'leaves the lore of every spell out of the study pool, by id (D-25): %s',
+        async (type) => {
+            const free = [new Types.ObjectId(), new Types.ObjectId()];
+            const linked = new Types.ObjectId();
+            const linkedAsHex = new Types.ObjectId();
+            const loader = rewardLoaderWith({
+                lore: [free[1], linked, free[0], linkedAsHex].map((_id) => ({
+                    _id,
+                })),
+                spells: [
+                    { _id: new Types.ObjectId(), relatedLore: [linked] },
+                    {
+                        _id: new Types.ObjectId(),
+                        relatedLore: [linkedAsHex.toHexString(), 'not-an-id'],
+                    },
+                    { _id: new Types.ObjectId() },
+                ],
+            });
+
+            const { rewards } = await loader.readCatalog(
+                drawingQuest(type, false) as never,
+                [],
+            );
+
+            expect(rewards.studyLorePool).toEqual(sortedIds(...free));
+        },
+    );
+
+    it('reads an empty study pool when every study lore belongs to a spell (D-25)', async () => {
+        const linked = [new Types.ObjectId(), new Types.ObjectId()];
+        const loader = rewardLoaderWith({
+            lore: linked.map((_id) => ({ _id })),
+            spells: [{ _id: new Types.ObjectId(), relatedLore: linked }],
+        });
+
+        const { rewards } = await loader.readCatalog(
+            drawingQuest(QuestType.study, false) as never,
+            [],
+        );
+
+        expect(rewards.studyLorePool).toEqual([]);
     });
 });
