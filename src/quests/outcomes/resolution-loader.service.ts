@@ -59,6 +59,7 @@ import { isPetXpCap } from './pets/pet-xp';
 import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
+    isLearnLevel,
     type PrizesSnapshot,
     type RewardCatalog,
     type RewardRefs,
@@ -179,9 +180,6 @@ const COMBAT_ENEMY_PROJECTION = {
     // le lore dei nemici per la conoscenza della vittoria (Phase 16 D-06); stesso catalogo per quest e imboscate
     relatedLore: 1,
 } as const;
-
-const isLearnLevel = (value: unknown): value is number =>
-    Number.isInteger(value) && (value as number) >= 1;
 
 // una magia senza soglia valida (livello intero ≥ 1) o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07, Phase 24 D-07): mai valori impliciti
 const learnableSpellOf = ({

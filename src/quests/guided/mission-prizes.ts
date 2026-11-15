@@ -14,11 +14,12 @@ import {
 } from 'src/quests/generation/loot-pools';
 import { petRarityCapOf } from 'src/quests/generation/pet-prize';
 import {
+    isLearnLevel,
     PrizesSnapshot,
     validRewardItems,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 
-// rarità e xp curati a mano a DB: letti lean, quindi non tipizzati (fail-closed)
+// rarità e livelli curati a mano a DB: letti lean, quindi non tipizzati (fail-closed)
 export interface PrizeCatalogueEntry {
     id: string;
     rarity: string | null;
@@ -26,7 +27,7 @@ export interface PrizeCatalogueEntry {
 
 export interface SpellCatalogueEntry {
     id: string;
-    minXpToLearn: unknown;
+    minLevelToLearn: unknown;
 }
 
 export interface MissionPrizeCatalogue {
@@ -49,7 +50,7 @@ export interface MissionPrizeOptionsInput {
     block: PrizesSnapshot | null;
     questType: QuestType;
     title: TitleType;
-    xp: number;
+    level: number;
     knownSpellIds: readonly string[];
     catalogue: MissionPrizeCatalogue;
 }
@@ -109,19 +110,20 @@ function underCap(
         .map((entry) => entry.id);
 }
 
+const isReachedLevel = (minLevelToLearn: unknown, level: number): boolean =>
+    isLearnLevel(minLevelToLearn) && minLevelToLearn <= level;
+
 function learnableSpells({
     title,
-    xp,
+    level,
     knownSpellIds,
     catalogue,
 }: MissionPrizeOptionsInput): string[] {
     if (!isSpellCaster(title)) return [];
     return catalogue.spells
         .filter(
-            ({ id, minXpToLearn }) =>
-                typeof minXpToLearn === 'number' &&
-                Number.isFinite(minXpToLearn) &&
-                minXpToLearn <= xp &&
+            ({ id, minLevelToLearn }) =>
+                isReachedLevel(minLevelToLearn, level) &&
                 !knownSpellIds.includes(id),
         )
         .map(({ id }) => id);
