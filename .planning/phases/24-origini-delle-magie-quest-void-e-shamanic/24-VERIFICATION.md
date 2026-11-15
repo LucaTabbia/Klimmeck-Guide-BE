@@ -8,12 +8,15 @@ human_verification:
   - test: "Boot reale del BE dal ramo col migratore (BACKEND-NOTES §4, passi 1–5), a client fermi e con backup di spells, quests, questresults"
     expected: "Tre righe `Origini delle magie, …` prima di ogni altro modulo: 96 magie trovate e migrate, 0 senza corrispondenza; 1 quest rinominata in `arcane`; risultati con `magic` rinominati. Nessun WARN `Magie: …`. Secondo riavvio: `migrati 0` su tutte e tre"
     why_human: "Il migratore è provato solo su database di test; il verificatore non avvia il BE né legge il database reale"
+    result: "FATTO il 2026-11-15: boot reale dal commit `791a7fd3` con backup prima; magie 96 trovate e migrate, 0 senza corrispondenza; 1 quest e 2 risultati rinominati; nessun WARN `Magie: …`; applicazione avviata. Log in BACKEND-NOTES §4"
   - test: "Rimozione del migratore dopo il boot reale (BACKEND-NOTES §4 passo 6) e registrazione del log nel handoff"
     expected: "`src/migrations/spell-origins/` cancellata, `SpellOriginsMigrationModule` tolto da `src/app.module.ts`, caso «does not mount…» in `test/app.int-spec.ts`, sezione «Log del boot reale» compilata"
     why_human: "Passo dell'orchestratore, previsto dopo il boot reale; oggi il modulo è ancora montato e il log è un segnaposto"
+    result: "FATTO il 2026-11-15: cartella e voce di AppModule tolte in TDD (RED `test(migrations)`, GREEN `refactor(migrations)`), caso «does not mount…» verde, log compilato in BACKEND-NOTES §4"
   - test: "Contenuto a DB (BACKEND-NOTES §5): origine e livello rivisti delle 96 magie, ~45 magie nuove, tre lore d'origine e `relatedLore` su ogni magia, una quest `void` a Necrorian e una `shamanic` a Murnborim e a Thengran con `minTitle: mage` e `spellDraw: true`, heal e negozi da città nelle due capitali, lore delle tre città, `$unset` di `minXpToLearn` dopo la merge"
     expected: "Dopo le scritture e un riavvio: nessun WARN `Magie: …`, nessun WARN delle città di nascita, report dei negozi senza «fuori taglia» per Murnborim e Thengran"
     why_human: "Contenuto scritto dall'orchestratore dopo la revisione dell'utente, mai nel repo; il codice non può garantirlo"
+    result: "FATTO il 2026-11-15 (BACKEND-NOTES §5): 96 magie aggiornate e 48 inserite (80 arcane, 32 shamanic, 32 void) con relatedLore, tre quest di scuola, heal e negozi da città, lore delle città, lore d'origine ai due personaggi con magie; resta il `$unset` di `minXpToLearn` dopo la merge"
   - test: "Finestra FE: riavvio del BE dal ramo insieme alla build della FE Phase 23 sul device"
     expected: "Nessuna operazione rifiutata per `minXpToLearn`; `cities` serve Murnborim, Thengran e Veg Faldir senza errore d'enum"
     why_human: "Dipende dal BE vero e dalla build FE sul telefono"
@@ -127,6 +130,8 @@ Nessun `TODO`/`FIXME`/`it.skip`/`it.only` nelle righe aggiunte; nessun file fuor
 ### Human Verification Required
 
 Vedi `human_verification` nel frontmatter: boot reale col migratore, rimozione del migratore e log nel handoff, contenuto a DB (§5), finestra FE, otto passi di UAT su device, quattro decisioni aperte dell'utente.
+
+Aggiornamento 2026-11-15: voci 1–3 fatte (boot reale col migratore, sua rimozione e log nel handoff, contenuto a DB salvo il `$unset` di `minXpToLearn` dopo la merge); restano aperte le voci 4–6.
 
 ### Gaps Summary
 

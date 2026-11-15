@@ -187,7 +187,15 @@ Runbook (a cura dell'orchestratore):
 
 ### Log del boot reale
 
-<DA COMPILARE DALL'ORCHESTRATORE: data, righe del migratore, WARN del reporter delle magie, esito>
+Boot reale del 2026-11-15 dal commit `791a7fd3`, con backup del database preso prima. Righe del migratore, testuali:
+
+```
+[SpellOriginsBoot] Origini delle magie, magie: trovati 96, migrati 96, già a posto 0, senza corrispondenza 0
+[SpellOriginsBoot] Origini delle magie, tipo delle quest: trovati 1, migrati 1, già a posto 0, senza corrispondenza 0
+[SpellOriginsBoot] Origini delle magie, tipo nei risultati: trovati 2, migrati 2, già a posto 0, senza corrispondenza 0
+```
+
+Nessun WARN del reporter delle magie; applicazione avviata. Migratore poi tolto dal repo in TDD (§4 passo 6): `test(migrations)` RED e `refactor(migrations)` GREEN, cartella `src/migrations/spell-origins/` cancellata.
 
 ---
 
@@ -204,6 +212,8 @@ Script FUORI dal repo, dopo la revisione dell'utente. **Nessun file di contenuto
 - **Lore delle tre città cambiate (D-23):** Murnborim, Thengran, Veg Faldir (`690961bf1bf8bb61e5f6af2f`), riscritte sul documento di world building, riviste dall'utente.
 - **Dopo le scritture:** riavvio; WARN `Magie: …` del reporter atteso assente; WARN delle città di nascita atteso assente (le due capitali esistono a DB).
 - **Pavimento sulle quest scritte a mano (IN-08):** il codice non lo controlla; dopo la scrittura verificare a DB che ogni quest aperta con marker su un POI di Necrorian abbia `requirements.minTitle` in `mage` / `hero`.
+
+**Contenuto scritto il 2026-11-15 dall'orchestratore, dopo il boot reale del §4:** 96 magie aggiornate e 48 inserite (80 `arcane`, 32 `shamanic`, 32 `void`, ognuna collegata con `relatedLore` alla lore della sua origine); tre quest di scuola («Memorie di un mago» a Necrorian, «Rito sciamanico a Thengran», «Rito sciamanico a Murnborim»); heal e negozi di Murnborim e Thengran in fascia città; lore delle tre città; la quest da recluta di Necrorian «Minaccia: Cultista» cancellata su ordine dell'utente; lore d'origine data ai due personaggi che conoscevano già magie. **Resta da fare dopo la merge:** `$unset` di `minXpToLearn` (§4 passo 7).
 
 Ordine consigliato: boot col migratore (§4) → tabella rivista delle origini e dei livelli e magie nuove → lore d'origine e collegamenti `relatedLore` → rimozione del migratore (§4 passo 6) → merge di BE e FE → quest nuove dopo la build FE sul device → heal, negozi e lore delle città → campo vecchio tolto (§4 passo 7).
 
