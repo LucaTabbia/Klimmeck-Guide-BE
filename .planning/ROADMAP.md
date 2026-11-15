@@ -273,11 +273,22 @@ Plans:
 **Goal**: Le magie prendono una macroclasse e nascono due scuole di quest nuove, con il BE come unica fonte di verità. Parole dell'utente (2026-11-15): «Le magie devono avere una macroclasse (ovvero origin->use->enegy). Le origini sono 3: void, magic e shamanic. Bisogna poi rivedere tutte le magie a DB e assegnargli l'origine corretta sulla base della descrizione e andare a riempire il DB con nuove magie ove ce ne siano altre mancanti. Poi dovremo aggiungere due tipi di quest: shamanic e void. Funzioneranno esattamente come la missione magic. Ognuna di loro insegnerà una magia sulla base del tipo (adesso magic le insegna tutte)»; «La quest void sarà solo a Necrorian (p.s nessuna quest a Necrorian dovrebbe venir creata con rango minimo inferiore a mage)»; città `690961bfe74c2f6dfc837d8f` ora `aarakocraCapital`, `690961bf1bf8bb61e5f6af2f` ora `dragonbornVillage`, `690961bf31795cde80768bc7` ora `dragonbornCapital`; «Le due nuove capitali hanno come size capital»; «Nelle due capitali dev'essere disponibile la nuova missione shamanic. Quella missione dev'essere accettabile da rango mage in su»; «Le magie non devono più avere un minimo xp per impararle, ma un minimo livello, quindi rivedi il parametro in base alla tabella dei livelli personaggio».
 **Depends on**: Phase 9.1 (stato e apprendimento delle magie), Phase 11 (mondo a DB), Phase 13 e 13.1 (generazione quest, quest magic), Phase 21 (magia nei premi per titolo), Phase 23
 **Scope**: da fissare nel discuss (interattivo, congiunto con la FE Phase 23). Il contenuto (origine di ogni magia, magie nuove, livelli minimi) si scrive a DB dopo la revisione dell'utente, mai nel repo.
-**Requirements**: TBD (definiti nel plan)
-**Plans**: 0 plans
+**Requirements**: BE-ORIGIN-01, BE-ORIGIN-02, BE-ORIGIN-03, BE-ORIGIN-04, BE-ORIGIN-05, BE-ORIGIN-06, BE-ORIGIN-07, BE-ORIGIN-08, BE-ORIGIN-09, BE-ORIGIN-10, BE-ORIGIN-11, BE-ORIGIN-12
+**Plans**: 12 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 24 to break down)
+- [ ] 24-01-PLAN.md — Tipi di città, fascia dei negozi e città di nascita
+- [ ] 24-02-PLAN.md — Modello della magia: origine e livello minimo (solo aggiunte)
+- [ ] 24-03-PLAN.md — Cancello a livello nelle quest
+- [ ] 24-04-PLAN.md — Cancello a livello nelle opzioni dell'oste
+- [ ] 24-05-PLAN.md — Via `minXpToLearn`, reporter delle magie
+- [ ] 24-06-PLAN.md — Tipi di quest `arcane`, `shamanic`, `void`
+- [ ] 24-07-PLAN.md — Sorteggio della magia per origine
+- [ ] 24-08-PLAN.md — Lore dell'origine: `Spell.relatedLore`
+- [ ] 24-09-PLAN.md — Pavimento di titolo di Necrorian nel generatore
+- [ ] 24-10-PLAN.md — Migratore una tantum
+- [ ] 24-11-PLAN.md — Gate della fase
+- [ ] 24-12-PLAN.md — Chiusura della fase e handoff
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -325,7 +336,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
-| 24. Origini delle magie, quest void e shamanic | v1.1 | 0/0 | Not started | - |
+| 24. Origini delle magie, quest void e shamanic | v1.1 | 0/12 | Not started | - |
 
 ---
 
