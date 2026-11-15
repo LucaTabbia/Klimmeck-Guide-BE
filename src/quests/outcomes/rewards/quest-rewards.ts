@@ -9,6 +9,7 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { ChanceSource } from '../chance-source';
+import { MAX_LEVEL } from '../progression/level-table';
 import { rollLoot } from './cascading-loot';
 
 export interface PrizeEntrySnapshot {
@@ -121,9 +122,11 @@ const REWARD_ITEM_TYPES: readonly unknown[] = [
 export const isNonNegativeInteger = (value: unknown): value is number =>
     Number.isSafeInteger(value) && (value as number) >= 0;
 
-// livello minimo di una magia letto lean (Phase 24 D-07, D-08): intero ≥ 1, altrimenti la magia non si insegna né si offre
+// livello minimo di una magia letto lean (Phase 24 D-07, D-08): intero fra 1 e il livello massimo della tabella, altrimenti la magia non si insegna né si offre
 export const isLearnLevel = (value: unknown): value is number =>
-    Number.isInteger(value) && (value as number) >= 1;
+    Number.isInteger(value) &&
+    (value as number) >= 1 &&
+    (value as number) <= MAX_LEVEL;
 
 // premi scritti a mano nel catalogo (D-16, T-09-11): tipo dell'enum, ref valido, quantità intera ≥ 1, altrimenti scartato
 function rewardItemOf(

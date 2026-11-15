@@ -1,6 +1,7 @@
 import { ObjectType, Field, Int, ID } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import { MAX_LEVEL } from 'src/quests/outcomes/progression/level-table';
 import { Lore } from './lore.model';
 import { SpellOrigin } from './enums/spell-origin.enum';
 import { UseType } from './enums/use-type.enum';
@@ -37,9 +38,9 @@ export class Spell {
     @Prop({ type: Number })
     requiredLearnTime: number;
 
-    // livello minimo del personaggio per impararla (Phase 24 D-07)
+    // livello minimo del personaggio per impararla (Phase 24 D-07), mai oltre l'ultimo livello della tabella
     @Field(() => Int)
-    @Prop({ type: Number, required: true, min: 1 })
+    @Prop({ type: Number, required: true, min: 1, max: MAX_LEVEL })
     minLevelToLearn: number;
 
     @Field(() => Int)

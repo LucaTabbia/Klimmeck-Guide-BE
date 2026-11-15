@@ -28,6 +28,8 @@ export const LEVEL_TABLE = [
 
 export type LevelRow = (typeof LEVEL_TABLE)[number];
 
+export const MAX_LEVEL: number = LEVEL_TABLE[LEVEL_TABLE.length - 1].level;
+
 export interface Progression {
     xp: number;
     level: number;
