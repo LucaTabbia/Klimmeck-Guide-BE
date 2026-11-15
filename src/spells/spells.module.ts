@@ -6,11 +6,9 @@ import { SpellsResolver } from './spells.resolver';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([
-            { name: Spell.name, schema: SpellSchema },
-        ]),
+        MongooseModule.forFeature([{ name: Spell.name, schema: SpellSchema }]),
     ],
     providers: [SpellsService, SpellsResolver],
     exports: [SpellsService],
 })
-export class SpellsModule { }
+export class SpellsModule {}
