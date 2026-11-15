@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { ResolutionLoader } from './resolution-loader.service';
 
@@ -335,6 +336,16 @@ const rankedBoss = (rankPrizes: Record<string, unknown>[]) => ({
     prizes: { prizeCoins: null, xpPrize: 10, randomLoot: [], rankPrizes },
 });
 
+const drawingQuest = (type: string, spellDraw: boolean) => ({
+    _id: new Types.ObjectId(),
+    infos: { type, title: 'Scuola', markerLocation: null },
+    requirements: { minTitle: TitleType.mage },
+    prizes: { prizeCoins: null, xpPrize: 10, randomLoot: [], spellDraw },
+});
+
+const filtersOf = (spellModel: ReturnType<typeof catalogModel>) =>
+    (spellModel.find.mock.calls as unknown[][]).map(([filter]) => filter);
+
 describe('ResolutionLoader reward catalog', () => {
     it('reads the reward catalog of every rank block (D-05, D-05a)', async () => {
         const P1 = new Types.ObjectId();
@@ -438,7 +449,7 @@ describe('ResolutionLoader reward catalog', () => {
 
         await loader.readRewardCatalogFor(
             { items: [], spellIds: [S1], petIds: [] },
-            { spellDraw: true },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
         );
 
         expect(spellModel.find).toHaveBeenCalledTimes(2);
@@ -462,7 +473,7 @@ describe('ResolutionLoader reward catalog', () => {
 
             const rewards = await loader.readRewardCatalogFor(
                 { items: [], spellIds: [valid, dirty], petIds: [] },
-                { spellDraw: true },
+                { prizes: { spellDraw: true }, questType: QuestType.study },
             );
 
             expect([...rewards.spells.keys()]).toEqual([valid.toHexString()]);
@@ -471,4 +482,68 @@ describe('ResolutionLoader reward catalog', () => {
             ]);
         },
     );
+    it.each([
+        [QuestType.arcane, SpellOrigin.arcane],
+        [QuestType.shamanic, SpellOrigin.shamanic],
+        [QuestType.void, SpellOrigin.void],
+    ])(
+        'reads the spell pool of a school quest filtered by the origin of its type (D-10): %s',
+        async (type, origin) => {
+            const spellModel = catalogModel();
+            const loader = rewardLoaderWith({ spellModel });
+
+            await loader.readCatalog(drawingQuest(type, true) as never, []);
+
+            expect(filtersOf(spellModel)).toEqual([{ origin }]);
+        },
+    );
+
+    it('reads the whole spell catalogue for a drawing quest outside the schools (D-10)', async () => {
+        const spellModel = catalogModel();
+        const loader = rewardLoaderWith({ spellModel });
+
+        await loader.readCatalog(
+            drawingQuest(QuestType.study, true) as never,
+            [],
+        );
+
+        expect(filtersOf(spellModel)).toEqual([{}]);
+    });
+
+    it.each([
+        [QuestType.arcane],
+        [QuestType.shamanic],
+        [QuestType.void],
+        [QuestType.study],
+        [QuestType.hunt],
+    ])(
+        'reads no spell pool without the draw flag, whatever the type (D-10): %s',
+        async (type) => {
+            const spellModel = catalogModel();
+            const loader = rewardLoaderWith({ spellModel });
+
+            const { rewards } = await loader.readCatalog(
+                drawingQuest(type, false) as never,
+                [],
+            );
+
+            expect(spellModel.find).not.toHaveBeenCalled();
+            expect(rewards.spellPool).toEqual([]);
+        },
+    );
+
+    it('reads no spell pool for a null source (D-10)', async () => {
+        const spellModel = catalogModel([
+            { _id: new Types.ObjectId(), minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [], petIds: [] },
+            null,
+        );
+
+        expect(spellModel.find).not.toHaveBeenCalled();
+        expect(rewards.spellPool).toEqual([]);
+    });
 });

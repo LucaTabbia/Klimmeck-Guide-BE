@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { LoreType } from 'src/models/enums/lore-type.enum';
+import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 import { Lore } from 'src/models/lore.model';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -167,6 +168,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         ]);
     });
 
+    // vale solo perché le magie del caso nascono arcane (default della fixture): il pool della scuola è l'intero catalogo di prova
     it('teaches an arcane quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
         const known = await persistSpell(world.models.spells, {
             minLevelToLearn: 2,
@@ -361,5 +363,160 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         expect(character.status.spellStates).toEqual([]);
         expect((await resultOf(subject)).spellLearned).toBeNull();
         expect(chance.drawn).toEqual([]);
+    });
+    const learnableOf = (origin: SpellOrigin, overrides = {}) =>
+        persistSpell(world.models.spells, {
+            origin,
+            minLevelToLearn: 2,
+            maxUsages: 4,
+            ...overrides,
+        });
+
+    const SCHOOLS = [
+        ['arcane', SpellOrigin.arcane],
+        ['shamanic', SpellOrigin.shamanic],
+        ['void', SpellOrigin.void],
+    ] as const;
+
+    const otherOrigins = (origin: SpellOrigin) =>
+        Object.values(SpellOrigin).filter((other) => other !== origin);
+
+    const learnedBy = async (subject: Quester) => {
+        const { spellLearned } = await resultOf(subject);
+        return spellLearned ? String(spellLearned) : null;
+    };
+
+    // la magia della scuola sta in mezzo per id: il tiro 0 sull'intero catalogo prenderebbe la prima
+    it.each(SCHOOLS)(
+        'teaches a %s quest only a spell of the %s origin (D-10, D-20)',
+        async (type, origin) => {
+            const [before, after] = otherOrigins(origin);
+            await learnableOf(before);
+            const taught = await learnableOf(origin);
+            await learnableOf(after);
+            const subject = await quester({
+                questOverrides: questOfType(type, { xpPrize: 300 }),
+            });
+            await drawSpellOn(subject);
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            expect(await learnedBy(subject)).toBe(String(taught._id));
+            expect(chance.drawn).toEqual([0, 0]);
+        },
+    );
+
+    it.each([[[0, 0]], [[0, 0.5]], [[0, 0.99]]])(
+        'never teaches a shamanic quest an arcane spell, on any roll (D-10): %p',
+        async (rolls) => {
+            await learnableOf(SpellOrigin.arcane);
+            await learnableOf(SpellOrigin.void);
+            const subject = await quester({
+                questOverrides: questOfType('shamanic', { xpPrize: 300 }),
+            });
+            await drawSpellOn(subject);
+            chance.load(rolls);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.spellStates).toEqual([]);
+            expect(await learnedBy(subject)).toBeNull();
+        },
+    );
+
+    it('consumes the same two draws on an empty school pool (D-10)', async () => {
+        await learnableOf(SpellOrigin.arcane);
+        await learnableOf(SpellOrigin.shamanic);
+        const subject = await quester({
+            questOverrides: questOfType('void', { xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        expect(await learnedBy(subject)).toBeNull();
+        expect(chance.drawn).toEqual([0, 0]);
+    });
+
+    it('keeps the whole catalogue for a drawing study (D-10)', async () => {
+        const first = await learnableOf(SpellOrigin.void);
+        await learnableOf(SpellOrigin.arcane);
+        const last = await learnableOf(SpellOrigin.shamanic);
+        const firstStudy = await quester({
+            questOverrides: studyQuest({ xpPrize: 300 }),
+        });
+        const lastStudy = await quester({
+            questOverrides: studyQuest({ xpPrize: 300 }),
+        });
+        await drawSpellOn(firstStudy);
+        await drawSpellOn(lastStudy);
+
+        chance.load([0, 0]);
+        await service.resolveStandard(triggerOf(firstStudy));
+        chance.load([0, 0.99]);
+        await service.resolveStandard(triggerOf(lastStudy));
+
+        expect(await learnedBy(firstStudy)).toBe(String(first._id));
+        expect(await learnedBy(lastStudy)).toBe(String(last._id));
+    });
+
+    it.each(SCHOOLS)(
+        'leaves a spell with an unknown origin out of every school pool (D-10): %s',
+        async (type) => {
+            const dirty = await learnableOf(SpellOrigin.arcane);
+            await world.models.spells.collection.updateOne(
+                { _id: dirty._id },
+                { $set: { origin: 'fire' } },
+            );
+            const subject = await quester({
+                questOverrides: questOfType(type, { xpPrize: 300 }),
+            });
+            await drawSpellOn(subject);
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            expect(await learnedBy(subject)).toBeNull();
+            expect(chance.drawn).toEqual([0, 0]);
+        },
+    );
+
+    // 300 xp dopo il premio = livello 2: la magia void chiede il livello 3, la arcane imparabile non è della scuola
+    it('applies the level gate inside a school pool (D-07, D-10)', async () => {
+        await learnableOf(SpellOrigin.arcane);
+        await learnableOf(SpellOrigin.void, { minLevelToLearn: 3 });
+        const subject = await quester({
+            questOverrides: questOfType('void', { xpPrize: 300 }),
+        });
+        await drawSpellOn(subject);
+        chance.load([0, 0]);
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.level).toBe(2);
+        expect(character.status.spellStates).toEqual([]);
+        expect(await learnedBy(subject)).toBeNull();
+    });
+
+    it('does not filter the fixed spell of a school quest by origin (D-10)', async () => {
+        const fixed = await learnableOf(SpellOrigin.arcane);
+        const subject = await quester({
+            questOverrides: questOfType('void', {
+                xpPrize: 300,
+                spell: fixed._id,
+            }),
+        });
+
+        await service.resolveStandard(triggerOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.spellStates).toEqual([
+            { spell: fixed._id, usages: 4, recoveries: [], active: false },
+        ]);
+        expect(await learnedBy(subject)).toBe(String(fixed._id));
     });
 });
