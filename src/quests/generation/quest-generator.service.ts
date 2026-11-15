@@ -339,6 +339,7 @@ export class QuestGenerator extends QuestGenerationTrigger {
         floor: GeneratedRank | null,
     ): GeneratedQuestDraft {
         if (composition.type !== QuestType.boss) return draft;
+        // senza pavimento il cancello del misto si tira sempre, come prima della Phase 24: i semi fissi delle spec ne dipendono
         if (floor !== null && !allowsMixedLower(floor, composition.rank))
             return draft;
         const lowerSeats = mixedSeatsOf(composition.seats, this.chance);
