@@ -23,6 +23,7 @@
 9. **Flusso guidato** (D-33): `MissionFightOutcome.companion: MissionCompanion`, `MissionFightEffects.companionLifeAfter: Int`, `ParticipantOverrideInput.companionLifeAfter: Int`. Correggendo un partecipante, ogni campo omesso o `null` vale il valore simulato di quello scontro (anche `companionLifeAfter`); un valore esplicito, anche `[]`, vince. Rimandare i valori simulati resta lecito (§2 g, A-08, fix/23).
 10. **Codici nuovi:** `PET_DEFEATED`, `PET_POTION_RECOVERING` (con `extensions.recoveryUntil`), `PET_NAME_INVALID`.
 11. **Non selezionare i compagni nella query dell'oste `characters`**: lì `assets.ownedPets.pet` non è popolato (W-1, W-3).
+12. **xp del compagno solo da vincitore** (D-13, UAT 2026-11-15): il compagno che esce sconfitto da uno scontro non prende xp di quello scontro (quindi niente salita di livello); nelle sequenze (dungeon, flusso guidato, quest più guardia) prende gli xp dei soli scontri da cui esce in piedi. Nessun campo nuovo: `CompanionOutcome` non espone xp, lo si vede su `QuestResult.petXpGained` e su `OwnedPet.level`/`xp` (§2 e).
 
 ---
 
@@ -168,7 +169,7 @@ Mai sul filo (campi interni): `OwnedPet.defeatedUntil` (marcatore della sconfitt
 - Dungeon e scontri in sequenza: il compagno sconfitto è fuori dagli scontri seguenti; lo slot si svuota a fine missione (D-12).
 - Sconfitto: slot svuotato con guardia sullo slot letto, ancora `lifeAsOf` = istante dell'esito, marcatore della sconfitta = istante + `T`.
 - `CompanionOutcome` è una fotografia dell'esito: `name` mostrato, `lifeBefore`, `lifePoints`, `maxLifePoints` (dopo l'xp dello scontro), `defeated`, `fullLifeAt` (nullo se non sconfitto o con `T` non curato). Durata della sconfitta da mostrare in un foglio storico = `fullLifeAt − resolvedAt`.
-- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0. Negli scontri in sequenza (tappe di un dungeon, scontri del flusso guidato) il compagno caduto prende gli xp dei soli scontri combattuti, quello della caduta compreso (D-13, fix/23); mai caduto o caduto nell'ultimo = tutti. L'xp del personaggio non cambia. Nel guidato conta la vita effettiva del compagno (corretta se corretta) alla fine di ogni scontro.
+- xp del compagno: 10 % degli xp dei nemici sconfitti; perdita, guardia persa, arresto, job perso → 0. **Il compagno sconfitto in uno scontro (vita 1 a fine scontro) non prende gli xp di quello scontro** (D-13, UAT 2026-11-15, fix/23): in uno scontro singolo (quest, boss, soccorso, imboscata) prende 0 e il livello non sale, la voce si scrive comunque con vita 1 e i marcatori della sconfitta. Negli scontri in sequenza (tappe di un dungeon, scontri del flusso guidato, scontro della quest seguito da quello della guardia) prende gli xp dei soli scontri da cui esce in piedi: lo scontro della caduta e i seguenti non contano; mai caduto = tutti. Esempi: caduto alla prima tappa = 0; caduto alla seconda di tre = la prima; caduto nella quest con guardia = 0; caduto nella guardia = gli xp della quest. L'xp del personaggio non cambia. Nel guidato conta la vita effettiva del compagno (corretta se corretta) alla fine di ogni scontro.
 
 ### (f) Imboscate e viaggio (D-13, D-14, D-15, D-16, D-28, D-29; W-6, W-7)
 
@@ -264,8 +265,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Strada a piedi: riscrittura dal punto, job di completamento e della prossima imboscata spostati, push con «prosegui a piedi», viaggio senza mount intatto, arrivo e piano del cibo chiuso una volta, job vecchi del viaggio a cavallo e della camminata no-op senza push `travelEnd` (D-13, D-29, A3, Pitfall 5, B-08) — `src/travel/ambush/ambush-on-foot.int-spec.ts`, `ambush-on-foot.spec.ts`.
 - Fame: ridirezionamento alla città più vicina con quest abbandonata, nessun ridirezionamento senza città raggiungibile, job spostati senza imboscata, push col ridirezionamento, deviazione della sconfitta a piedi col compagno caduto e a cavallo col compagno in piedi, `onFoot` in sconfitta solo per una cavalcatura, ferite nuove sulla strada a piedi (D-14, D-16, C-11, B-02, B-03, B-05) — `src/travel/ambush/ambush-on-foot.int-spec.ts` (describe «the hunger redirection (Phase 23)»), `ambush-plan.spec.ts`.
 - Guidato, proposta: vita del compagno di ogni partecipante, compagno sconfitto nel primo scontro fuori dal secondo, nessuna scrittura fuori dalla bozza (D-12, D-17, D-26) — `src/quests/guided/mission-simulation.service.int-spec.ts`, `fight-state.spec.ts`.
-- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter`, campi omessi o `null` della correzione = simulato e valori espliciti che vincono (G-1 chiuso), xp del compagno caduto in uno scontro precedente solo da quello (D-13, D-17, D-26, D-27, D-33, A-08) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `guided-outcome.spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
-- xp del compagno nelle tappe: solo le tappe combattute, quella della caduta compresa; il personaggio le prende tutte (D-13) — `src/quests/outcomes/pets/companion-enemies-xp.spec.ts`, `dungeon/placeholder-dungeon-resolver.spec.ts`, `outcome-plan.spec.ts`, `companion-defeat.int-spec.ts`.
+- Guidato, correzione e completamento: correzione salvata, `OUTCOME_OVERRIDE_INVALID` fuori intervallo, corretto a 1 = sconfitto con data, ferito corretto, simulato usato se non corretto, sconfitto in uno scontro precedente resta sconfitto, legacy che accetta `companionLifeAfter`, campi omessi o `null` della correzione = simulato e valori espliciti che vincono (G-1 chiuso), xp del compagno solo dagli scontri da cui esce in piedi (caduto nel primo = 0, caduto nell'ultimo = i precedenti) (D-13, D-17, D-26, D-27, D-33, A-08) — `src/quests/guided/mission-draft-save.service.int-spec.ts`, `guided-completion.service.int-spec.ts`, `guided-outcome.spec.ts`, `src/quests/outcomes/gm-completion.service.int-spec.ts`, `gm-overrides.spec.ts`.
+- xp del compagno: nessuno per lo sconfitto in uno scontro singolo (quest, boss, soccorso, imboscata); nelle tappe e nella quest con guardia solo gli scontri da cui esce in piedi, non quello della caduta; il personaggio li prende tutti (D-13) — `src/quests/outcomes/pets/companion-enemies-xp.spec.ts`, `dungeon/placeholder-dungeon-resolver.spec.ts`, `outcome-plan.spec.ts`, `companion-defeat.int-spec.ts`, `companion-defeat-rescue.int-spec.ts`, `src/travel/ambush/ambush-plan.spec.ts`, `ambush-resolution.int-spec.ts`.
 - SDL e boot reale: blocchi nuovi pinnati, una sola riga tolta (`useItem`) (D-27, D-30, D-33) — `test/app.int-spec.ts`.
 
 ---
@@ -303,10 +304,10 @@ Per l'orchestratore e l'utente. Ogni semina si fa con uno script FUORI dal repo.
 2. Equip dello sconfitto rifiutato (`PET_DEFEATED`); dopo la data equip riuscito; entro 60 s push «Di nuovo in forze» col nome.
 3. Pozione a un compagno a riposo: vita su, attesa propria del compagno; la pozione del personaggio resta libera (e viceversa); seconda pozione al compagno rifiutata con la data.
 4. Rinomina dal Diario; il nome nuovo compare nelle push e nei fogli degli esiti successivi.
-5. Quest con compagno ferito e poi sconfitto: foglio dell'esito con la riga della vita e poi della sconfitta, slot vuoto.
+5. Quest con compagno ferito e poi sconfitto: foglio dell'esito con la riga della vita e poi della sconfitta, slot vuoto. Lo sconfitto non prende xp: `xp` e livello del compagno invariati nel Diario, `petXpGained` 0, l'xp del personaggio pieno (D-13, UAT 2026-11-15).
 6. Viaggio con la cavalcatura, imboscata vinta con la cavalcatura sconfitta: push con «prosegui a piedi», pergamena visibile a viaggio in corso, «Prosegui a piedi», arrivo più tardi (attenzione alla pedina, B-09).
 7. Imboscata con poco cibo e cavalcatura caduta: ridirezionamento alla città più vicina, quest abbandonata, push con «la fame ti porta verso».
-7-bis. Quest vinta che porta l'xp del compagno oltre una soglia: livello e vita massima nuovi nel Diario, vita corrente invariata.
+7-bis. Quest vinta col compagno in piedi che porta il suo xp oltre una soglia: livello e vita massima nuovi nel Diario, vita corrente invariata. Lo stesso scontro con il compagno sconfitto non alza nulla (passo 5).
 8. Flusso dell'oste: vita del compagno proposta dalla simulazione, corretta a 1, completamento: compagno sconfitto con la data. Correggendo l'eroe senza toccare il compagno, il valore simulato del compagno resta (omesso = simulato, A-08).
 
 ### Diagnosi suggerita
@@ -334,7 +335,7 @@ Lettura di `assets.ownedPets`, `status.activeTravel` (compreso `mount`) e dei `Q
 
 ### Domande aperte
 
-- ~~**Per l'utente:** xp del compagno sconfitto alla prima tappa di un dungeon.~~ **Chiusa (fix/23):** prende gli xp delle sole tappe combattute, quella della caduta compresa; vale anche per gli scontri del flusso guidato. L'xp del personaggio non cambia.
+- ~~**Per l'utente:** xp del compagno sconfitto alla prima tappa di un dungeon.~~ **Chiusa (fix/23), poi rivista in UAT il 2026-11-15** («Se il pet viene sconfitto non ottiene xp. Li ottiene solo quando vince.»): il compagno sconfitto non prende gli xp dello scontro della caduta; nelle sequenze (dungeon, flusso guidato, quest più guardia) prende quelli dei soli scontri da cui esce in piedi. L'xp del personaggio non cambia.
 - **Per l'utente:** `AmbushReport.onFoot` è un default dell'orchestratore (vetabile: senza la riga «Prosegui a piedi» basta la riga del compagno caduto).
 - **Per l'utente:** testi provvisori delle push `ambush` e `petRecovered`, da rivedere in UAT.
 - ~~**Contratto A-08 (rinviato).**~~ **Chiusa (fix/23):** nella bozza guidata omesso o `null` = simulato per tutti gli effetti insieme, valore esplicito vince; il completamento senza bozza resta com'era (§2 g).

@@ -64,3 +64,50 @@ Due decisioni dell'utente dopo la merge della fase 23, senza PLAN.md (brief dell
 ## Deviazioni
 
 Nessuna rispetto al brief. Fuori perimetro: la guardia dopo lo scontro della quest (`guard-outcome.ts` `mergedEffects`) non porta `companionEnemiesXp`: un compagno caduto nello scontro della quest prende ancora gli xp della guardia (regola non chiesta, da decidere).
+
+## Aggiunta del 2026-11-15: il compagno sconfitto non prende xp (UAT)
+
+Regola dell'utente in UAT: «Se il pet viene sconfitto non ottiene xp. Li ottiene solo quando vince.» Sostituisce la regola D-13 di sopra («la tappa in cui cade conta»). Osservato in UAT: caccia singola, compagno sconfitto, xp 6 → 7 e livello salito.
+
+### Cosa
+
+- `companionEnemiesXpOf(fights)` conta i soli scontri da cui il compagno esce in piedi: la caduta in qualunque scontro, anche l'ultimo, dà la chiave `companionEnemiesXp` con la somma degli scontri precedenti (caduto nel primo = 0). `CompanionFight` estende `Pick<ParticipantEffects, 'companionLifeAfter' | 'companionEnemiesXp'>`: una sequenza già fusa in cui il compagno è caduto porta la sua quota.
+- Nuovi in `pets/companion-enemies-xp.ts`: `companionFightOf(effects, enemiesXp)` (le sole chiavi del compagno) e `companionShareOf(effects, enemiesXp)` = lo scontro singolo come sequenza di uno (caduto = 0, sequenza caduta = la sua quota, altrimenti tutti).
+- `planParticipant` (`outcome-plan.ts`) e `planAmbushOutcome` (`ambush-plan.ts`) passano a `companionAfterFight` `won ? companionShareOf(effects, enemiesXp) : 0`. Valgono così quest, boss, soccorso, imboscata, GM legacy e guidato (che passano da `planParticipant`).
+- Guardia: `guardBattleEffects` in `conclusion/conclusion-plan.ts` aggiunge agli effetti fusi `companionEnemiesXpOf([scontro della quest, scontro della guardia])` con gli xp di ciascun catalogo (`enemyFactsOf`). Caduto nella quest = 0 (né la quest né la guardia); caduto nella guardia = gli xp della quest. `mergedEffects` in `guard-outcome.ts` non cambia. Non è risultato sproporzionato.
+- Dungeon: `stageFightOf` tolto, le tappe usano `companionFightOf`. Guidato invariato nel codice (usa già `companionEnemiesXpOf`).
+- L'xp del personaggio non cambia; senza vittoria della quest il compagno resta a 0. `companionAfterFight` non cambia. Contratto GraphQL invariato (`src/schema.gql` senza diff).
+
+### Commit
+
+- `4d310a89` test(quests): expect no xp for a companion fallen in its fight
+- `bf812a33` fix(quests): give no xp to a companion fallen in its fight
+
+### Pin cambiati
+
+- `companion-enemies-xp.spec.ts`: caduto nell'ultimo da `{}` a `{ companionEnemiesXp: 60 }`; caduto nel primo da 60 a 0; caduto nel secondo da 80 a 60.
+- `placeholder-dungeon-resolver.spec.ts`: quota per tappa della caduta 0 / 1 / 2 da 60 / 80 / assente a 0 / 60 / 80.
+- `outcome-plan.spec.ts` «unequips a companion defeated in the fight…»: xp della voce da 20 a 0 (+ `petXpGained` 0, `xpGained` 200).
+- `ambush-plan.spec.ts` «unequips a companion defeated in a won ambush…»: voce da xp 30 / livello 2 a xp 0 / livello 1 (+ `petXpGained` 0).
+- `companion-defeat.int-spec.ts`: quest vinta a 1, boss e dungeon caduto alla prima tappa da `FIGHT_PET_XP` (10) a 0 (+ `petXpGained` 0 e `xpGained` 150 sulla quest).
+- `companion-defeat-rescue.int-spec.ts`: soccorritore caduto da 10 a 0; guardia col compagno caduto nella quest da 11 a 0.
+- `ambush-resolution.int-spec.ts` «writes the companion of the ambush in the result…»: xp della voce da `COMPANION_SHARE` (1) a 0.
+- `guided-completion.service.int-spec.ts` caduto nel primo scontro (corretto a 1): da 5 a 0.
+
+### Prove nuove
+
+- `companion-enemies-xp.spec.ts`: +1 caso di sequenza fusa, describe `companionFightOf` (1) e `companionShareOf` (3).
+- `companion-defeat.int-spec.ts`: +1 (dungeon a tre tappe, caduto alla seconda → `FIGHT_PET_XP`, personaggio 350).
+- `companion-defeat-rescue.int-spec.ts`: +1 (guardia vinta col compagno caduto nella guardia → 10, solo la quest).
+- `guided-completion.service.int-spec.ts`: +1 (caduto nell'ultimo scontro → 5, i precedenti).
+
+### Verifica
+
+- RED: 4 suite unit / 10 test e 4 suite integration / 10 test rossi, tutti per la regola nuova.
+- `npx tsc --noEmit -p tsconfig.json`: 0. eslint e prettier puliti sui 15 file toccati.
+- Unit `src/quests` + `src/travel`: 114 suite / 1 767 test verdi.
+- Integration `src/quests/outcomes` 16 / 224, resto di `src/quests` 30 / 541, `src/travel` + `test/app.int-spec.ts` 14 / 379 (boot reale 102/102), tutti verdi. `src/schema.gql` invariato.
+
+### Deviazioni
+
+Nessuna rispetto al brief. La guardia è risolta qui (prima era fuori perimetro, vedi Deviazioni sopra).
