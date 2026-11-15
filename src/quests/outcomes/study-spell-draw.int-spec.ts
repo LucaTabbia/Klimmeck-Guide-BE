@@ -167,7 +167,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         ]);
     });
 
-    it('teaches a magic quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
+    it('teaches an arcane quest the spell a study draws with the same seed (quick 261110-mag)', async () => {
         const known = await persistSpell(world.models.spells, {
             minLevelToLearn: 2,
             maxUsages: 3,
@@ -179,7 +179,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
         await persistSpell(world.models.spells, { minLevelToLearn: 8 });
         const spellStates = spellStatesOf([{ spell: known._id, usages: 3 }]);
         const subject = await quester({
-            questOverrides: questOfType('magic', { xpPrize: 300 }),
+            questOverrides: questOfType('arcane', { xpPrize: 300 }),
             characterOverrides: {
                 status: { spellStates },
             },
@@ -288,7 +288,7 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
     it('teaches no spell from a learnable pool when the 30% gate misses (quick 261111-sdc)', async () => {
         await persistSpell(world.models.spells, { minLevelToLearn: 2 });
         const subject = await quester({
-            questOverrides: questOfType('magic', { xpPrize: 300 }),
+            questOverrides: questOfType('arcane', { xpPrize: 300 }),
         });
         await drawSpellOn(subject);
         chance.load([0.3, 0]);

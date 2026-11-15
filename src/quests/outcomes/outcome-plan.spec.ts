@@ -2072,7 +2072,7 @@ describe('planParticipant', () => {
             (_label, overrides) => {
                 const plan = planParticipant(
                     inputWith({
-                        quest: questOf(QuestType.magic),
+                        quest: questOf(QuestType.arcane),
                         snapshot: snapshotWith({
                             status: { title: TitleType.rookie, xp: 50000 },
                         }),

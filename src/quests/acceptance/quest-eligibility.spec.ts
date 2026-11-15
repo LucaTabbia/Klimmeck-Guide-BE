@@ -49,16 +49,18 @@ describe('quest eligibility rules', () => {
         );
     });
 
-    it.each([
-        [TitleType.paladin, false],
-        [TitleType.mage, true],
-        [TitleType.hero, true],
-    ])(
-        'a magic quest with minTitle mage admits a %s: %s (quick 261110-mag)',
-        (title, expected) => {
-            expect(meetsTitle(QuestType.magic, title, TitleType.mage)).toBe(
-                expected,
-            );
+    it.each(
+        [QuestType.arcane, QuestType.shamanic, QuestType.void].flatMap(
+            (type) => [
+                [type, TitleType.paladin, false],
+                [type, TitleType.mage, true],
+                [type, TitleType.hero, true],
+            ],
+        ),
+    )(
+        'a %s quest with minTitle mage admits a %s: %s (D-09, D-11)',
+        (type, title, expected) => {
+            expect(meetsTitle(type, title, TitleType.mage)).toBe(expected);
         },
     );
 
@@ -68,7 +70,9 @@ describe('quest eligibility rules', () => {
         [QuestType.heal]: true,
         [QuestType.job]: true,
         [QuestType.study]: true,
-        [QuestType.magic]: true,
+        [QuestType.arcane]: true,
+        [QuestType.shamanic]: true,
+        [QuestType.void]: true,
         [QuestType.crime]: true,
         [QuestType.guard]: true,
         [QuestType.story]: false,
@@ -106,7 +110,9 @@ describe('quest eligibility rules', () => {
         QuestType.job,
         QuestType.heal,
         QuestType.study,
-        QuestType.magic,
+        QuestType.arcane,
+        QuestType.shamanic,
+        QuestType.void,
         QuestType.story,
         QuestType.crime,
         QuestType.guard,
