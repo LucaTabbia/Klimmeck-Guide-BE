@@ -8,7 +8,7 @@ Il contesto autorevole per entrambe le fasi è nel repo FE:
 
 ## Parte BE delle decisioni
 
-- D-01, D-04: origine su ogni magia (`void`, `magic`, `shamanic`), solo classificazione, nessun effetto sul combattimento.
+- D-01, D-04: origine su ogni magia (`void`, `arcane`, `shamanic`; emendato il 2026-11-15: `arcane` e non `magic`, il tipo di quest resta `magic` e insegna l'origine `arcane`), solo classificazione, nessun effetto sul combattimento.
 - D-02, D-03: origini e circa 45 magie nuove scritte a DB dall'orchestratore dopo la revisione dell'utente; niente contenuto nel repo.
 - D-07, D-08: livello minimo al posto di `minXpToLearn` (cambio SDL non additivo dichiarato; conversione con `level-table.ts`); tutti i lettori passano al livello (sorteggio delle quest, premi per titolo, opzioni e rivalidazione dei premi dell'oste).
 - D-09, D-10: tipi di quest `shamanic` e `void` identici a `magic`; il sorteggio prende solo le magie dell'origine del tipo.
