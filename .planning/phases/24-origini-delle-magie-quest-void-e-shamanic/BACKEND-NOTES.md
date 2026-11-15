@@ -113,14 +113,14 @@ Prova: `git diff a208ad3d -- src/schema.gql` (base della fase) ha **una riga tol
 - Enum TypeScript `SpellOrigin { void, arcane, shamanic }` (`src/models/enums/spell-origin.enum.ts`); `Spell.origin` obbligatoria a DB con validazione enum di Mongoose, `String!` sul filo come `useType`.
 - È una classificazione: decide solo quale quest di scuola insegna quale magia. Nessun effetto su combattimento, slot, apprendimento (D-04: `src/quests/outcomes/combat` e `src/characters/spells` senza diff nella fase). Le magie dei nemici hanno un'origine come le altre.
 - Nomi italiani («Arcana», «Sciamanica», «Vuoto») e icone a cura della FE (D-05, D-06, D-21).
-- Al boot `SpellCatalogueReporter` conta le magie senza origine fra le tre o senza livello minimo intero ≥ 1 e scrive UN WARN col solo numero (`Magie: <N> senza origine o livello minimo validi: non servibili sul filo e mai insegnate`); un errore di lettura è un `error`, il boot prosegue.
+- Al boot `SpellCatalogueReporter` conta le magie senza origine fra le tre o senza livello minimo intero fra 1 e `MAX_LEVEL` e scrive UN WARN col solo numero (`Magie: <N> senza origine o livello minimo validi: non servibili sul filo e mai insegnate`); un errore di lettura è un `error`, il boot prosegue.
 
 ### (b) Livello minimo (D-07, D-08; BE-ORIGIN-04, -05, -06)
 
-- `Spell.minLevelToLearn: Int!` (minimo 1). Conversione dei valori vecchi con la tabella unica `levelRowFor` (`src/quests/outcomes/progression/level-table.ts`): il livello il cui `minXp` è il più alto non sopra l'xp della magia (4 000 → 6, 12 000 → 10, 20 000 → 12, 30 000 → 15, 50 000 → 20).
+- `Spell.minLevelToLearn: Int!` (da 1 a `MAX_LEVEL`, l'ultimo livello della tabella: oggi 20; schema Mongoose, lettori e reporter usano lo stesso tetto, WR-03). Conversione dei valori vecchi con la tabella unica `levelRowFor` (`src/quests/outcomes/progression/level-table.ts`): il livello il cui `minXp` è il più alto non sopra l'xp della magia (4 000 → 6, 12 000 → 10, 20 000 → 12, 30 000 → 15, 50 000 → 20).
 - **Quest:** premio fisso (`prizes.spell`), magia del blocco premio per titolo e sorteggio insegnano solo se il livello del personaggio DOPO l'esito (`progression.level`) raggiunge `minLevelToLearn`; uguale impara, uno sotto no.
 - **Oste:** le opzioni dei premi offrono una magia solo se `levelRowFor(status.xp).level` la raggiunge (mai il livello salvato); la stessa regola rivalida al salvataggio della bozza e al completamento (`OUTCOME_OVERRIDE_INVALID`).
-- Una magia senza livello intero ≥ 1 non è mai insegnata né offerta (lettori fail-closed); non è nemmeno servibile sul filo (`Int!` non nullo).
+- Una magia senza livello intero fra 1 e `MAX_LEVEL` non è mai insegnata né offerta (lettori fail-closed) e il reporter d'avvio la conta fra le non servibili; sotto 1 o assente non è nemmeno servibile sul filo (`Int!` non nullo), e lo schema rifiuta la scrittura fuori dall'intervallo.
 
 ### (c) Quest di scuola (D-09, D-10, D-11, D-20; BE-ORIGIN-07, -08)
 
@@ -140,7 +140,7 @@ Prova: `git diff a208ad3d -- src/schema.gql` (base della fase) ha **una riga tol
 
 - Pavimento di titolo per tipo di città `CITY_RANK_FLOORS` (`necrorianCity → mage`) in `src/quests/generation/generation-rules.ts`, applicato per POI (marker e ogni `pointsOfInterest` di una città con pavimento).
 - Il generatore compone su quei POI solo ranghi ammessi (`mage`, `hero`); nessun boss misto con il titolo inferiore sotto il pavimento (il boss resta a titolo unico senza tiri). Un POI senza ranghi componibili resta vuoto, come oggi.
-- Mondo senza Necrorian identico tiro per tiro. Il pavimento vale solo per le quest generate: una quest scritta a mano su Necrorian deve rispettarlo da sé (§5).
+- Mondo senza Necrorian identico tiro per tiro alla corsa registrata sul commit base della fase (`a208ad3d`). Il pavimento vale solo per le quest generate: una quest scritta a mano su Necrorian deve rispettarlo da sé (§5).
 
 ### (f) Città (D-15, D-16, D-18, D-22; BE-ORIGIN-01, -02)
 
@@ -196,6 +196,7 @@ Script FUORI dal repo, dopo la revisione dell'utente. **Nessun file di contenuto
 - **Origini e livelli delle 96 magie (D-02, D-07):** per ogni magia `origin` (uno di `void`, `arcane`, `shamanic`; il migratore le lascia tutte `arcane`) e `minLevelToLearn` (intero 1..20, rivisto dall'utente sulla conversione del migratore). Una sola tabella di revisione con le magie nuove.
 - **Circa 45 magie nuove (D-03)**, fino a circa 30 per `void` e `shamanic`. Forma del documento in `spells`, campo per campo: `name` (stringa), `description` (stringa), `useType` (uno dei nove usi), `energyDamage { type, power }`, `requiredLearnTime` (intero), `minLevelToLearn` (intero 1..20), `maxUsages` (intero), `recoveryTime` (intero), `origin` (`void` / `arcane` / `shamanic`), `relatedLore` (lista con l'id `<loreId>` della lore della sua origine). **Senza `minXpToLearn`.** Una magia senza `origin` o `minLevelToLearn` validi non è servibile sul filo e non si insegna mai: il reporter d'avvio la conta.
 - **Tre lore d'origine (D-24, W-8):** esistono già a DB come voci di tipo `knowledge` (tipo noto alla FE); vanno create solo se mancano, con lo stesso tipo. Poi `relatedLore` di OGNI magia (vecchia e nuova) = lista con l'id della lore della propria origine.
+- **Recupero per chi conosce già magie (WR-02):** `$addToSet` della lore d'origine su `status.unlockedLore` dei personaggi che hanno già una magia di quell'origine negli `spellStates`.
 - **Tre quest di scuola (D-11):** una `void` a Necrorian e una `shamanic` in ciascuna delle due capitali (Murnborim `690961bfe74c2f6dfc837d8f`, Thengran `690961bf31795cde80768bc7`), sul modello di «Iniziazione arcana a Valantar»: `infos.type` (`void` / `shamanic`), `requirements.minTitle: mage`, `prizes.spellDraw: true`, marker su un POI `<poiId>` della città. La `void` rispetta il pavimento di Necrorian (`mage` o sopra). Testi rivisti dall'utente. **Da scrivere dopo la build della FE Phase 23 sul device.**
 - **Heal e negozi di Murnborim e Thengran da CITTÀ (D-22):** quest heal della fascia città e pool del negozio con rarità fino a `rare`; la taglia resta `capital`. Il report dei negozi le giudica già con la fascia `city`: un pool da capitale (ultrarare) comparirebbe come «fuori taglia».
 - **Lore delle tre città cambiate (D-23):** Murnborim, Thengran, Veg Faldir (`690961bf1bf8bb61e5f6af2f`), riscritte sul documento di world building, riviste dall'utente.
@@ -212,7 +213,7 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 **BE-ORIGIN-01 — tipi di città**
 - Tabella esaustiva delle taglie con i tre tipi, conteggi 14 / 9 / 13, `isCityType` (D-15, D-16) — `src/cities/city-size.spec.ts`.
 - `cities` e `city(id)` servono le tre città con la taglia, nessun errore d'enum (D-15, D-16) — `src/cities/cities.resolver.int-spec.ts`.
-- Fascia `city` del report per le due capitali nuove, ultrarare fuori fascia, `rare` ammesso, capitali vecchie e `dragonbornVillage` sulla propria taglia (D-22) — `src/shops/shop-pool.rules.spec.ts`, `src/shops/shop-pool.report.spec.ts`, `src/shops/shop-pool-report.service.int-spec.ts`.
+- Fascia `city` del report per le due capitali nuove, ultrarare fuori fascia, `rare` ammesso, capitali vecchie e `dragonbornVillage` sulla propria taglia (D-22) — solo le spec unitarie `src/shops/shop-pool.rules.spec.ts` e `src/shops/shop-pool.report.spec.ts` (`shop-pool-report.service.int-spec.ts` non esercita le capitali nuove).
 - Pin dei tre valori in `enum CityType` — `test/app.int-spec.ts`.
 
 **BE-ORIGIN-02 — città di nascita**
@@ -225,7 +226,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Origine fuori dal combattimento (D-04): invariante di assenza del gate 24-11.
 
 **BE-ORIGIN-04 — livello minimo e campo vecchio**
-- `minLevelToLearn` obbligatorio ≥ 1, `minXpToLearn` non più salvato (schema strict) (D-07) — `src/spells/spell-fields.int-spec.ts`.
+- `minLevelToLearn` obbligatorio fra 1 e `MAX_LEVEL` (sopra rifiutato), `minXpToLearn` non più salvato (schema strict) (D-07, WR-03) — `src/spells/spell-fields.int-spec.ts`; `MAX_LEVEL` = ultimo livello della tabella — `src/quests/outcomes/progression/level-table.spec.ts`.
+- Livello sopra il tetto (21, 4000) non servibile, non insegnato, non offerto (D-07, D-08, WR-03) — `spell-catalogue.reporter.spec.ts`, `quest-rewards.spec.ts`, `resolution-loader.service.spec.ts`, `mission-prizes.spec.ts`.
 - Blocco `type Spell` pinnato, `minXpToLearn` assente dallo schema (D-07) — `test/app.int-spec.ts`.
 - Reporter d'avvio: tre origini a livello 1 e 20 servibili; origine o livello sporchi non servibili; un solo WARN col numero, senza id né nomi; errore di lettura senza eccezione (D-01, D-07) — `src/spells/spell-catalogue.reporter.spec.ts`.
 
@@ -251,7 +253,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 
 **BE-ORIGIN-09 — Necrorian**
 - `CITY_RANK_FLOORS`, `rankFloorOf` fail-closed, `allowsRank`, `allowsMixedLower` (D-12) — `src/quests/generation/generation-rules.spec.ts`.
-- Dodici semi senza quest sotto mage su Necrorian, nessun posto `paladin` nei boss, POI vuoto senza ranghi componibili, mondo senza Necrorian identico tiro per tiro (D-12) — `src/quests/generation/quest-generator.int-spec.ts`.
+- Dodici semi senza quest sotto mage su Necrorian, nessun posto `paladin` nei boss, POI vuoto senza ranghi componibili (D-12) — `src/quests/generation/quest-generator.int-spec.ts`.
+- Mondo senza Necrorian (6 città, seme 7, 24 quest con boss misti) uguale, numero di tiri e ogni quest, alla corsa registrata sul commit base `a208ad3d` (D-12, WR-04) — `src/quests/generation/quest-generator.int-spec.ts` («generates a world without Necrorian draw by draw as before the floor»); le spec a seme fisso preesistenti (`ENEMY_RUN_BEFORE_MIXED_BOSSES`, `MIXED_BOSS_RUN`) restano invariate.
 
 **BE-ORIGIN-10 — migratore una tantum**
 - Contratto dei passi, boot che si ferma con un errore nuovo senza causa (D-07, D-20) — `src/migrations/spell-origins/spell-origins.boot.spec.ts`.
