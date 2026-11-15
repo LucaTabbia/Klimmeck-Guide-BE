@@ -284,11 +284,15 @@ describe('companion defeat across fights', () => {
         expect(writes).toHaveBeenCalledTimes(1);
         const raw = await rawCharacterOf(subject);
         expect(raw?.assets.pet).toBeNull();
-        expect(raw?.assets.ownedPets).toEqual([
-            defeatedFenrir(pet._id, 2 * FIGHT_PET_XP),
-        ]);
+        // il compagno prende gli xp della sola tappa combattuta, il personaggio quelli di tutte (D-13)
+        expect(raw?.assets.ownedPets).toEqual([defeatedFenrir(pet._id)]);
         const result = await resultOf(subject);
-        expect(result).toMatchObject({ stagesCleared: 2, stagesTotal: 2 });
+        expect(result).toMatchObject({
+            stagesCleared: 2,
+            stagesTotal: 2,
+            xpGained: 50 + 2 * 100,
+            petXpGained: FIGHT_PET_XP,
+        });
         expect(result.companion).toEqual(DEFEATED_OUTCOME);
     });
 

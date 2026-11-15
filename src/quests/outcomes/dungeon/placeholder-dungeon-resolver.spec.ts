@@ -323,6 +323,27 @@ describe('PlaceholderDungeonResolver', () => {
             expect(heroEffectsOf(resolution)?.companionLifeAfter).toBe(1);
         });
 
+        it('gives the companion the xp of the stages it fought only, the stage of its fall included (D-13)', () => {
+            const fallingOn = (stage: number) =>
+                explore(
+                    [0, 1, 2].map((index) => ({
+                        verdict: 'success' as const,
+                        effects:
+                            index === stage
+                                ? { [HERO]: { companionLifeAfter: 1 } }
+                                : {},
+                    })),
+                    new SequenceChance(),
+                    withCompanion(),
+                ).resolution;
+
+            expect(heroEffectsOf(fallingOn(0))?.companionEnemiesXp).toBe(60);
+            expect(heroEffectsOf(fallingOn(1))?.companionEnemiesXp).toBe(80);
+            expect(heroEffectsOf(fallingOn(2))).not.toHaveProperty(
+                'companionEnemiesXp',
+            );
+        });
+
         it('keeps the companion life of the last stage it fought in the merged effects (D-12)', () => {
             const { resolution } = explore(
                 [
@@ -341,6 +362,9 @@ describe('PlaceholderDungeonResolver', () => {
             );
 
             expect(heroEffectsOf(resolution)?.companionLifeAfter).toBe(25);
+            expect(heroEffectsOf(resolution)).not.toHaveProperty(
+                'companionEnemiesXp',
+            );
             const mage = resolution.participants.find(
                 ({ characterId }) => characterId === MAGE,
             );

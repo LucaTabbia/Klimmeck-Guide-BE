@@ -955,5 +955,41 @@ describe('GuidedCompletionService (replSet)', () => {
                 defeated: true,
             });
         });
+
+        it('gives a companion fallen in an early fight the xp of that fight only (D-13)', async () => {
+            const { first, second, wolf } = await missionWithFenrir();
+            combat
+                .willResolve(first.characterId, {
+                    hpAfter: 900,
+                    companionLifeAfter: 40,
+                })
+                .willResolve(second.characterId, { hpAfter: 950 });
+            await simulate(first, 0, [wolf, 1]);
+            await saver.save({
+                pendingQuestId: hexOf(first),
+                fights: [
+                    {
+                        enemies: enemiesOf([wolf, 1]),
+                        corrections: [
+                            correctionOf(first, { companionLifeAfter: 1 }),
+                        ],
+                    },
+                    { enemies: enemiesOf([wolf, 2]) },
+                ],
+            });
+            combat
+                .willResolve(first.characterId, { hpAfter: 800 })
+                .willResolve(second.characterId, { hpAfter: 900 });
+            await simulate(first, 1, [wolf, 2]);
+
+            await service.complete(hexOf(first));
+
+            const { entry } = await fenrirOf(first);
+            expect(entry.xp).toBe(5);
+            expect(await resultOf(first)).toMatchObject({
+                xpGained: 3 * 50,
+                petXpGained: 5,
+            });
+        });
     });
 });

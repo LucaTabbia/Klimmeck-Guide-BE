@@ -921,6 +921,23 @@ describe('planParticipant', () => {
             expect(plan.result.rewards.pet).toEqual(PET_ID);
         });
 
+        it('gives the companion the xp of the fights it fought only, the character all of them (D-13)', () => {
+            const plan = foughtWith(1, {
+                battle: battleWith({
+                    hpAfter: 700,
+                    companionLifeAfter: 1,
+                    companionEnemiesXp: 60,
+                }),
+                rewards: rewardsWith({ xpPrize: 300 }),
+            });
+
+            expect(plan.result.petXpGained).toBe(6);
+            expect(plan.update.$set['assets.ownedPets']).toEqual([
+                expect.objectContaining({ pet: COMPANION_ID, xp: 6 }),
+            ]);
+            expect(plan.result.xpGained).toBe(500);
+        });
+
         it('leaves the result companion null for a quest without a fight (D-27)', () => {
             const plan = foughtWith(35, {
                 battle: null,
