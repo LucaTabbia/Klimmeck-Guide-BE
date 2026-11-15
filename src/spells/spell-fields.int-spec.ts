@@ -107,6 +107,28 @@ describe('Spell origin and minimum level', () => {
         ]);
     });
 
+    it('no longer stores a minimum xp on a spell (D-07)', async () => {
+        const written = await spells.create({
+            ...buildSpell(),
+            minXpToLearn: 4000,
+        });
+
+        const stored = await spells.collection.findOne({ _id: written._id });
+
+        expect(Object.keys(stored ?? {})).not.toContain('minXpToLearn');
+        expect(Object.keys(buildSpell()).sort()).toEqual([
+            'description',
+            'energyDamage',
+            'maxUsages',
+            'minLevelToLearn',
+            'name',
+            'origin',
+            'recoveryTime',
+            'requiredLearnTime',
+            'useType',
+        ]);
+    });
+
     it('serves the fixture spell as arcane from level one (D-01, D-07)', () => {
         expect(buildSpell()).toMatchObject({
             origin: 'arcane',

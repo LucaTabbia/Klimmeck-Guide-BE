@@ -59,7 +59,7 @@ const QUEST = `query Quest($id: String!) { quest(id: $id) { ${QUEST_FIELDS} } }`
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
 const QUEST_IDS = 'query { quests { id } }';
 const QUEST_SPELLS =
-    'query { quests { id prizes { spell { id name minXpToLearn } } } }';
+    'query { quests { id prizes { spell { id name minLevelToLearn origin } } } }';
 const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
 const QUEST_ENEMY_SPELLS =
     'query { quests { id infos { enemies { enemy { id spells { id name } } } } } }';
@@ -126,7 +126,8 @@ interface WireQuest {
 interface WireSpell {
     id: string;
     name: string;
-    minXpToLearn: number;
+    minLevelToLearn: number;
+    origin: string;
 }
 
 interface WireQuestSpell {
@@ -625,10 +626,10 @@ describe('quest catalog (wire)', () => {
     });
 
     // la magia del premio arriva popolata; un ref orfano vale null senza annullare la lista (D-17)
-    it('populates prizes.spell and tolerates an orphan spell', async () => {
+    it('populates prizes.spell and tolerates an orphan spell (D-07)', async () => {
         const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
             name: 'Palla di fuoco',
-            minXpToLearn: 40000,
+            minLevelToLearn: 15,
         });
         const withSpell = await persistCatalogQuest({
             prizes: { ...buildQuest().prizes, spell: spell._id },
@@ -651,7 +652,8 @@ describe('quest catalog (wire)', () => {
         expect(spellOf(withSpell._id)).toEqual({
             id: String(spell._id),
             name: 'Palla di fuoco',
-            minXpToLearn: 40000,
+            minLevelToLearn: 15,
+            origin: 'arcane',
         });
         expect(spellOf(orphan._id)).toBeNull();
     });

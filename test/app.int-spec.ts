@@ -576,12 +576,13 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
-    it('writes the spell origin and the minimum level into the generated schema (D-01, D-07)', () => {
+    it('writes the spell with its origin and minimum level and without the minimum xp (D-01, D-07)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema.match(/type Spell \{[^}]*\}/)?.[0]).toBe(
-            'type Spell {\n  description: String!\n  energyDamage: EnergyDamage!\n  id: ID!\n  maxUsages: Int!\n  minLevelToLearn: Int!\n  minXpToLearn: Int!\n  name: String!\n  origin: String!\n  recoveryTime: Int!\n  requiredLearnTime: Int!\n  useType: String!\n}',
+            'type Spell {\n  description: String!\n  energyDamage: EnergyDamage!\n  id: ID!\n  maxUsages: Int!\n  minLevelToLearn: Int!\n  name: String!\n  origin: String!\n  recoveryTime: Int!\n  requiredLearnTime: Int!\n  useType: String!\n}',
         );
+        expect(schema).not.toMatch(/minXpToLearn/);
     });
 
     it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
