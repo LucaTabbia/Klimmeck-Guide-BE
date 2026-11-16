@@ -13,6 +13,7 @@ import {
     buildQuest,
     persistCity,
     persistEnemy,
+    persistSpell,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
@@ -255,6 +256,48 @@ describe('QuestResolutionService.resolveStandard for a rescue aid (replSet)', ()
             [tokenOf(rescuer.player), tokenOf(rescue.injured)].sort(),
         );
         expect(world.questQueue.added).toHaveLength(0);
+    });
+
+    it('keeps a rescuer whose draw found a spell engaged on the learning part (D-26, D-31)', async () => {
+        const LEARN_TIME = 1_800_000;
+        const spell = await persistSpell(world.models.spells, {
+            minLevelToLearn: 1,
+            maxUsages: 4,
+            requiredLearnTime: LEARN_TIME,
+        });
+        const rescue = await rescueWorld();
+        const { rescuer, injuredId } = rescue;
+        await world.models.characters.collection.updateOne(
+            { _id: rescuer.characterId },
+            { $set: { 'status.title': 'mage' } },
+        );
+        await world.models.quests.collection.updateOne(
+            { _id: rescue.aid._id },
+            { $set: { 'prizes.spellDraw': true } },
+        );
+        scripted.willEnd('success');
+        chance.load([0, 0]);
+
+        await expect(resolve(rescue)).resolves.toBe('resolved');
+
+        expect(chance.drawn).toEqual([0, 0]);
+        const injured = await characterOf(injuredId);
+        expect(injured.status.awaitingAid).toBeNull();
+        const [sheet] = await resultsOf(rescuer.characterId);
+        expect(String(sheet.spellFound)).toBe(String(spell._id));
+        expect(sheet.spellLearned).toBeNull();
+        const engaged = await characterOf(rescuer.characterId);
+        expect(String(engaged.quests.pendingQuest)).toBe(
+            String(rescuer.pendingQuest._id),
+        );
+        const rearmed = await world.models.pendingQuests
+            .findById(rescuer.pendingQuest._id)
+            .lean<any>();
+        expect(rearmed.startDate).toEqual(NOW);
+        expect(rearmed.waitingTime).toBe(LEARN_TIME);
+        expect(String(rearmed.learningSpell)).toBe(String(spell._id));
+        expect(String(rearmed.researchResult)).toBe(String(sheet._id));
+        expect(questEndTokens()).toEqual([tokenOf(rescue.injured)]);
     });
 
     it('frees the injured where they stand when the marker is in no city', async () => {
