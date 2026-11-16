@@ -454,6 +454,25 @@ export class ResolutionLoader {
         );
     }
 
+    // fine della parte di apprendimento (Phase 24 D-26): chi è ancora attivo sulla corsia standard di quella PendingQuest
+    async snapshotOnStandardLaneInSession(
+        pendingQuestId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<ResolutionCharacter> {
+        return this.snapshotWhere(standardLaneFilter(pendingQuestId), session);
+    }
+
+    // la magia come sta a catalogo alla fine della parte di apprendimento (Phase 24 D-26): null se sparita o non più insegnabile
+    async readLearnableSpell(
+        spellId: Types.ObjectId,
+    ): Promise<SpellCandidate | null> {
+        const spell = await this.spellModel
+            .findById(spellId, LEARNABLE_SPELL_PROJECTION)
+            .lean<LearnableSpellEntry | null>()
+            .exec();
+        return spell ? learnableSpellOf(spell) : null;
+    }
+
     private async snapshotWhere(
         filter: Record<string, unknown>,
         session: ClientSession,
