@@ -289,7 +289,7 @@ Plans:
 - [x] 24-10-PLAN.md — Migratore una tantum
 - [x] 24-11-PLAN.md — Gate della fase
 - [x] 24-12-PLAN.md — Chiusura della fase e handoff
-- [ ] 24-13-PLAN.md — Ricerca e apprendimento: regola pura nel piano d'esito (D-26, D-29, D-30)
+- [x] 24-13-PLAN.md — Ricerca e apprendimento: regola pura nel piano d'esito (D-26, D-29, D-30)
 - [ ] 24-14-PLAN.md — Fine della ricerca: la PendingQuest si riarma (individuale, boss, soccorso)
 - [ ] 24-15-PLAN.md — Fine dell'apprendimento: magia conosciuta, lore, foglio; job e sweep
 - [ ] 24-16-PLAN.md — Push di fine ricerca: riuscita e fallita
@@ -344,7 +344,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
-| 24. Origini delle magie, quest void e shamanic | v1.1 | 12/12 | In Progress | - |
+| 24. Origini delle magie, quest void e shamanic | v1.1 | 13/18 | In Progress | - |
 
 ---
 

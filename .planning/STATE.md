@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
-Plan: 12 of 12
-Status: Phase 24 eseguita (12/12): gate 24-11 verde (tsc 0, unit 310 / 4 419, integration 163 / 2 558, boot reale 107, SDL: 1 riga tolta `minXpToLearn`, 6 aggiunte), handoff `BACKEND-NOTES.md` scritto, BE-ORIGIN-01..12 chiusi; test:cov, verifica e audit, PR, boot reale dal ramo col migratore e sua rimozione, script di contenuto (origini, magie nuove, lore, quest, heal e negozi delle due capitali, lore delle città) e UAT su device con la FE Phase 23 a cura dell'orchestratore.
-Last activity: 2026-11-15 -- boot reale dal ramo col migratore (commit `791a7fd3`, 96 magie, 1 quest e 2 risultati migrati, log in `BACKEND-NOTES.md` §4), contenuto a DB scritto dall'orchestratore (§5), migratore `spell-origins` tolto dal repo in TDD
+Plan: 13 of 18
+Status: executing — blocco ricerca e apprendimento (D-26..D-31), piano 13 di 18 completato (regola pura nel piano d'esito: `learnTimeOf`, `SpellLearningPlan`, `spellResearchFailed`); piani 24-14..24-18 in riscrittura dall'orchestratore dopo D-31 (foglio consegnato alla fine della ricerca).
+Last activity: 2026-11-16 -- piano 24-13 eseguito (commit `22ebd714`, `a1128508`, `81c430c8`): magia trovata separata dalla magia imparata nel piano d'esito
 Next step: orchestratore: UAT su device con la FE Phase 23 (§7, 8 passi), merge di BE e FE, poi `$unset` di `minXpToLearn` a DB (§4 passo 7). Domande aperte in §7 (A2, A3, fascia nel report dei negozi).
 
 ## Current Milestone
