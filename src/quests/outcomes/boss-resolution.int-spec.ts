@@ -266,7 +266,7 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
     });
 
     // tiri per posto, nell'ordine dei posti: soglia e scelta del sorteggio (0, 0 trova la magia; 0.9 la manca)
-    it('keeps only the member whose research found a spell engaged on the learning part (D-26, D-31)', async () => {
+    it('keeps only the member whose research found a spell engaged on the learning part (D-26, D-29, D-31)', async () => {
         const LEARN_TIME = 1_800_000;
         const spell = await persistSpell(world.models.spells, {
             minLevelToLearn: 1,
@@ -325,7 +325,19 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
                 },
             }),
         ]);
-        expect(questEndPushes()).toHaveLength(1);
+        // la ricerca fallita di b sostituisce il suo questEnd (D-29)
+        expect(
+            world.push.sent.map(({ message }) => ({
+                type: message.type,
+                id: message.id,
+            })),
+        ).toEqual([
+            { type: PushEventType.spellResearchFailed, id: String(other._id) },
+            {
+                type: PushEventType.spellResearchSucceeded,
+                id: String(researcher._id),
+            },
+        ]);
     });
 
     it('leaves the boss open when the party loses, one aid for the whole party', async () => {

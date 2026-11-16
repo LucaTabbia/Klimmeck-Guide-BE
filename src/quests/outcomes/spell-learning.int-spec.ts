@@ -105,8 +105,7 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
             relatedLore,
         });
 
-    // la ricerca a NOW: tiri 0, 0 = soglia vinta e prima magia imparabile
-    async function researched(): Promise<Quester> {
+    async function persistResearcher(): Promise<Quester> {
         seq += 1;
         const subject = await persistQuester(world.harness, {
             twitchId: `tw-spell-learning-${seq}`,
@@ -114,6 +113,11 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
             characterOverrides: { status: FRESH_STATUS },
         });
         await drawSpellOn(subject.quest._id);
+        return subject;
+    }
+
+    // la ricerca a NOW: tiri 0, 0 = soglia vinta e prima magia imparabile
+    async function research(subject: Quester): Promise<Quester> {
         chance.load([0, 0]);
         await expect(
             service.resolveStandard({
@@ -123,6 +127,9 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         ).resolves.toBe('resolved');
         return subject;
     }
+
+    const researched = async (): Promise<Quester> =>
+        research(await persistResearcher());
 
     const learningTriggerOf = (subject: Quester, startDate: Date = NOW) => ({
         pendingQuestId: subject.pendingQuest._id as Types.ObjectId,
@@ -233,13 +240,14 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
 
     it('sends the quest end push of the second sheet at the end of the learning part and no research push (D-29, D-31)', async () => {
         await learnable([]);
-        const subject = await researched();
+        const subject = await persistResearcher();
         await registerDevice(world.harness, subject.player);
+        await research(subject);
         moveTo(LEARNED_AT);
 
         await service.resolveStandard(learningTriggerOf(subject));
 
-        const [research, learned] = await sheetsOf(subject);
+        const [researchSheet, learned] = await sheetsOf(subject);
         expect(
             world.push.sent.map(({ message }) => ({
                 type: message.type,
@@ -248,7 +256,7 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         ).toEqual([
             {
                 type: PushEventType.spellResearchSucceeded,
-                id: String(research._id),
+                id: String(researchSheet._id),
             },
             { type: PushEventType.questEnd, id: String(learned._id) },
         ]);
