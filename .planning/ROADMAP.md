@@ -294,7 +294,7 @@ Plans:
 - [x] 24-15-PLAN.md — Fine dell'apprendimento: magia conosciuta, lore, foglio; job e sweep
 - [x] 24-16-PLAN.md — Push di fine ricerca: riuscita e fallita
 - [x] 24-17-PLAN.md — Filo: learningSpell, spellResearchFailed, spellDraw
-- [ ] 24-18-PLAN.md — Gate del blocco e handoff §8
+- [x] 24-18-PLAN.md — Gate del blocco e handoff §8
 
 **Stato (2026-11-15)**: 12/12 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, boot reale col migratore e sua rimozione, contenuto a DB e UAT su device (BACKEND-NOTES.md §4, §5, §7, da eseguire) a cura dell'orchestratore
 **Stato (2026-11-16)**: 18/18 piani eseguiti; ricerca e apprendimento (D-26..D-31) nel ramo, gate 24-18 verde; tempi a DB, test:cov, riavvio, brief della FE e UAT (BACKEND-NOTES.md §8) a cura dell'orchestratore
@@ -344,7 +344,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 20. Cibo e vita progressivi in viaggio | v1.1 | 11/11 | Complete | 2026-11-13 |
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
-| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 17/18 | In Progress | - |
+| 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 
 ---
