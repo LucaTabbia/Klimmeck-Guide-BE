@@ -712,6 +712,85 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             ).toEqual([]);
         });
 
+        const pushesOf = () =>
+            world.push.sent.map(({ message }) => ({
+                type: message.type,
+                id: message.id,
+                body: message.body,
+            }));
+
+        it('sends the research success push with the spell name and the learning time (D-29)', async () => {
+            const spell = await learnableWithTime();
+            const subject = await researcher();
+            await registerDevice(world.harness, subject.player);
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(String(sheet.spellFound)).toBe(String(spell._id));
+            expect(pushesOf()).toEqual([
+                {
+                    type: PushEventType.spellResearchSucceeded,
+                    id: String(sheet._id),
+                    body: `Hai scoperto «${spell.name}»: l'apprendimento dura 30 minuti.`,
+                },
+            ]);
+        });
+
+        it('sends the research failure push in place of the quest end push (D-29)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            await registerDevice(world.harness, subject.player);
+            chance.load([0.9, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(pushesOf()).toEqual([
+                {
+                    type: PushEventType.spellResearchFailed,
+                    id: String(sheet._id),
+                    body: "Nessuna magia scoperta: scopri com'è andata la missione.",
+                },
+            ]);
+        });
+
+        it('keeps the quest end push for a study without a draw (D-29)', async () => {
+            await learnableWithTime();
+            const subject = await quester({
+                questOverrides: studyQuest({ xpPrize: 300 }),
+            });
+            await registerDevice(world.harness, subject.player);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(pushesOf().map(({ type, id }) => ({ type, id }))).toEqual([
+                { type: PushEventType.questEnd, id: String(sheet._id) },
+            ]);
+        });
+
+        it('keeps the quest end push when the fixed spell wins over the draw (D-29, D-30)', async () => {
+            const fixed = await learnableWithTime();
+            const subject = await quester({
+                questOverrides: questOfType('arcane', {
+                    xpPrize: 300,
+                    spell: fixed._id,
+                }),
+            });
+            await drawSpellOn(subject);
+            await registerDevice(world.harness, subject.player);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(String(sheet.spellLearned)).toBe(String(fixed._id));
+            expect(pushesOf().map(({ type, id }) => ({ type, id }))).toEqual([
+                { type: PushEventType.questEnd, id: String(sheet._id) },
+            ]);
+        });
+
         it('ends the quest as before when the draw gives nothing (D-26)', async () => {
             await learnableWithTime();
             const subject = await researcher();

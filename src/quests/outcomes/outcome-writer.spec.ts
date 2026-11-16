@@ -2,7 +2,12 @@ import { FAILED_JOBS_KEPT } from 'src/queues/enqueue-trigger';
 import { Logger } from '@nestjs/common';
 import type { ClientSession } from 'mongoose';
 import { Types } from 'mongoose';
-import { questEnd } from 'src/push/push-events';
+import { PushEventType } from 'src/push/push-event-type.enum';
+import {
+    questEnd,
+    spellResearchFailed,
+    spellResearchSucceeded,
+} from 'src/push/push-events';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { FakeTravelQueue } from '../../../test/travel/fake-travel-queue';
 import type { ParticipantPlan } from './outcome-plan';
@@ -246,7 +251,87 @@ describe('OutcomeWriter', () => {
                 startDate: NOW,
                 waitingTime: 1_800_000,
             });
-            expect(push.sendToUser).not.toHaveBeenCalled();
+            expect(
+                push.sendToUser.mock.calls.map(([, message]) => message.type),
+            ).not.toContain(PushEventType.questEnd);
+        });
+
+        const learningOf = (learnResultId: Types.ObjectId) => ({
+            pendingQuestId: new Types.ObjectId(),
+            startDate: NOW,
+            learnTime: 1_800_000,
+            userId,
+            resultId: learnResultId,
+            spellName: 'Dardo',
+        });
+
+        it('pushes the research success to the owner with the research sheet id (D-29, D-31)', async () => {
+            await writer.deliver({
+                ...emptyCommitted(),
+                learnings: [learningOf(resultId)],
+            });
+
+            expect(push.sendToUser).toHaveBeenCalledTimes(1);
+            expect(push.sendToUser).toHaveBeenCalledWith(
+                userId,
+                spellResearchSucceeded(
+                    resultId.toHexString(),
+                    'Dardo',
+                    1_800_000,
+                ),
+            );
+        });
+
+        it('pushes the research failure in place of the quest end (D-29)', async () => {
+            await writer.deliver({
+                ...emptyCommitted(),
+                results: [{ resultId, userId, researchFailed: true }],
+            });
+
+            expect(push.sendToUser).toHaveBeenCalledTimes(1);
+            expect(push.sendToUser).toHaveBeenCalledWith(
+                userId,
+                spellResearchFailed(resultId.toHexString()),
+            );
+        });
+
+        it('warns with ids only when the research push fails (D-29)', async () => {
+            const otherResult = new Types.ObjectId();
+            const failing = learningOf(resultId);
+            push.sendToUser.mockRejectedValueOnce(new Error('fcm secret'));
+
+            await expect(
+                writer.deliver({
+                    ...committed(),
+                    results: [],
+                    learnings: [failing, learningOf(otherResult)],
+                }),
+            ).resolves.toBeUndefined();
+
+            expect(scheduler.scheduleResolution).toHaveBeenCalledTimes(2);
+            expect(scheduler.scheduleResolution).toHaveBeenCalledWith({
+                pendingQuestId: failing.pendingQuestId,
+                startDate: NOW,
+                waitingTime: 1_800_000,
+            });
+            expect(push.sendToUser).toHaveBeenCalledTimes(2);
+            expect(push.sendToUser).toHaveBeenLastCalledWith(
+                userId,
+                spellResearchSucceeded(
+                    otherResult.toHexString(),
+                    'Dardo',
+                    1_800_000,
+                ),
+            );
+            expect(scheduler.scheduleAidTimeout).toHaveBeenCalledTimes(1);
+            expect(queue.added).toHaveLength(1);
+            expect(warn).toHaveBeenCalledTimes(1);
+            const message = String(warn.mock.calls[0][0]);
+            expect(message).toContain(PushEventType.spellResearchSucceeded);
+            expect(message).toContain(resultId.toHexString());
+            expect(message).toContain(userId.toHexString());
+            expect(message).not.toContain('fcm secret');
+            expect(message).not.toContain('Dardo');
         });
     });
 
@@ -476,6 +561,25 @@ describe('recordParticipant', () => {
         ]);
         expect(committed.results).toEqual([]);
         expect(committed.spellRecoveries).toEqual([recovery]);
+    });
+
+    it('marks the result of a failed research when recording a participant (D-29)', () => {
+        const committed = emptyCommitted();
+        const plan = {
+            result: {
+                _id: resultId,
+                resolvedAt: NOW,
+                spellResearchFailed: true,
+            },
+            spellRecoveries: [],
+            learning: null,
+        } as unknown as ParticipantPlan;
+
+        recordParticipant(committed, plan, { pendingQuestId, userId });
+
+        expect(committed.results).toEqual([
+            { resultId, userId, researchFailed: true },
+        ]);
     });
 
     it('records a result for a participant without a learning part (D-26)', () => {

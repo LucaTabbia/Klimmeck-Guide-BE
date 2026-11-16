@@ -231,6 +231,29 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         expect(questEndIds()).toEqual([String(learned._id)]);
     });
 
+    it('sends the quest end push of the second sheet at the end of the learning part and no research push (D-29, D-31)', async () => {
+        await learnable([]);
+        const subject = await researched();
+        await registerDevice(world.harness, subject.player);
+        moveTo(LEARNED_AT);
+
+        await service.resolveStandard(learningTriggerOf(subject));
+
+        const [research, learned] = await sheetsOf(subject);
+        expect(
+            world.push.sent.map(({ message }) => ({
+                type: message.type,
+                id: message.id,
+            })),
+        ).toEqual([
+            {
+                type: PushEventType.spellResearchSucceeded,
+                id: String(research._id),
+            },
+            { type: PushEventType.questEnd, id: String(learned._id) },
+        ]);
+    });
+
     it('waits before the end of the learning part (D-26)', async () => {
         await learnable([]);
         const subject = await researched();
