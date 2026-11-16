@@ -612,6 +612,7 @@ type PathResponse {
 type PendingQuest {
   arrivedAt: DateTime
   id: ID!
+  learningSpell: Spell
   pointsSpent: Int!
   quest: Quest!
   startDate: DateTime

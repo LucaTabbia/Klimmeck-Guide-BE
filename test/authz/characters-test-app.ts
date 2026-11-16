@@ -8,6 +8,7 @@ import { CharactersResolver } from 'src/characters/characters.resolver';
 import { CharactersService } from 'src/characters/characters.service';
 import { MissionDraftLockPublisher } from 'src/characters/mission-lock/mission-draft-lock.publisher';
 import { MissionLockModule } from 'src/characters/mission-lock/mission-lock.module';
+import { PendingQuestLearningSpellResolver } from 'src/characters/pending-quest-learning-spell.resolver';
 import { PendingQuestStartPublisher } from 'src/characters/pending-quest-start.publisher';
 import { OwnedPetResolver } from 'src/characters/pets/owned-pet.resolver';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
@@ -70,6 +71,7 @@ export async function createCharactersTestApp(
             CharactersResolver,
             CharacterStatusResolver,
             OwnedPetResolver,
+            PendingQuestLearningSpellResolver,
             CharacterUpdatesPublisher,
             PendingQuestStartPublisher,
             MissionDraftLockPublisher,
