@@ -845,6 +845,260 @@ describe('planParticipant', () => {
         });
     });
 
+    describe('research and learning parts', () => {
+        const ORIGIN_LORE = new Types.ObjectId('64b0000000000000000000fa');
+        const LEARN_TIME = 1_800_000;
+        const drawnCandidate = (overrides: Record<string, unknown> = {}) => ({
+            spellId: DRAWN_SPELL_ID,
+            minLevelToLearn: 1,
+            maxUsages: 2,
+            relatedLore: [ORIGIN_LORE],
+            name: 'Dardo',
+            learnTime: LEARN_TIME,
+            ...overrides,
+        });
+        const drawOf = (
+            candidate: ReturnType<typeof drawnCandidate>,
+            gate = 0,
+        ) => ({ pool: [candidate], gate, roll: 0 });
+        const researchRewards = (overrides: Partial<DrawnRewards> = {}) =>
+            rewardsWith({
+                xpPrize: 300,
+                coinsCopper: 150,
+                items: [potionStack(2)],
+                spellDraw: drawOf(drawnCandidate()),
+                ...overrides,
+            });
+        const researchWith = (
+            rewards: DrawnRewards = researchRewards(),
+            snapshot: SnapshotOverrides = {},
+            overrides: Partial<ParticipantPlanInput> = {},
+        ) =>
+            planParticipant(
+                inputWith({
+                    quest: questOf(QuestType.arcane),
+                    snapshot: snapshotWith(asMage(snapshot)),
+                    rewards,
+                    ...overrides,
+                }),
+            );
+        const knownDrawnSpell: SnapshotOverrides = {
+            status: {
+                spellStates: [
+                    {
+                        spell: DRAWN_SPELL_ID,
+                        usages: 2,
+                        recoveries: [],
+                        active: false,
+                    },
+                ],
+            },
+        };
+        const lostQuest: Partial<ParticipantPlanInput> = {
+            verdict: QuestOutcome.failure,
+            aid: { aidQuestId: AID_ID, failedQuestId: FAILED_ID },
+        };
+
+        it('keeps a drawn spell with a learn time out of the known spells (D-26)', () => {
+            const plan = researchWith();
+
+            expect(plan.update.$set).not.toHaveProperty(['status.spellStates']);
+            expect(plan.result.spellLearned).toBeNull();
+            expect(plan.learning).toEqual({
+                spellId: DRAWN_SPELL_ID,
+                spellName: 'Dardo',
+                learnTime: LEARN_TIME,
+            });
+        });
+
+        it('keeps the standard lane on the pending quest during the learning part (D-26)', () => {
+            const plan = researchWith();
+
+            expect(plan.update.$set).not.toHaveProperty([
+                'quests.pendingQuest',
+            ]);
+            expect(plan.filter['quests.pendingQuest']).toEqual({
+                $in: idForms(PENDING_ID),
+            });
+        });
+
+        it('settles xp, coins and items at the end of the research (D-26)', () => {
+            const learning = researchWith();
+            const immediate = researchWith(
+                researchRewards({
+                    spellDraw: drawOf(drawnCandidate({ learnTime: undefined })),
+                }),
+            );
+
+            expect(learning.update.$set['status.xp']).toBe(300);
+            expect(learning.update.$set['status.xp']).toBe(
+                immediate.update.$set['status.xp'],
+            );
+            expect(learning.coinsDelta).toBe(immediate.coinsDelta);
+            expect(learning.update.$set['assets.ownedItems']).toEqual(
+                immediate.update.$set['assets.ownedItems'],
+            );
+            expect(learning.result.rewards).toEqual(immediate.result.rewards);
+        });
+
+        it('unlocks no spell lore before the end of the learning part (D-24, D-26)', () => {
+            const plan = researchWith();
+
+            expect(plan.update.$addToSet).toBeUndefined();
+            expect(plan.result.loreUnlocked).toEqual([]);
+        });
+
+        it('draws no study lore when the research found a spell (D-26)', () => {
+            const plan = researchWith(
+                researchRewards({
+                    loreDraw: {
+                        pool: [STUDY_LORE_ID],
+                        chance: 0.5,
+                        gate: 0,
+                        pick: 0,
+                    },
+                }),
+            );
+
+            expect(plan.result.loreUnlocked).toEqual([]);
+            expect(plan.update.$addToSet).toBeUndefined();
+        });
+
+        it.each([
+            ['without a learn time', undefined],
+            ['with a zero learn time', 0],
+        ])(
+            'teaches a drawn spell without a learn time at once (D-26): %s',
+            (_case, learnTime) => {
+                const plan = researchWith(
+                    researchRewards({
+                        spellDraw: drawOf(drawnCandidate({ learnTime })),
+                    }),
+                );
+
+                expect(plan.learning).toBeNull();
+                expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+                expect(plan.update.$set['quests.pendingQuest']).toBeNull();
+                expect(plan.result.loreUnlocked).toEqual([ORIGIN_LORE]);
+            },
+        );
+
+        it('teaches the fixed spell at once even with a learn time (D-30)', () => {
+            const plan = researchWith(
+                rewardsWith({
+                    spellCandidate: {
+                        spellId: LEARNED_SPELL_ID,
+                        minLevelToLearn: 1,
+                        maxUsages: 4,
+                        name: 'Fisso',
+                        learnTime: LEARN_TIME,
+                    },
+                    spellDraw: drawOf(drawnCandidate()),
+                }),
+            );
+
+            expect(plan.learning).toBeNull();
+            expect(plan.result.spellLearned).toBe(LEARNED_SPELL_ID);
+            expect(plan.update.$set['quests.pendingQuest']).toBeNull();
+        });
+
+        it('teaches a drawn spell at once on a GM lane (D-30)', () => {
+            const plan = researchWith(
+                researchRewards(),
+                {},
+                {
+                    quest: questOf(QuestType.story, TitleType.rookie),
+                    lane: QuestLane.story,
+                    verdict: QuestOutcome.gmCompleted,
+                },
+            );
+
+            expect(plan.learning).toBeNull();
+            expect(plan.result.spellLearned).toBe(DRAWN_SPELL_ID);
+            expect(plan.update.$set['quests.activeStoryQuest']).toBeNull();
+        });
+
+        it.each([
+            [
+                'a missed gate',
+                researchRewards({ spellDraw: drawOf(drawnCandidate(), 0.9) }),
+                {},
+                {},
+            ],
+            [
+                'below its minimum level',
+                researchRewards({
+                    spellDraw: drawOf(drawnCandidate({ minLevelToLearn: 7 })),
+                }),
+                {},
+                {},
+            ],
+            ['already known', researchRewards(), knownDrawnSpell, {}],
+            [
+                'a paladin',
+                researchRewards(),
+                { status: { title: TitleType.paladin } },
+                {},
+            ],
+            ['a lost quest', researchRewards(), {}, lostQuest],
+        ] as [
+            string,
+            DrawnRewards,
+            SnapshotOverrides,
+            Partial<ParticipantPlanInput>,
+        ][])(
+            'opens no learning part when the draw gives nothing (D-26): %s',
+            (_case, rewards, snapshot, overrides) => {
+                const plan = researchWith(rewards, snapshot, overrides);
+
+                expect(plan.learning).toBeNull();
+                expect(plan.result.spellLearned).toBeNull();
+                expect(plan.update.$set['quests.pendingQuest']).toBeNull();
+            },
+        );
+
+        it('marks a won draw without a spell as a failed research (D-29)', () => {
+            const plan = researchWith(
+                researchRewards({ spellDraw: drawOf(drawnCandidate(), 0.9) }),
+            );
+
+            expect(plan.result.spellResearchFailed).toBe(true);
+        });
+
+        it.each([
+            ['a spell found by the draw', researchRewards(), {}],
+            [
+                'a fixed spell',
+                researchRewards({
+                    spellCandidate: {
+                        spellId: LEARNED_SPELL_ID,
+                        minLevelToLearn: 1,
+                        maxUsages: 4,
+                    },
+                    spellDraw: drawOf(drawnCandidate(), 0.9),
+                }),
+                {},
+            ],
+            [
+                'a quest without a draw',
+                researchRewards({ spellDraw: null }),
+                {},
+            ],
+            [
+                'a lost quest',
+                researchRewards({ spellDraw: drawOf(drawnCandidate(), 0.9) }),
+                lostQuest,
+            ],
+        ] as [string, DrawnRewards, Partial<ParticipantPlanInput>][])(
+            'marks no failed research otherwise (D-29): %s',
+            (_case, rewards, overrides) => {
+                const plan = researchWith(rewards, {}, overrides);
+
+                expect(plan.result.spellResearchFailed).toBe(false);
+            },
+        );
+    });
+
     describe('the xp of the equipped companion', () => {
         const COMPANION_ID = OWNED_PET_ID;
         const companionAssets = (

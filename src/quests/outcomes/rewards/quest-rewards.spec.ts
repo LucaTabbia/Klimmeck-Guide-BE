@@ -13,6 +13,7 @@ import {
     drawRewards,
     drawStudyLore,
     isLearnLevel,
+    learnTimeOf,
     rewardRefsOf,
     validRewardItems,
 } from 'src/quests/outcomes/rewards/quest-rewards';
@@ -232,6 +233,37 @@ describe('drawRewards', () => {
         );
 
         expect(rewards.spellCandidate).toBeNull();
+    });
+
+    it('carries no learn time into the fixed spell candidate (D-30)', () => {
+        const withLearnTime: RewardCatalog = {
+            ...catalog,
+            spells: new Map([
+                [
+                    SPELL_ID.toHexString(),
+                    {
+                        minLevelToLearn: 6,
+                        maxUsages: 4,
+                        name: 'Dardo',
+                        learnTime: 1_800_000,
+                    },
+                ],
+            ]),
+        };
+
+        const rewards = drawRewards(
+            prizesWith({ spell: SPELL_ID }),
+            withLearnTime,
+            new SequenceChance(),
+        );
+
+        expect(rewards.spellCandidate).toEqual({
+            spellId: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+        });
+        expect(rewards.spellCandidate).not.toHaveProperty('learnTime');
+        expect(rewards.spellCandidate).not.toHaveProperty('name');
     });
 });
 
@@ -666,6 +698,31 @@ describe('drawLearnableSpell', () => {
             SPELL_D,
         );
     });
+});
+
+describe('learnTimeOf', () => {
+    it.each([[1], [1_800_000]])(
+        'reads a learn time only as a positive safe integer (D-26): keeps %p',
+        (value) => {
+            expect(learnTimeOf(value)).toBe(value);
+        },
+    );
+
+    it.each([
+        [0],
+        [-1],
+        [2.5],
+        ['1800000'],
+        [null],
+        [undefined],
+        [NaN],
+        [Number.MAX_SAFE_INTEGER + 1],
+    ])(
+        'reads a learn time only as a positive safe integer (D-26): drops %p',
+        (value) => {
+            expect(learnTimeOf(value)).toBeNull();
+        },
+    );
 });
 
 describe('isLearnLevel', () => {

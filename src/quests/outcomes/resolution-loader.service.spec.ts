@@ -473,6 +473,8 @@ describe('ResolutionLoader reward catalog', () => {
                 minLevelToLearn: 1,
                 maxUsages: 1,
                 relatedLore: 1,
+                name: 1,
+                requiredLearnTime: 1,
             });
         }
     });
@@ -542,6 +544,8 @@ describe('ResolutionLoader reward catalog', () => {
                 minLevelToLearn: 1,
                 maxUsages: 1,
                 relatedLore: 1,
+                name: 1,
+                requiredLearnTime: 1,
             });
         }
         expect(Object.fromEntries(rewards.spells)).toEqual({
@@ -564,6 +568,58 @@ describe('ResolutionLoader reward catalog', () => {
                 relatedLore: [L1, L2],
             },
             { spellId: S2, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+        ]);
+    });
+
+    it('reads the name and the learn time of the spells of the pool (D-26, D-29)', async () => {
+        const S1 = new Types.ObjectId('64b0000000000000000000a1');
+        const S2 = new Types.ObjectId('64b0000000000000000000a2');
+        const S3 = new Types.ObjectId('64b0000000000000000000a3');
+        const spellModel = catalogModel([
+            {
+                _id: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                name: 'Dardo',
+                requiredLearnTime: 1_800_000,
+            },
+            {
+                _id: S2,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                name: '',
+                requiredLearnTime: 0,
+            },
+            { _id: S3, minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [], petIds: [] },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
+        );
+
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toMatchObject({ name: 1, requiredLearnTime: 1 });
+        }
+        expect(rewards.spellPool).toEqual([
+            {
+                spellId: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [],
+                name: 'Dardo',
+                learnTime: 1_800_000,
+            },
+            { spellId: S2, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+            { spellId: S3, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+        ]);
+        expect(Object.keys(rewards.spellPool[1]).sort()).toEqual([
+            'maxUsages',
+            'minLevelToLearn',
+            'relatedLore',
+            'spellId',
         ]);
     });
 
