@@ -6,6 +6,7 @@ import {
     buildCharacter,
     buildQuest,
     persistEnemy,
+    persistSpell,
 } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
@@ -18,6 +19,7 @@ import {
     QUIET_SWEEP_CONFIG,
 } from '../../../test/quests/outcome-world';
 import { ScriptedCombatResolver } from '../../../test/quests/scripted-combat-resolver';
+import { persistQuestResult } from '../../../test/quests/quest-result.fixture';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { QuestLane } from '../acceptance/quest-lanes';
 import { AID_TIMEOUT_MS } from './aid/aid-timeout';
@@ -386,6 +388,87 @@ describe('QuestResolutionSweeper (replSet)', () => {
 
         expect((await characterOf(subject.id)).deletedAt ?? null).toBeNull();
         expect(await resultsOf(subject.id)).toEqual([]);
+    });
+
+    describe('learning parts (Phase 24)', () => {
+        // PendingQuest già in apprendimento, come la lascia la ricerca prima di un riavvio
+        async function learner(startDate: Date) {
+            const spell = await persistSpell(world.models.spells, {
+                minLevelToLearn: 1,
+                maxUsages: 4,
+                requiredLearnTime: HALF_HOUR_MS,
+            });
+            const subject = await quester({
+                startDate,
+                waitingTime: HALF_HOUR_MS,
+                characterOverrides: {
+                    status: { ...buildCharacter().status, title: 'mage' },
+                },
+            });
+            const research = await persistQuestResult(
+                world.models.questResults,
+                {
+                    character: subject.characterId,
+                    user: subject.player.user._id,
+                    quest: {
+                        id: subject.quest._id,
+                        type: 'arcane',
+                        title: 'Scuola arcana',
+                    },
+                    spellFound: spell._id,
+                    acknowledgedAt: null,
+                },
+            );
+            await world.models.pendingQuests.updateOne(
+                { _id: subject.pendingQuest._id },
+                {
+                    $set: {
+                        learningSpell: spell._id,
+                        researchResult: research._id,
+                    },
+                },
+            );
+            return { subject, spell };
+        }
+
+        it('completes a due learning part at the sweep, as after a restart (D-26)', async () => {
+            const { subject, spell } = await learner(
+                new Date(NOW.getTime() - HALF_HOUR_MS),
+            );
+
+            await expect(sweeper.sweep()).resolves.toEqual({
+                resolved: 1,
+                timedOut: 0,
+            });
+
+            const character = await characterOf(subject.characterId);
+            expect(
+                character.status.spellStates.map((state: { spell: unknown }) =>
+                    String(state.spell),
+                ),
+            ).toEqual([String(spell._id)]);
+            expect(character.quests.pendingQuest).toBeNull();
+            const sheets = await resultsOf(subject.characterId);
+            expect(sheets).toHaveLength(2);
+            expect(
+                sheets.filter(
+                    (sheet) => String(sheet.spellLearned) === String(spell._id),
+                ),
+            ).toHaveLength(1);
+        });
+
+        it('leaves a learning part that is not due to the next sweep (D-26)', async () => {
+            const { subject } = await learner(new Date(NOW.getTime() - 60_000));
+
+            await expect(sweeper.sweep()).resolves.toEqual(NOTHING_DONE);
+
+            const character = await characterOf(subject.characterId);
+            expect(character.status.spellStates ?? []).toEqual([]);
+            expect(String(character.quests.pendingQuest)).toBe(
+                String(subject.pendingQuest._id),
+            );
+            expect(await resultsOf(subject.characterId)).toHaveLength(1);
+        });
     });
 
     it('finds nothing left on a second sweep', async () => {
