@@ -24,6 +24,7 @@ import {
 } from 'src/authz/ownership/ownership.decorators';
 import { ROLES_KEY } from 'src/authz/roles/roles.decorator';
 import { WalletService } from 'src/economy/wallet.service';
+import { SpellCatalogueReporter } from 'src/spells/spell-catalogue.reporter';
 import { GRAPHQL_PATH } from 'src/graphql/graphql-context';
 import { UnhandledExceptionFilter } from 'src/http/unhandled-exception.filter';
 import { DisabledImageModerator } from 'src/moderation/disabled-image.moderator';
@@ -402,8 +403,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type CharacterQuests \{[^}]*\}/)?.[0]).toBe(
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
+        // la magia in apprendimento (Phase 24 D-26): riga additiva
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  learningSpell: Spell\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
@@ -576,6 +578,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toMatch(/type ActiveSpell \{/);
     });
 
+    it('writes the spell with its origin, minimum level and related lore and without the minimum xp (D-01, D-07, D-24)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema.match(/type Spell \{[^}]*\}/)?.[0]).toBe(
+            'type Spell {\n  description: String!\n  energyDamage: EnergyDamage!\n  id: ID!\n  maxUsages: Int!\n  minLevelToLearn: Int!\n  name: String!\n  origin: String!\n  recoveryTime: Int!\n  relatedLore: [Lore!]!\n  requiredLearnTime: Int!\n  useType: String!\n}',
+        );
+        expect(schema).not.toMatch(/minXpToLearn/);
+    });
+
     it('writes the city size and the shop flag into the generated schema without the pool lists (D-01, D-18)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -584,6 +595,16 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
         expect(schema).toContain(
             'enum CitySize {\n  capital\n  city\n  village\n}',
+        );
+    });
+
+    it('writes the three new city types into the generated schema (D-15)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const cityTypes = schema.match(/enum CityType \{[^}]*\}/)?.[0];
+
+        expect(cityTypes).toContain('  aarakocraCapital\n  aarakocraVillage\n');
+        expect(cityTypes).toContain(
+            '  dragonbornCapital\n  dragonbornVillage\n',
         );
     });
 
@@ -684,8 +705,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type AwaitingAid \{[^}]*\}/)?.[0]).toBe(
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
+        // il blocco sorteggia una magia alla fine della «Fase di ricerca» (Phase 24 D-26)
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  spellDraw: Boolean!\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  awaitingRescue: Boolean!\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  rankPrizes: [QuestRankPrizes!]!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -782,8 +804,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
+        // magia scoperta (Phase 24 D-31) e ricerca fallita (Phase 24 D-29): righe additive
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellFound: Spell\n  spellLearned: Spell\n  spellResearchFailed: Boolean!\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type CompanionOutcome \{[^}]*\}/)?.[0]).toBe(
             'type CompanionOutcome {\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  lifeBefore: Int!\n  lifePoints: Int!\n  maxLifePoints: Int!\n  name: String!\n}',
@@ -921,6 +944,16 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(pendingQuestType).not.toContain('missionDraftStartedAt');
     });
 
+    it('keeps the research sheet id of the learning part off the pending quest type (D-31)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const pendingQuestType = schema.match(
+            /type PendingQuest \{[^}]*\}/,
+        )?.[0];
+
+        expect(pendingQuestType).toBeDefined();
+        expect(pendingQuestType).not.toContain('researchResult');
+    });
+
     it('adds the guided mission draft to the schema (D-17)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
@@ -1046,9 +1079,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).toContain('  ambushDefeat\n');
         // liberazione dalla prigione (quick 261110-prp): valore additivo dell'enum
         expect(schema).toContain('  prisonRelease\n');
-        // compagno sconfitto di nuovo in forze (D-11) e push di ogni imboscata (D-30): il blocco intero, perché enum QuestResultKind ha già la riga ambush
+        // compagno sconfitto di nuovo in forze (D-11), push di ogni imboscata (D-30) e fine della «Fase di ricerca» (Phase 24 D-29): il blocco intero, perché enum QuestResultKind ha già la riga ambush
         expect(schema.match(/enum PushEventType \{[^}]*\}/)?.[0]).toBe(
-            'enum PushEventType {\n  ambush\n  ambushDefeat\n  missionStart\n  petRecovered\n  prisonRelease\n  questCancelled\n  questEnd\n  streamerLive\n  travelEnd\n}',
+            'enum PushEventType {\n  ambush\n  ambushDefeat\n  missionStart\n  petRecovered\n  prisonRelease\n  questCancelled\n  questEnd\n  spellResearchFailed\n  spellResearchSucceeded\n  streamerLive\n  travelEnd\n}',
         );
         expect(schema).toContain('type PushDeliveryReport');
         expect(schema).toContain('targetUserId: ID');
@@ -1115,6 +1148,14 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         );
 
         expect(moduleNames).not.toContain('ModelReviewMigrationModule');
+    });
+
+    it('does not mount the one-off spell origins migration (D-07, D-20)', () => {
+        const moduleNames = [...app.get(ModulesContainer).values()].map(
+            (moduleRef) => moduleRef.metatype.name,
+        );
+
+        expect(moduleNames).not.toContain('SpellOriginsMigrationModule');
     });
 
     it('mounts the quest result maintenance', () => {
@@ -1225,6 +1266,15 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(app.get<SpellRecoveryConfig>(SPELL_RECOVERY_CONFIG)).toEqual({
             sweepIntervalMs: 0,
         });
+    });
+
+    it('mounts the spell catalogue reporter and warns about no spell on an empty catalogue (D-07)', () => {
+        expect(app.get(SpellCatalogueReporter)).toBeDefined();
+        expect(
+            warnSpy.mock.calls.filter(([message]) =>
+                String(message).startsWith('Magie: '),
+            ),
+        ).toEqual([]);
     });
 
     it('boots EventSub disabled without calling Twitch', () => {

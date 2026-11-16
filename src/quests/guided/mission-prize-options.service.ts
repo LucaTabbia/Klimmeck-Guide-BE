@@ -12,6 +12,7 @@ import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import { GmRequest, GmRequestReader } from '../outcomes/gm-request.reader';
+import { levelRowFor } from '../outcomes/progression/level-table';
 import type { ResolutionCharacter } from '../outcomes/resolution-loader.service';
 import type { PrizesSnapshot } from '../outcomes/rewards/quest-rewards';
 import { prizeBlockFor } from '../prizes/rank-prizes';
@@ -45,7 +46,7 @@ interface RarityProjection {
 
 interface SpellProjection {
     _id: Types.ObjectId;
-    minXpToLearn?: unknown;
+    minLevelToLearn?: unknown;
 }
 
 const rarityEntryOf = ({
@@ -135,7 +136,7 @@ export class MissionPrizeOptionsService {
             this.lootModel.find({}, byRarity).lean<RarityProjection[]>().exec(),
             this.petModel.find({}, byRarity).lean<RarityProjection[]>().exec(),
             this.spellModel
-                .find({}, { minXpToLearn: 1 })
+                .find({}, { minLevelToLearn: 1 })
                 .lean<SpellProjection[]>()
                 .exec(),
         ]);
@@ -143,9 +144,9 @@ export class MissionPrizeOptionsService {
             equipment: equipment.map(rarityEntryOf),
             loot: loot.map(rarityEntryOf),
             pets: pets.map(rarityEntryOf),
-            spells: spells.map(({ _id, minXpToLearn }) => ({
+            spells: spells.map(({ _id, minLevelToLearn }) => ({
                 id: _id.toHexString(),
-                minXpToLearn,
+                minLevelToLearn,
             })),
         };
     }
@@ -160,7 +161,8 @@ export class MissionPrizeOptionsService {
             block: prizeBlockFor(request.quest, title),
             questType: request.quest.infos.type,
             title,
-            xp: character.status.xp ?? 0,
+            // livello dalla tabella unica, mai quello salvato (Phase 24 D-08)
+            level: levelRowFor(character.status.xp ?? 0).level,
             knownSpellIds: knownSpellIdsOf(character),
             catalogue,
         });

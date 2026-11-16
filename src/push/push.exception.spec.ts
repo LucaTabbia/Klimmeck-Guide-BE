@@ -69,6 +69,8 @@ describe('PushException', () => {
             'missionStart',
             'petRecovered',
             'ambush',
+            'spellResearchSucceeded',
+            'spellResearchFailed',
         ]);
     });
 });

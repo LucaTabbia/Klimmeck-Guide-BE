@@ -46,6 +46,8 @@ const QUEST_RESULT_TURNS =
     'query QuestResult($id: String!) { questResult(id: $id) { id stagesCleared stagesTotal turnsTotal turnsCompleted lastTurn lastTurnKind } }';
 const QUEST_RESULT_REWARDS =
     'query QuestResult($id: String!) { questResult(id: $id) { id rewards { coins { gold silver copper } items { quantity } pet { id } } } }';
+const QUEST_RESULT_RESEARCH =
+    'query QuestResult($id: String!) { questResult(id: $id) { id spellFound { id name origin requiredLearnTime } spellLearned { id } spellResearchFailed } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -426,6 +428,94 @@ describe('questResult(id) (wire)', () => {
                 },
             },
         });
+    });
+
+    const readResearch = async (id: unknown) =>
+        bodyOf(
+            await graphqlRequest(
+                harness.app,
+                QUEST_RESULT_RESEARCH,
+                { id: String(id) },
+                alice.bearer,
+            ),
+        );
+
+    it('serves the found spell of a research sheet with its learning time (D-31)', async () => {
+        const spell = await persistSpell(modelOf(Spell.name), {
+            name: 'Dardo',
+            requiredLearnTime: 1_800_000,
+        });
+        const result = await persistAliceResult({ spellFound: spell._id });
+
+        expect(await readResearch(result._id)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    spellFound: {
+                        id: String(spell._id),
+                        name: 'Dardo',
+                        origin: spell.origin,
+                        requiredLearnTime: 1_800_000,
+                    },
+                    spellLearned: null,
+                    spellResearchFailed: false,
+                },
+            },
+        });
+    });
+
+    it('serves a null found spell for a result stored before the field existed and for an orphan spell (D-31)', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const { insertedId } = await results.collection.insertOne(
+            buildQuestResult({
+                character: alice.character?._id,
+                user: alice.user._id,
+            }),
+        );
+        const orphan = await persistAliceResult({
+            spellFound: new Types.ObjectId(),
+        });
+
+        const legacy = await readResearch(insertedId);
+        const orphaned = await readResearch(orphan._id);
+
+        expect(legacy.errors).toBeUndefined();
+        expect(legacy.data?.questResult?.spellFound).toBeNull();
+        expect(orphaned.errors).toBeUndefined();
+        expect(orphaned.data?.questResult).toMatchObject({
+            id: String(orphan._id),
+            spellFound: null,
+        });
+    });
+
+    it('serves the failed research flag of a result (D-29)', async () => {
+        const result = await persistAliceResult({ spellResearchFailed: true });
+
+        expect(await readResearch(result._id)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    spellFound: null,
+                    spellLearned: null,
+                    spellResearchFailed: true,
+                },
+            },
+        });
+    });
+
+    it('serves a false failed research flag for a result stored before the field existed (D-29)', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const raw = buildQuestResult({
+            character: alice.character?._id,
+            user: alice.user._id,
+        }) as Record<string, unknown>;
+        delete raw.spellResearchFailed;
+        const { insertedId } = await results.collection.insertOne(raw);
+
+        const body = await readResearch(insertedId);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.questResult?.spellResearchFailed).toBe(false);
     });
 
     it('serves the injuries healed by the outcome (D-08)', async () => {

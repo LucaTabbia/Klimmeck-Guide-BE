@@ -9,6 +9,7 @@ import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { refIdOf, sameId } from 'src/mongo/document-id';
 import { ChanceSource } from '../chance-source';
+import { MAX_LEVEL } from '../progression/level-table';
 import { rollLoot } from './cascading-loot';
 
 export interface PrizeEntrySnapshot {
@@ -37,8 +38,14 @@ export interface RewardItem {
 
 export interface SpellCandidate {
     spellId: Types.ObjectId;
-    minXpToLearn: number;
+    minLevelToLearn: number;
     maxUsages: number;
+    // lore sbloccate se la magia viene imparata (Phase 24 D-24); assente = nessuna lore
+    relatedLore?: readonly Types.ObjectId[];
+    // nome mostrato nel push della ricerca riuscita (Phase 24 D-29); assente = nessun nome
+    name?: string;
+    // durata in ms della parte di apprendimento (Phase 24 D-26); assente = la magia si impara subito
+    learnTime?: number;
 }
 
 // pool ordinato per id esadecimale crescente: gate decide se si impara, roll sceglie fra le imparabili (quick 261111-sdc)
@@ -74,7 +81,7 @@ export interface DrawnRewards {
 
 export interface RewardCatalog {
     rarities: ReadonlyMap<string, RarityType | null>;
-    spells: ReadonlyMap<string, { minXpToLearn: number; maxUsages: number }>;
+    spells: ReadonlyMap<string, Omit<SpellCandidate, 'spellId'>>;
     spellPool: readonly SpellCandidate[];
     // hex dei pet esistenti fra quelli in premio (D-21) → `maxLifePoints` del catalogo (Phase 19 D-03)
     pets: ReadonlyMap<string, unknown>;
@@ -118,6 +125,18 @@ const REWARD_ITEM_TYPES: readonly unknown[] = [
 
 export const isNonNegativeInteger = (value: unknown): value is number =>
     Number.isSafeInteger(value) && (value as number) >= 0;
+
+// livello minimo di una magia letto lean (Phase 24 D-07, D-08): intero fra 1 e il livello massimo della tabella, altrimenti la magia non si insegna né si offre
+export const isLearnLevel = (value: unknown): value is number =>
+    Number.isInteger(value) &&
+    (value as number) >= 1 &&
+    (value as number) <= MAX_LEVEL;
+
+// tempo di apprendimento letto lean (Phase 24 D-26): intero sicuro > 0 in ms; ogni altro valore = nessuna parte di apprendimento
+export const learnTimeOf = (value: unknown): number | null =>
+    Number.isSafeInteger(value) && (value as number) > 0
+        ? (value as number)
+        : null;
 
 // premi scritti a mano nel catalogo (D-16, T-09-11): tipo dell'enum, ref valido, quantità intera ≥ 1, altrimenti scartato
 function rewardItemOf(
@@ -214,8 +233,9 @@ function spellCandidateOf(
     return spellId && spell
         ? {
               spellId,
-              minXpToLearn: spell.minXpToLearn,
+              minLevelToLearn: spell.minLevelToLearn,
               maxUsages: spell.maxUsages,
+              relatedLore: spell.relatedLore,
           }
         : null;
 }
@@ -293,25 +313,25 @@ export function drawRewards(
     };
 }
 
-// D-17: l'XP si valuta dopo xpPrize (lo passa il chiamante); nessun controllo di città qui
+// il livello si valuta dopo xpPrize, Phase 24 D-07 (lo passa il chiamante); nessun controllo di città qui
 export function canLearnSpell(
     candidate: SpellCandidate | null,
-    xpAfter: number,
+    levelAfter: number,
     knownSpells: readonly unknown[],
     title: TitleType | null | undefined,
 ): Types.ObjectId | null {
     // la magia si impara solo dai titoli ≥ mage, col titolo dopo l'esito (D-05b, D-25)
     if (!isSpellCaster(title)) return null;
-    if (!candidate || xpAfter < candidate.minXpToLearn) return null;
+    if (!candidate || levelAfter < candidate.minLevelToLearn) return null;
     return knownSpells.some((spell) => sameId(spell, candidate.spellId))
         ? null
         : candidate.spellId;
 }
 
-// D-31: stesso cancello di canLearnSpell (xp dopo i premi, magia non nota) applicato a tutto il pool, dopo il gate del 30%
+// D-31: stesso cancello di canLearnSpell (il livello si valuta dopo xpPrize, Phase 24 D-07; magia non nota) applicato a tutto il pool, dopo il gate del 30%
 export function drawLearnableSpell(
     draw: SpellDraw | null,
-    xpAfter: number,
+    levelAfter: number,
     knownSpells: readonly unknown[],
     title: TitleType | null | undefined,
 ): SpellCandidate | null {
@@ -320,7 +340,7 @@ export function drawLearnableSpell(
     if (!draw || draw.gate >= SPELL_DRAW_CHANCE) return null;
     const learnable = draw.pool.filter(
         (candidate) =>
-            candidate.minXpToLearn <= xpAfter &&
+            candidate.minLevelToLearn <= levelAfter &&
             !knownSpells.some((spell) => sameId(spell, candidate.spellId)),
     );
     if (learnable.length === 0) return null;

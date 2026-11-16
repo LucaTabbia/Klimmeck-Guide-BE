@@ -22,6 +22,7 @@ import {
 import { CharacterStatusResolver } from './character-status.resolver';
 import { CharacterUpdatesPublisher } from './character-updates.publisher';
 import { CharactersResolver } from './characters.resolver';
+import { PendingQuestLearningSpellResolver } from './pending-quest-learning-spell.resolver';
 import { PendingQuestStartPublisher } from './pending-quest-start.publisher';
 import { OwnedPetResolver } from './pets/owned-pet.resolver';
 import { CharactersService } from './characters.service';
@@ -52,6 +53,7 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
         CharactersResolver,
         CharacterStatusResolver,
         OwnedPetResolver,
+        PendingQuestLearningSpellResolver,
         CharacterUpdatesPublisher,
         PendingQuestStartPublisher,
         MissionDraftLockPublisher,

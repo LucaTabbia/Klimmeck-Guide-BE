@@ -104,7 +104,7 @@ function countByRarity(ids: readonly string[]): Record<string, number> {
 }
 
 describe('generated quest types', () => {
-    it('generates only enemy and boss quests, never a magic one (quick 261110-mag)', () => {
+    it('generates only enemy and boss quests, never a school one (quick 261110-mag)', () => {
         expect(Object.keys(GENERATED_PRIZES).sort()).toEqual([
             QuestType.boss,
             QuestType.enemy,

@@ -4,7 +4,7 @@ import { LoreType } from 'src/models/enums/lore-type.enum';
 import { Lore } from 'src/models/lore.model';
 import { STUDY_LORE_TYPES } from 'src/lore/study-lore-types';
 import { FixedClock } from '../../../test/auth/fixed-clock';
-import { buildQuest, persistLore } from '../../../test/fixtures';
+import { buildQuest, persistLore, persistSpell } from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -144,25 +144,28 @@ describe('QuestResolutionService.resolveStandard with a study lore draw (replSet
             expect(chance.drawn).toEqual([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0]);
         });
 
-        it('learns a study lore from a won magic quest too (quick 261110-mag)', async () => {
-            const { world, service, chance } = state;
-            const { knowledge, god } = await library();
-            const subject = await quester(world, {
-                unlockedLore: [knowledge._id],
-                questOverrides: questOfType('magic'),
-            });
-            chance.load([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0]);
+        it.each(['arcane', 'shamanic', 'void'])(
+            'learns a study lore from a won %s quest too (D-09)',
+            async (type) => {
+                const { world, service, chance } = state;
+                const { knowledge, god } = await library();
+                const subject = await quester(world, {
+                    unlockedLore: [knowledge._id],
+                    questOverrides: questOfType(type),
+                });
+                chance.load([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0]);
 
-            await service.resolveStandard(triggerOf(subject));
+                await service.resolveStandard(triggerOf(subject));
 
-            expect(await unlockedOf(world, subject)).toEqual([
-                String(knowledge._id),
-                String(god._id),
-            ]);
-            expect(await loreUnlockedOf(world, subject)).toEqual([
-                String(god._id),
-            ]);
-        });
+                expect(await unlockedOf(world, subject)).toEqual([
+                    String(knowledge._id),
+                    String(god._id),
+                ]);
+                expect(await loreUnlockedOf(world, subject)).toEqual([
+                    String(god._id),
+                ]);
+            },
+        );
 
         it('never draws a city or a bestiary page (D-08)', async () => {
             const { world, service, chance } = state;
@@ -221,6 +224,53 @@ describe('QuestResolutionService.resolveStandard with a study lore draw (replSet
             expect(await loreUnlockedOf(world, subject)).toEqual([]);
             expect(chance.drawn).toEqual(STUDY_ROLLS_BEFORE_LORE);
         });
+
+        // la lore di una magia si sblocca solo imparando la magia: fuori dal pool, il tiro pesca fra le altre
+        it('never unlocks the lore of a spell from the study draw (D-25)', async () => {
+            const { world, service, chance } = state;
+            const free = await persistLoreOf(world, LoreType.knowledge);
+            const linked = await persistLoreOf(world, LoreType.god);
+            await persistSpell(world.models.spells, {
+                relatedLore: [linked._id],
+            });
+            const subject = await quester(world);
+            chance.load([...STUDY_ROLLS_BEFORE_LORE, 0.1, 0.99]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            expect(await loreUnlockedOf(world, subject)).toEqual([
+                String(free._id),
+            ]);
+            expect(await unlockedOf(world, subject)).toEqual([
+                String(free._id),
+            ]);
+            expect(chance.drawn).toEqual([
+                ...STUDY_ROLLS_BEFORE_LORE,
+                0.1,
+                0.99,
+            ]);
+        });
+
+        it.each(['study', 'arcane', 'shamanic', 'void'])(
+            'consumes no roll when every study lore belongs to a spell, as with no study lore (D-25): %s',
+            async (type) => {
+                const { world, service, chance } = state;
+                const linked = await persistLoreOf(world, LoreType.knowledge);
+                await persistSpell(world.models.spells, {
+                    relatedLore: [linked._id],
+                });
+                const subject = await quester(world, {
+                    questOverrides: questOfType(type),
+                });
+                chance.load([0.1, 0]);
+
+                await service.resolveStandard(triggerOf(subject));
+
+                expect(await unlockedOf(world, subject)).toEqual([]);
+                expect(await loreUnlockedOf(world, subject)).toEqual([]);
+                expect(chance.drawn).toEqual(STUDY_ROLLS_BEFORE_LORE);
+            },
+        );
 
         it('ignores the study lore for another quest type (D-08, Pitfall 5)', async () => {
             const { world, service, chance } = state;

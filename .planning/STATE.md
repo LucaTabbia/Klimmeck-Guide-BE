@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 23 — Sconfitta, riposo e recupero dei compagni (↔ FE Phase 22) — ESEGUITA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni`: 18/18 eseguiti — verifica, audit, PR e UAT a cura dell'orchestratore
+**Current focus:** Phase 24 — Origini delle magie, quest void e shamanic (↔ FE Phase 23) su `feat/24-origini-magie-quest-void-shamanic`: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 23 di 23 (Sconfitta, riposo e recupero dei compagni) — PIANIFICATA il 2026-11-14 su `feat/23-sconfitta-riposo-recupero-compagni` (riportato su `develop` `2c462cbe`): contesto D-01..D-21 emendato dopo la ricerca e le risposte dell'utente (D-23..D-33) e con i livelli del compagno (D-37..D-39), `23-REPO-RULES.md`, `23-RESEARCH.md`, `23-VALIDATION.md`, 18 piani in wave sequenziali; FE Phase 22 pianificata nella stessa sessione (17 piani)
+Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
 Plan: 18 of 18
-Status: Phase 23 — 18/18 piani eseguiti, in verifying: review corretta (14 corretti, 2 confermati, 3 rinviati), verifica `passed_with_gaps` (14/14 requisiti; G-1 LOW: manca la spec che fissa «`companionLifeAfter` omesso = vita d'inizio scontro»), audit `secured` (0 aperte), `npm run test:cov` 464 suite / 6 657 test verdi. PR #42 (draft) verso `develop` aperta dall'orchestratore; restano boot reale dal ramo, scrittura a DB dei tempi di recupero (dopo l'approvazione dell'utente) e UAT su device con la FE Phase 22.
-Last activity: 2026-11-14 -- 23-18 eseguito (handoff `BACKEND-NOTES.md` per la FE Phase 22 e piano di UAT, VALIDATION firmata, BE-PET-01..14 chiusi)
-Next step: l'utente approva la tabella dei tempi di recupero e fonde la PR della Phase 23; poi FE 22-16 (gate di schema) e 22-17 (UAT su device, 9 passi). Domande aperte per l'utente in `BACKEND-NOTES.md` §7 (xp nel dungeon del compagno sconfitto, riga «Prosegui a piedi», testi delle push, contratto delle correzioni dell'oste).
+Status: executing — Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore.
+Last activity: 2026-11-16 -- piani 24-16, 24-17 e 24-18 eseguiti: push di fine ricerca, filo, gate verde (unit 310 / 4 495, integration 162 / 2 586) e handoff §8
+Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
 
@@ -51,6 +51,7 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 - 2026-11-10: milestone v1.1 Cura e modelli aperta con le Phase 18–20 (scope confermato dall'utente: solo le fasi discusse il 2026-11-09); `REQUIREMENTS.md` ricreato con BE-HEAL-01..09, BE-MODEL-01..09 e BE-FOODP-01..05.
 - 2026-11-12: aggiunta la Phase 21 Premi per rango e soccorsi (BE-RANKP-01..06), gemella della FE Phase 20, dal discuss della FE; 3 aid concluse a mano nelle UAT cancellate a DB su ordine dell'utente (backup EJSON nello scratchpad della sessione).
 - 2026-11-12: aggiunta la Phase 22 Completamento guidato delle missioni (BE-GMFLOW-01..07), gemella della FE Phase 21, dal discuss della FE; ramo impilato sulla 21.
+- 2026-11-15: aggiunta la Phase 24 Origini delle magie, quest void e shamanic, gemella della FE Phase 23: macroclasse origin → use → energy (void, magic, shamanic), quest `shamanic` e `void` come la `magic`, tipi di città nuovi, livello minimo al posto dell'xp minimo; ramo impilato sulla 23; discuss e plan da fare.
 
 ### Decisions
 

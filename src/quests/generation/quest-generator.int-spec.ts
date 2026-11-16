@@ -8,6 +8,7 @@ import {
 import { City } from 'src/models/city.model';
 import { Enemy } from 'src/models/enemy.model';
 import { CitySize } from 'src/models/enums/city-size.enum';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { EquipmentItem } from 'src/models/equipment-item.model';
@@ -1056,6 +1057,170 @@ describe('QuestGenerator (replSet)', () => {
             expect(after).toEqual(before);
         });
     });
+
+    describe('Necrorian rank floor (D-12)', () => {
+        const FLOOR_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        const AT_OR_ABOVE_MAGE: readonly string[] = ['mage', 'hero'];
+        const NECRORIAN_WORLD = {
+            cities: 4,
+            poisPerCity: 6,
+            cityTypes: { 0: CityType.necrorianCity },
+        };
+
+        interface FloorRun {
+            necrorian: LeanQuest[];
+            elsewhere: LeanQuest[];
+        }
+
+        const runs = new Map<number, FloorRun>();
+
+        async function floorRunOf(seed: number): Promise<FloorRun> {
+            const cached = runs.get(seed);
+            if (cached !== undefined) return cached;
+            const world = await persistGenerationWorld(models, NECRORIAN_WORLD);
+            const [necrorianCity] = world.cities;
+            const necrorianPois = [
+                necrorianCity.markerId,
+                ...necrorianCity.poiIds,
+            ];
+            await generatorWith(
+                { target: 24 },
+                { chance: new SeededChanceSource(seed) },
+            ).generate();
+            const created = await generatedQuests();
+            await harness.clearDatabase();
+            const inNecrorian = (quest: LeanQuest): boolean =>
+                necrorianPois.some((id) =>
+                    id.equals(quest.infos.markerLocation),
+                );
+            const run = {
+                necrorian: created.filter(inNecrorian),
+                elsewhere: created.filter((quest) => !inNecrorian(quest)),
+            };
+            runs.set(seed, run);
+            return run;
+        }
+
+        async function necrorianQuestsOfAllSeeds(): Promise<LeanQuest[]> {
+            const collected: LeanQuest[] = [];
+            for (const seed of FLOOR_SEEDS) {
+                collected.push(...(await floorRunOf(seed)).necrorian);
+            }
+            return collected;
+        }
+
+        const seatTitlesOf = (quest: LeanQuest): string[] =>
+            quest.requirements.requiredAdventurers
+                .map((seat) => seat.title)
+                .filter((title): title is string => title !== null);
+
+        it.each(FLOOR_SEEDS)(
+            'never writes a generated quest below mage on a poi of a Necrorian city (D-12): seed %i',
+            async (seed) => {
+                const { necrorian } = await floorRunOf(seed);
+
+                const belowFloor = necrorian.filter(
+                    (quest) =>
+                        !AT_OR_ABOVE_MAGE.includes(
+                            quest.requirements.minTitle,
+                        ) ||
+                        seatTitlesOf(quest).some(
+                            (title) => !AT_OR_ABOVE_MAGE.includes(title),
+                        ),
+                );
+                expect(belowFloor).toEqual([]);
+            },
+        );
+
+        it('writes generated quests on the Necrorian pois over the seeds (D-12)', async () => {
+            expect((await necrorianQuestsOfAllSeeds()).length).toBeGreaterThan(
+                0,
+            );
+        });
+
+        it('never mixes a mage boss of Necrorian with paladin seats (D-12)', async () => {
+            const necrorian = await necrorianQuestsOfAllSeeds();
+            const withPaladinSeats = necrorian.filter((quest) =>
+                seatTitlesOf(quest).includes(TitleType.paladin),
+            );
+
+            expect(
+                necrorian.filter((quest) => quest.infos.type === QuestType.boss)
+                    .length,
+            ).toBeGreaterThan(0);
+            expect(withPaladinSeats).toEqual([]);
+        });
+
+        it('still generates every rank in the cities without a floor of the same world (D-12)', async () => {
+            const ranksElsewhere = new Set<string>();
+            for (const seed of FLOOR_SEEDS) {
+                for (const quest of (await floorRunOf(seed)).elsewhere) {
+                    ranksElsewhere.add(quest.requirements.minTitle);
+                }
+            }
+
+            expect(ranksElsewhere).toEqual(
+                new Set([
+                    TitleType.rookie,
+                    TitleType.adventurer,
+                    TitleType.paladin,
+                    TitleType.mage,
+                    TitleType.hero,
+                ]),
+            );
+        });
+
+        it('leaves a Necrorian poi empty when only lower ranks can be composed there (D-12)', async () => {
+            await persistGenerationWorld(models, {
+                cities: 1,
+                poisPerCity: 2,
+                // 8 unità da 22 xp restano sotto la fascia mage (225): nessun branco la raggiunge
+                enemyXps: [8, 12, 22],
+                cityTypes: { 0: CityType.necrorianCity },
+            });
+
+            await expect(generatorWith({ target: 2 }).generate()).resolves.toBe(
+                0,
+            );
+            expect(await quests.countDocuments()).toBe(0);
+        });
+
+        // riferimento registrato sul commit base della fase, non una seconda corsa del codice nuovo (WR-04): boss misti compresi
+        it('generates a world without Necrorian draw by draw as before the floor (D-12)', async () => {
+            const world = await persistGenerationWorld(models, {
+                cities: 6,
+                poisPerCity: 5,
+            });
+            const seeded = new SeededChanceSource(7);
+            let draws = 0;
+            const counting = new (class extends ChanceSource {
+                next(): number {
+                    draws += 1;
+                    return seeded.next();
+                }
+            })();
+
+            await generatorWith(
+                { target: 24 },
+                { chance: counting },
+            ).generate();
+
+            const poiOf = (poi: Types.ObjectId): string => {
+                const cityIndex = world.cities.findIndex((city) =>
+                    city.poiIds.some((id) => id.equals(poi)),
+                );
+                return `${cityIndex}:${world.cities[cityIndex].poiIds.findIndex((id) => id.equals(poi))}`;
+            };
+            const quests = (await generatedQuests()).map((quest) => ({
+                title: quest.infos.title,
+                type: quest.infos.type,
+                poi: poiOf(quest.infos.markerLocation),
+                rank: quest.requirements.minTitle,
+                seats: quest.requirements.requiredAdventurers,
+            }));
+            expect({ draws, quests }).toEqual(RUN_BEFORE_RANK_FLOOR);
+        });
+    });
 });
 
 // corsa a seme 7 sul codice di PRIMA del boss misto (HEAD 9f7006d4, generatore non ancora cablato), mondo senza boss
@@ -1372,6 +1537,309 @@ const MIXED_BOSS_RUN: unknown = {
                     xpPrize: 120,
                     randomLoot: ['Spada commonx1', 'Pozione commonx1'],
                     pet: false,
+                },
+            ],
+        },
+    ],
+};
+
+// corsa a seme 7 sul commit base della fase (a208ad3d, prima del pavimento di Necrorian), mondo di sole capitali senza pavimento
+const RUN_BEFORE_RANK_FLOOR: unknown = {
+    draws: 284,
+    quests: [
+        {
+            title: 'Minaccia: 1 Nemico 12 e 1 Nemico 8 presso Città 0',
+            type: 'enemy',
+            poi: '0:0',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 2 Nemico 12 presso Città 1',
+            type: 'enemy',
+            poi: '1:0',
+            rank: 'adventurer',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 120 presso Città 1',
+            type: 'enemy',
+            poi: '1:1',
+            rank: 'paladin',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 3 Nemico 8, 2 Nemico 22 e 2 Nemico 80 presso Città 4',
+            type: 'enemy',
+            poi: '4:4',
+            rank: 'mage',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 560 presso Città 4',
+            type: 'enemy',
+            poi: '4:1',
+            rank: 'hero',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 1 Nemico 12 e 1 Nemico 8 presso Città 0',
+            type: 'enemy',
+            poi: '0:3',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 1 Nemico 22, 1 Nemico 30 e 1 Nemico 8 presso Città 5',
+            type: 'enemy',
+            poi: '5:4',
+            rank: 'adventurer',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 120 presso Città 5',
+            type: 'enemy',
+            poi: '5:2',
+            rank: 'paladin',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 3 Nemico 80 presso Città 0',
+            type: 'enemy',
+            poi: '0:4',
+            rank: 'mage',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 1 Nemico 22 e 3 Nemico 250 presso Città 3',
+            type: 'enemy',
+            poi: '3:4',
+            rank: 'hero',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 8 presso Città 1',
+            type: 'enemy',
+            poi: '1:3',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Boss: Nemico 80 presso Città 5',
+            type: 'boss',
+            poi: '5:3',
+            rank: 'adventurer',
+            seats: [
+                {
+                    title: 'adventurer',
+                    count: 2,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 120 presso Città 4',
+            type: 'enemy',
+            poi: '4:2',
+            rank: 'paladin',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 250 presso Città 4',
+            type: 'enemy',
+            poi: '4:3',
+            rank: 'mage',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 560 presso Città 2',
+            type: 'enemy',
+            poi: '2:4',
+            rank: 'hero',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 12 presso Città 5',
+            type: 'enemy',
+            poi: '5:0',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 22 presso Città 1',
+            type: 'enemy',
+            poi: '1:4',
+            rank: 'adventurer',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Boss: Nemico 560 presso Città 0',
+            type: 'boss',
+            poi: '0:1',
+            rank: 'adventurer',
+            seats: [
+                {
+                    title: 'paladin',
+                    count: 2,
+                },
+                {
+                    title: 'adventurer',
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 250 presso Città 3',
+            type: 'enemy',
+            poi: '3:1',
+            rank: 'mage',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 700 presso Città 3',
+            type: 'enemy',
+            poi: '3:0',
+            rank: 'hero',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: 1 Nemico 12 e 1 Nemico 8 presso Città 2',
+            type: 'enemy',
+            poi: '2:1',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Boss: Nemico 250 presso Città 3',
+            type: 'boss',
+            poi: '3:2',
+            rank: 'rookie',
+            seats: [
+                {
+                    title: 'adventurer',
+                    count: 3,
+                },
+                {
+                    title: 'rookie',
+                    count: 2,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 80 presso Città 2',
+            type: 'enemy',
+            poi: '2:3',
+            rank: 'paladin',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
+                },
+            ],
+        },
+        {
+            title: 'Minaccia: Nemico 250 presso Città 2',
+            type: 'enemy',
+            poi: '2:2',
+            rank: 'mage',
+            seats: [
+                {
+                    title: null,
+                    count: 1,
                 },
             ],
         },

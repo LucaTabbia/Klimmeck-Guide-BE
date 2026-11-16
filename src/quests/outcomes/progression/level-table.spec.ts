@@ -1,9 +1,19 @@
 import {
     LEVEL_TABLE,
+    MAX_LEVEL,
     MAX_XP,
     levelRowFor,
     progressionAfter,
 } from 'src/quests/outcomes/progression/level-table';
+
+describe('MAX_LEVEL', () => {
+    it('is the highest level of the table, the ceiling of a spell minimum level (D-07, WR-03)', () => {
+        expect(MAX_LEVEL).toBe(
+            Math.max(...LEVEL_TABLE.map(({ level }) => level)),
+        );
+        expect(levelRowFor(Number.MAX_SAFE_INTEGER).level).toBe(MAX_LEVEL);
+    });
+});
 
 describe('LEVEL_TABLE', () => {
     it('has 20 rows with levels 1..20 and strictly increasing thresholds and life points', () => {

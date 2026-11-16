@@ -59,7 +59,9 @@ import {
     type DrawnRewards,
     drawLearnableSpell,
     drawStudyLore,
+    learnTimeOf,
     type RewardItem,
+    type SpellCandidate,
 } from './rewards/quest-rewards';
 import { knowledgeUpdateOf, type VictoryKnowledge } from './victory-knowledge';
 
@@ -165,6 +167,10 @@ export interface QuestResultDraft extends DungeonTurnFields {
     guardEncounter: boolean;
     // il compagno che ha combattuto (D-10, D-27): opzionale per i draft che non passano dai piani degli esiti
     companion?: CompanionOutcomeDraft | null;
+    // esito vinto con un sorteggio senza magia fissa che non ha dato una magia (Phase 24 D-29): planParticipant lo scrive sempre
+    spellResearchFailed?: boolean;
+    // magia scoperta dal sorteggio e non ancora imparata (Phase 24 D-31): planParticipant lo scrive sempre
+    spellFound?: Types.ObjectId | null;
 }
 
 export type PlanVerdict =
@@ -242,6 +248,27 @@ export interface ParticipantPlan {
     coinsDelta: number;
     result: QuestResultDraft;
     spellRecoveries: SpellRecovery[];
+    // la magia trovata dal sorteggio che si impara alla fine della parte di apprendimento (Phase 24 D-26): planParticipant lo scrive sempre
+    learning?: SpellLearningPlan | null;
+}
+
+// parte di apprendimento aperta dal sorteggio (Phase 24 D-26): la magia trovata, non ancora imparata
+export interface SpellLearningPlan {
+    spellId: Types.ObjectId;
+    spellName: string | null;
+    learnTime: number;
+}
+
+// la parte di apprendimento nasce solo dal sorteggio, nella corsia standard e con un tempo valido (Phase 24 D-26, D-30)
+function learningOf(
+    spellFound: Types.ObjectId | null,
+    drawn: SpellCandidate | null,
+    lane: QuestLane,
+): SpellLearningPlan | null {
+    if (!spellFound || !drawn || isGmLane(lane)) return null;
+    const learnTime = learnTimeOf(drawn.learnTime);
+    if (learnTime === null) return null;
+    return { spellId: spellFound, spellName: drawn.name ?? null, learnTime };
 }
 
 export function questFactsOf(
@@ -473,17 +500,26 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         input.now,
     );
     // la magia fissa della study vince sul sorteggio (D-31): il sorteggio vale solo senza prizes.spell
-    const spellCandidate =
-        rewards.spellCandidate ??
-        drawLearnableSpell(
-            rewards.spellDraw,
-            progression.xp,
-            knownSpells,
-            titleAfter,
-        );
-    const spellLearned = won
-        ? canLearnSpell(spellCandidate, progression.xp, knownSpells, titleAfter)
+    const drawn = rewards.spellCandidate
+        ? null
+        : drawLearnableSpell(
+              rewards.spellDraw,
+              progression.level,
+              knownSpells,
+              titleAfter,
+          );
+    const spellCandidate = rewards.spellCandidate ?? drawn;
+    const spellFound = won
+        ? canLearnSpell(
+              spellCandidate,
+              progression.level,
+              knownSpells,
+              titleAfter,
+          )
         : null;
+    // trovata ma con una parte di apprendimento: si impara alla fine di quella (Phase 24 D-26)
+    const learning = learningOf(spellFound, drawn, input.lane);
+    const spellLearned = learning ? null : spellFound;
     // la magia imparata entra nello stato nello stesso $set (D-03, D-07): usi pieni, nessun recupero
     const learnedState =
         spellLearned && spellCandidate
@@ -517,9 +553,10 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     );
     const victory = won ? (input.victory ?? null) : null;
     const victoryLore = victory?.loreIds ?? [];
-    // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6)
+    // la study vinta senza magia apprende una lore chiusa, mai una già sbloccata dallo stesso esito (Phase 16 D-08, Pitfall 6);
+    // una magia trovata dalla ricerca conta come magia anche prima della fine dell'apprendimento (Phase 24 D-26)
     const studyLore =
-        won && !spellLearned
+        won && !spellFound
             ? drawStudyLore(rewards.loreDraw, [
                   ...(snapshot.status.unlockedLore ?? []),
                   ...victoryLore,
@@ -527,10 +564,20 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             : null;
     // le lore del pet solo con la voce aggiunta in questo esito (Phase 19 D-26)
     const petLore = petWon ? rewards.petLore : [];
-    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto
+    // le lore della magia solo se imparata in questo esito, per qualunque via (Phase 24 D-24): la prima di un'origine sblocca la lore dell'origine
+    const spellLore =
+        spellLearned && spellCandidate
+            ? [...(spellCandidate.relatedLore ?? [])]
+            : [];
+    // ordine D-09: lore dei nemici, poi quella dello studio, poi quelle del pet vinto, poi quelle della magia imparata
     const learned = knowledgeUpdateOf(
         snapshot.status.unlockedLore,
-        [...victoryLore, ...(studyLore ? [studyLore] : []), ...petLore],
+        [
+            ...victoryLore,
+            ...(studyLore ? [studyLore] : []),
+            ...petLore,
+            ...spellLore,
+        ],
         victory?.enemyIds ?? [],
     );
     const lanePath = lanePathOf(input.lane);
@@ -543,7 +590,8 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         'status.injuries': cured.injuries,
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
-        [lanePath]: null,
+        // la parte di apprendimento tiene occupata la corsia standard (Phase 24 D-26)
+        ...(learning ? {} : { [lanePath]: null }),
         ...(titleAfter !== before.title ? { 'status.title': titleAfter } : {}),
         ...(statesAfter ? { 'status.spellStates': statesAfter } : {}),
         ...(completedQuests
@@ -614,7 +662,14 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             coinsLost: null,
             guardEncounter: false,
             companion: companion.outcome,
+            spellResearchFailed:
+                won &&
+                rewards.spellDraw !== null &&
+                !rewards.spellCandidate &&
+                !spellFound,
+            spellFound: learning?.spellId ?? null,
         },
         spellRecoveries: spells.recoveries,
+        learning,
     };
 }

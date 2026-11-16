@@ -199,7 +199,7 @@ describe('GuidedCompletionService (replSet)', () => {
             ),
             learnable: idOf(
                 await world.models.spells.create(
-                    buildSpell({ name: 'Scintilla', minXpToLearn: 0 }),
+                    buildSpell({ name: 'Scintilla', minLevelToLearn: 1 }),
                 ),
             ),
         };
@@ -500,6 +500,40 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(result.injuriesAdded).toEqual([]);
     });
 
+    it('unlocks the lore of the spell the innkeeper awards (D-24)', async () => {
+        const originLore = new Types.ObjectId();
+        const spell = idOf(
+            await world.models.spells.create(
+                buildSpell({
+                    name: 'Eco del Vuoto',
+                    origin: 'void',
+                    minLevelToLearn: 1,
+                    relatedLore: [originLore],
+                }),
+            ),
+        );
+        const subject = await quester({
+            lane: QuestLane.story,
+            questOverrides: gmQuest('story'),
+            characterOverrides: { status: { title: 'mage' } },
+        });
+        await drafts.start(hexOf(subject), null);
+        await saver.save({
+            pendingQuestId: hexOf(subject),
+            prizes: [prizeOf(subject, { spell: String(spell) })],
+        });
+
+        await service.complete(hexOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.status.unlockedLore.map(String)).toEqual([
+            String(originLore),
+        ]);
+        const result = await resultOf(subject);
+        expect(String(result.spellLearned)).toBe(String(spell));
+        expect(result.loreUnlocked.map(String)).toEqual([String(originLore)]);
+    });
+
     it('deletes the draft and frees the participants (D-11, D-25)', async () => {
         const mission = await guidedWorldMission();
         await playTwoFights(mission);
@@ -560,6 +594,26 @@ describe('GuidedCompletionService (replSet)', () => {
         await world.models.lootItems.updateOne(
             { _id: catalogue.commonLoot },
             { $set: { rarity: 'legendary' } },
+        );
+        const before = await rawDocuments();
+
+        await expect(service.complete(hexOf(first))).rejects.toMatchObject(
+            OUTCOME_OVERRIDE_INVALID,
+        );
+        expect(await rawDocuments()).toEqual(before);
+    });
+
+    // il mage di prova parte da 0 xp = livello 1: la magia scelta sale al livello 2 dopo il salvataggio
+    it('refuses at completion a chosen spell above the level of the character (D-08)', async () => {
+        const { first } = await guidedWorldMission();
+        const catalogue = await prizeCatalogue();
+        await saver.save({
+            pendingQuestId: hexOf(first),
+            prizes: [prizeOf(first, { spell: String(catalogue.learnable) })],
+        });
+        await world.models.spells.collection.updateOne(
+            { _id: catalogue.learnable },
+            { $set: { minLevelToLearn: 2 } },
         );
         const before = await rawDocuments();
 

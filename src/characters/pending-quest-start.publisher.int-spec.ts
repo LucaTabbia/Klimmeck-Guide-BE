@@ -6,6 +6,7 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import { Spell } from 'src/models/spell.model';
 import { PUB_SUB, PubSubEvents } from 'src/pubsub.module';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { PartyModule } from 'src/quests/party/party.module';
@@ -19,7 +20,12 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { buildCharacter, buildQuest, persistQuest } from '../../test/fixtures';
+import {
+    buildCharacter,
+    buildQuest,
+    persistQuest,
+    persistSpell,
+} from '../../test/fixtures';
 import { FakeTravelQueue } from '../../test/travel/fake-travel-queue';
 
 const NOW = new Date('2026-10-30T12:00:00.000Z');
@@ -160,6 +166,60 @@ describe('PendingQuestStartPublisher (replSet)', () => {
             expect(await started).toEqual(
                 new Map(members.map((id) => [id.toHexString(), TEN_THIRTY])),
             );
+        } finally {
+            await live.return?.();
+        }
+    });
+    // la fine della ricerca riarma la PendingQuest con una startDate nuova (Phase 24 D-26): la FE vede la parte di apprendimento in sessione
+    it('sends characterUpdated when a pending quest is re-armed for the learning part (D-29)', async () => {
+        const quest = await persistQuest(quests);
+        const spell = await persistSpell(harness.connection.model(Spell.name));
+        const pendingQuest = await pendingQuests.create({
+            startDate: TEN,
+            waitingTime: HOUR_MS,
+            pointsSpent: 0,
+            quest: quest._id,
+        });
+        const player = await createPlayer(harness, {
+            twitchId: 'tw-learning-rearm',
+            characterOverrides: {
+                quests: {
+                    ...buildCharacter().quests,
+                    completedQuests: [],
+                    pendingQuest: pendingQuest._id,
+                },
+            },
+        });
+        const characterHex = String(player.character!._id);
+        const live = pubSub.subscribe('characterUpdated');
+        try {
+            const rearmed = (async () => {
+                for (;;) {
+                    const next = await withTimeout(live.next(), EVENT_WAIT_MS);
+                    const character = next.value
+                        .characterUpdated as unknown as StartedSnapshot;
+                    const startDate = character.quests.pendingQuest?.startDate;
+                    if (
+                        String(character._id) === characterHex &&
+                        startDate?.getTime() === NOW.getTime()
+                    ) {
+                        return startDate;
+                    }
+                }
+            })();
+
+            await pendingQuests.updateOne(
+                { _id: pendingQuest._id },
+                {
+                    $set: {
+                        startDate: NOW,
+                        waitingTime: HOUR_MS,
+                        learningSpell: spell._id,
+                    },
+                },
+            );
+
+            expect(await rearmed).toEqual(NOW);
         } finally {
             await live.return?.();
         }

@@ -5,6 +5,8 @@ import {
     prisonRelease,
     questCancelled,
     questEnd,
+    spellResearchFailed,
+    spellResearchSucceeded,
     streamerLive,
     testPushMessage,
     travelEnd,
@@ -24,6 +26,9 @@ const BUILDERS: Record<PushEventType, (id: string) => PushMessage> = {
     [PushEventType.petRecovered]: (id) => petRecovered(id, 'Fenrir'),
     [PushEventType.ambush]: (id) =>
         ambush(id, 'Imboscata presso Crocevia: hai respinto gli assalitori'),
+    [PushEventType.spellResearchSucceeded]: (id) =>
+        spellResearchSucceeded(id, 'Dardo', 1_800_000),
+    [PushEventType.spellResearchFailed]: spellResearchFailed,
 };
 const IDENTIFIED_TYPES = [
     PushEventType.travelEnd,
@@ -34,12 +39,15 @@ const IDENTIFIED_TYPES = [
     PushEventType.missionStart,
     PushEventType.petRecovered,
     PushEventType.ambush,
+    PushEventType.spellResearchSucceeded,
+    PushEventType.spellResearchFailed,
 ];
 // il builder compone il corpo con la città (D-12): il push di prova tiene quello generico del catalogo
 const COMPOSED_BODY_TYPES = [
     PushEventType.missionStart,
     PushEventType.petRecovered,
     PushEventType.ambush,
+    PushEventType.spellResearchSucceeded,
 ];
 
 describe('push event catalog', () => {
@@ -145,6 +153,58 @@ describe('push event catalog', () => {
         });
     });
 
+    // fine della «Fase di ricerca» con una magia trovata (D-29, D-31): id = QuestResult della ricerca, corpo col nome e la durata
+    it('builds the research success push with the research sheet id, the spell name and the learning time (D-29, D-31)', () => {
+        expect(
+            spellResearchSucceeded(
+                '64b0000000000000000000d2',
+                'Dardo',
+                1_800_000,
+            ),
+        ).toEqual({
+            type: PushEventType.spellResearchSucceeded,
+            id: '64b0000000000000000000d2',
+            title: 'Ricerca riuscita',
+            body: "Hai scoperto «Dardo»: l'apprendimento dura 30 minuti.",
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('builds the research success push without a spell name (D-29)', () => {
+        expect(
+            spellResearchSucceeded('64b0000000000000000000d2', null, 5_400_000),
+        ).toEqual({
+            type: PushEventType.spellResearchSucceeded,
+            id: '64b0000000000000000000d2',
+            title: 'Ricerca riuscita',
+            body: "Hai scoperto una magia: l'apprendimento dura 1 ora e 30 minuti.",
+            ttlSeconds: 3600,
+        });
+    });
+
+    it('keeps a generic research success body for the test push (D-29)', () => {
+        expect(
+            testPushMessage(PushEventType.spellResearchSucceeded, 'a'),
+        ).toEqual({
+            type: 'spellResearchSucceeded',
+            id: 'a',
+            title: 'Ricerca riuscita',
+            body: "Hai scoperto una magia: comincia l'apprendimento.",
+            ttlSeconds: 3600,
+        });
+    });
+
+    // ricerca senza magia (D-29): al posto di questEnd, id = QuestResult
+    it('builds the research failure push with the quest result id (D-29)', () => {
+        expect(spellResearchFailed('64b0000000000000000000d3')).toEqual({
+            type: PushEventType.spellResearchFailed,
+            id: '64b0000000000000000000d3',
+            title: 'Ricerca conclusa',
+            body: "Nessuna magia scoperta: scopri com'è andata la missione.",
+            ttlSeconds: 3600,
+        });
+    });
+
     it('builds streamerLive without an id and a 15 min ttl', () => {
         expect(streamerLive()).toEqual({
             type: PushEventType.streamerLive,
@@ -228,6 +288,16 @@ describe('push event catalog', () => {
         [
             'petRecovered',
             petRecovered('a', 'Fenrir'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'spellResearchSucceeded',
+            spellResearchSucceeded('a', 'Dardo', 1_800_000),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'spellResearchFailed',
+            spellResearchFailed('a'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [

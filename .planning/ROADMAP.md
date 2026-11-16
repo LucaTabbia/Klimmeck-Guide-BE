@@ -7,7 +7,7 @@
 ## Milestones
 
 - ✅ **v1.0 Core Loop (BE)** — Phases 1–17 con le inserite 2.1, 3.1, 9.1, 9.2, 13.1 (consegnata il 2026-11-10) — [archivio roadmap](milestones/v1.0-ROADMAP.md) · [archivio requisiti](milestones/v1.0-REQUIREMENTS.md) · [riepilogo](MILESTONES.md)
-- 🚧 **v1.1 Cura e modelli** — Phases 18–23 (aperta il 2026-11-10; Phases 21–22 aggiunte il 2026-11-12, Phase 23 il 2026-11-14) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
+- 🚧 **v1.1 Cura e modelli** — Phases 18–24 (aperta il 2026-11-10; Phases 21–22 aggiunte il 2026-11-12, Phase 23 il 2026-11-14, Phase 24 il 2026-11-15) — quest heal per taglia con le pozioni dal Diario (↔ FE Phase 18), revisione dei modelli (↔ FE Phase 19), cibo e vita progressivi in viaggio (solo BE)
 
 ## Phases
 
@@ -51,6 +51,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 - [x] **Phase 21: Premi per rango e soccorsi** - Le quest di gruppo portano un blocco premio per titolo (monete, xp, loot, pet, cura e magia per titolo; pet sorteggiato una volta per blocco, magia solo da mage in su), risolto sul titolo del personaggio; solitarie col premio unico sul `minTitle`; boss generati misti col titolo inferiore; aid solo da enemy/boss/hunt/dungeon/aid, aid della dungeon a turni fino al turno della sconfitta con premio proporzionale, archiviatore che libera le corsie _(aggiunta 2026-11-12 nel discuss della FE Phase 20)_
 - [x] **Phase 22: Completamento guidato delle missioni** - L'oste completa story/worldMission con un flusso guidato: teleport (città e POI interni) → uno o più scontri con nemici da una lista filtrata per tipo di POI e fascia del titolo (leggendari per le worldMission, «mostra tutti») → simulazione a secco col `CombatResolver` → correzioni → premi dal blocco del titolo con aggiunte dal catalogo filtrato e rivalidate → completamento in una transazione, sempre `gmCompleted`; bozza salvata nel BE, invisibile ai giocatori, che restano bloccati con l'avviso «Missione in corso» fino al risultato; lo stesso blocco vale per ogni missione dall'inizio effettivo all'esito _(aggiunta 2026-11-12 nel discuss della FE Phase 21)_
 - [ ] **Phase 23: Sconfitta, riposo e recupero dei compagni** - Il compagno equipaggiato che scende a 0 di vita in uno scontro viene tolto a fine scontro e torna usabile solo a vita piena, dopo un'attesa proporzionata a rarità e potere; il compagno ferito si può mettere a riposo (recupera vita in proporzione al tempo di riposo) o curare con le pozioni (stessa regola e stessa attesa delle pozioni del personaggio) _(aggiunta 2026-11-14, ↔ FE Phase 22)_
+- [ ] **Phase 24: Origini delle magie, quest void e shamanic** - Ogni magia porta una macroclasse sopra uso ed energia (origin → use → energy; origini `void`, `arcane`, `shamanic`); revisione di tutte le magie a DB con l'origine assegnata dalla descrizione e magie nuove dove mancano; il tipo di quest `magic` rinominato `arcane` e due tipi nuovi, `shamanic` e `void`, identici fra loro, ciascuno insegna una magia dell'origine con lo stesso nome (prima la `magic` le insegnava tutte); la prima magia imparata di un'origine sblocca la lore dell'origine; `void` solo a Necrorian, dove nessuna quest nasce con rango minimo sotto mage; `shamanic` nelle due capitali nuove (`aarakocraCapital`, `dragonbornCapital`, taglia `capital`), da mage in su; tipi di città nuovi (`aarakocraCapital`, `dragonbornCapital`, `dragonbornVillage`); le magie si imparano da un livello minimo e non più da un xp minimo _(aggiunta 2026-11-15, ↔ FE Phase 23)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -268,6 +269,36 @@ Plans:
 
 **Stato (2026-11-14)**: 18/18 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, tabella dei tempi a DB, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §6, da eseguire) a cura dell'orchestratore
 
+### Phase 24: Origini delle magie, quest void e shamanic
+**Goal**: Le magie prendono una macroclasse e nascono due scuole di quest nuove, con il BE come unica fonte di verità. Parole dell'utente (2026-11-15): «Le magie devono avere una macroclasse (ovvero origin->use->enegy). Le origini sono 3: void, magic e shamanic. Bisogna poi rivedere tutte le magie a DB e assegnargli l'origine corretta sulla base della descrizione e andare a riempire il DB con nuove magie ove ce ne siano altre mancanti. Poi dovremo aggiungere due tipi di quest: shamanic e void. Funzioneranno esattamente come la missione magic. Ognuna di loro insegnerà una magia sulla base del tipo (adesso magic le insegna tutte)»; «La quest void sarà solo a Necrorian (p.s nessuna quest a Necrorian dovrebbe venir creata con rango minimo inferiore a mage)»; città `690961bfe74c2f6dfc837d8f` ora `aarakocraCapital`, `690961bf1bf8bb61e5f6af2f` ora `dragonbornVillage`, `690961bf31795cde80768bc7` ora `dragonbornCapital`; «Le due nuove capitali hanno come size capital»; «Nelle due capitali dev'essere disponibile la nuova missione shamanic. Quella missione dev'essere accettabile da rango mage in su»; «Le magie non devono più avere un minimo xp per impararle, ma un minimo livello, quindi rivedi il parametro in base alla tabella dei livelli personaggio». Emendato il 2026-11-15 (D-01, D-20, D-24): l'origine e il tipo di quest che l'utente chiama `magic` si chiamano `arcane` (origini `void`, `arcane`, `shamanic`; tipi di quest di scuola `arcane`, `shamanic`, `void`), e la prima magia imparata di un'origine sblocca la lore di quell'origine.
+**Depends on**: Phase 9.1 (stato e apprendimento delle magie), Phase 11 (mondo a DB), Phase 13 e 13.1 (generazione quest, quest magic), Phase 21 (magia nei premi per titolo), Phase 23
+**Scope**: da fissare nel discuss (interattivo, congiunto con la FE Phase 23). Il contenuto (origine di ogni magia, magie nuove, livelli minimi) si scrive a DB dopo la revisione dell'utente, mai nel repo.
+**Requirements**: BE-ORIGIN-01, BE-ORIGIN-02, BE-ORIGIN-03, BE-ORIGIN-04, BE-ORIGIN-05, BE-ORIGIN-06, BE-ORIGIN-07, BE-ORIGIN-08, BE-ORIGIN-09, BE-ORIGIN-10, BE-ORIGIN-11, BE-ORIGIN-12
+**Plans**: 18 plans
+
+Plans:
+- [x] 24-01-PLAN.md — Tipi di città, fascia dei negozi e città di nascita
+- [x] 24-02-PLAN.md — Modello della magia: origine e livello minimo (solo aggiunte)
+- [x] 24-03-PLAN.md — Cancello a livello nelle quest
+- [x] 24-04-PLAN.md — Cancello a livello nelle opzioni dell'oste
+- [x] 24-05-PLAN.md — Via `minXpToLearn`, reporter delle magie
+- [x] 24-06-PLAN.md — Tipi di quest `arcane`, `shamanic`, `void`
+- [x] 24-07-PLAN.md — Sorteggio della magia per origine
+- [x] 24-08-PLAN.md — Lore dell'origine: `Spell.relatedLore`
+- [x] 24-09-PLAN.md — Pavimento di titolo di Necrorian nel generatore
+- [x] 24-10-PLAN.md — Migratore una tantum
+- [x] 24-11-PLAN.md — Gate della fase
+- [x] 24-12-PLAN.md — Chiusura della fase e handoff
+- [x] 24-13-PLAN.md — Ricerca e apprendimento: regola pura nel piano d'esito (D-26, D-29, D-30)
+- [x] 24-14-PLAN.md — Fine della ricerca: la PendingQuest si riarma (individuale, boss, soccorso)
+- [x] 24-15-PLAN.md — Fine dell'apprendimento: magia conosciuta, lore, foglio; job e sweep
+- [x] 24-16-PLAN.md — Push di fine ricerca: riuscita e fallita
+- [x] 24-17-PLAN.md — Filo: learningSpell, spellResearchFailed, spellDraw
+- [x] 24-18-PLAN.md — Gate del blocco e handoff §8
+
+**Stato (2026-11-15)**: 12/12 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, boot reale col migratore e sua rimozione, contenuto a DB e UAT su device (BACKEND-NOTES.md §4, §5, §7, da eseguire) a cura dell'orchestratore
+**Stato (2026-11-16)**: 18/18 piani eseguiti; ricerca e apprendimento (D-26..D-31) nel ramo, gate 24-18 verde; tempi a DB, test:cov, riavvio, brief della FE e UAT (BACKEND-NOTES.md §8) a cura dell'orchestratore
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
@@ -278,6 +309,7 @@ Plans:
 | FE Phase 20 (rank-specific prizes for group quests) | Phase 21 (BE-RANKP) | Blocchi premio per titolo, blocco del viewer sul filo, contatori dei turni nell'aid di dungeon; forma SDL decisa nel plan (discuss 2026-11-12) |
 | FE Phase 21 (innkeeper mission completion flow) | Phase 22 (BE-GMFLOW) | Lista nemici, simulazione a secco, bozza, completamento con premi per personaggio; forma SDL decisa nel plan (discuss 2026-11-12) |
 | FE Phase 22 (companion defeat, rest and recovery) | Phase 23 | Sconfitta, riposo e pozioni dei compagni; forma SDL decisa nel plan (aggiunta 2026-11-14) |
+| FE Phase 23 (spell origins, void and shamanic quests) | Phase 24 | Origine delle magie, tipi di quest `shamanic`/`void`, tipi di città nuovi, livello minimo delle magie; forma SDL decisa nel plan (aggiunta 2026-11-15) |
 
 La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md).
 
@@ -313,6 +345,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 21. Premi per rango e soccorsi | v1.1 | 14/14 | Complete | 2026-11-13 |
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
+| 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 
 ---
 

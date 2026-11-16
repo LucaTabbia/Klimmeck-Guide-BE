@@ -5,7 +5,12 @@ import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import { createPlayer } from '../../../test/authz/player-fixture';
-import { buildQuest, persistEnemy, persistPet } from '../../../test/fixtures';
+import {
+    buildQuest,
+    persistEnemy,
+    persistPet,
+    persistSpell,
+} from '../../../test/fixtures';
 import {
     createOutcomeHarness,
     OUTCOME_START,
@@ -258,6 +263,81 @@ describe('QuestResolutionService.resolveStandard for a boss group (replSet)', ()
             'stale',
         );
         expect(await world.models.questResults.countDocuments()).toBe(2);
+    });
+
+    // tiri per posto, nell'ordine dei posti: soglia e scelta del sorteggio (0, 0 trova la magia; 0.9 la manca)
+    it('keeps only the member whose research found a spell engaged on the learning part (D-26, D-29, D-31)', async () => {
+        const LEARN_TIME = 1_800_000;
+        const spell = await persistSpell(world.models.spells, {
+            minLevelToLearn: 1,
+            maxUsages: 4,
+            requiredLearnTime: LEARN_TIME,
+        });
+        const mage = { characterOverrides: { status: { title: 'mage' } } };
+        const a = await quester({
+            questOverrides: await bossQuest(),
+            ...mage,
+        });
+        const b = await quester({ quest: a.quest, ...mage });
+        await world.models.quests.collection.updateOne(
+            { _id: a.quest._id },
+            { $set: { 'prizes.spellDraw': true } },
+        );
+        scripted.willEnd('success');
+        chance.load([0, 0, 0.9, 0]);
+
+        await expect(service.resolveStandard(triggerOf(a))).resolves.toBe(
+            'resolved',
+        );
+
+        expect(chance.drawn).toEqual([0, 0, 0.9, 0]);
+        const sheetOf = async (subject: Quester) =>
+            world.models.questResults
+                .findOne({ character: subject.characterId })
+                .lean<any>();
+        const researcher = await sheetOf(a);
+        const other = await sheetOf(b);
+        expect(await world.models.questResults.countDocuments()).toBe(2);
+        expect(String(researcher.spellFound)).toBe(String(spell._id));
+        expect(other.spellFound).toBeNull();
+        expect(String((await characterOf(a)).quests.pendingQuest)).toBe(
+            String(a.pendingQuest._id),
+        );
+        const rearmed = await world.models.pendingQuests
+            .findById(a.pendingQuest._id)
+            .lean<any>();
+        expect(rearmed.startDate).toEqual(NOW);
+        expect(rearmed.waitingTime).toBe(LEARN_TIME);
+        expect(String(rearmed.learningSpell)).toBe(String(spell._id));
+        expect(String(rearmed.researchResult)).toBe(String(researcher._id));
+        expect((await characterOf(b)).quests.pendingQuest).toBeNull();
+        expect(
+            await world.models.pendingQuests.findById(b.pendingQuest._id),
+        ).toBeNull();
+        expect((await questOf(a.quest._id)).concludedAt).toEqual(NOW);
+        expect(world.questQueue.added).toEqual([
+            expect.objectContaining({
+                name: 'resolve',
+                data: {
+                    pendingQuestId: String(a.pendingQuest._id),
+                    startDate: NOW.getTime(),
+                    waitingTime: LEARN_TIME,
+                },
+            }),
+        ]);
+        // la ricerca fallita di b sostituisce il suo questEnd (D-29)
+        expect(
+            world.push.sent.map(({ message }) => ({
+                type: message.type,
+                id: message.id,
+            })),
+        ).toEqual([
+            { type: PushEventType.spellResearchFailed, id: String(other._id) },
+            {
+                type: PushEventType.spellResearchSucceeded,
+                id: String(researcher._id),
+            },
+        ]);
     });
 
     it('leaves the boss open when the party loses, one aid for the whole party', async () => {

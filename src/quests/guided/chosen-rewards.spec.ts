@@ -23,7 +23,7 @@ const catalog: RewardCatalog = {
         [`LootItem:${POTION_ID.toHexString()}`, RarityType.common],
     ]),
     spells: new Map([
-        [SPELL_ID.toHexString(), { minXpToLearn: 300, maxUsages: 4 }],
+        [SPELL_ID.toHexString(), { minLevelToLearn: 2, maxUsages: 4 }],
     ]),
     spellPool: [],
     pets: new Map([[PET_ID.toHexString(), 45]]),
@@ -59,7 +59,7 @@ describe('chosenRewardsOf', () => {
             ],
             spellCandidate: {
                 spellId: SPELL_ID,
-                minXpToLearn: 300,
+                minLevelToLearn: 2,
                 maxUsages: 4,
             },
             spellDraw: null,
@@ -82,6 +82,44 @@ describe('chosenRewardsOf', () => {
         expect(rewards.petLore).toEqual([]);
         expect(rewards.spellCandidate).toBeNull();
         expect(rewards.cure).toBeNull();
+    });
+
+    it('carries the minimum level of the chosen spell (D-08)', () => {
+        const atLevelSix: RewardCatalog = {
+            ...catalog,
+            spells: new Map([
+                [SPELL_ID.toHexString(), { minLevelToLearn: 6, maxUsages: 1 }],
+            ]),
+        };
+
+        expect(
+            chosenRewardsOf(chosenPrize(), atLevelSix).spellCandidate,
+        ).toEqual({ spellId: SPELL_ID, minLevelToLearn: 6, maxUsages: 1 });
+    });
+
+    it('carries the related lore of the spell chosen by the innkeeper (D-24)', () => {
+        const withLore: RewardCatalog = {
+            ...catalog,
+            spells: new Map([
+                [
+                    SPELL_ID.toHexString(),
+                    {
+                        minLevelToLearn: 2,
+                        maxUsages: 4,
+                        relatedLore: [LORE_ID],
+                    },
+                ],
+            ]),
+        };
+
+        expect(chosenRewardsOf(chosenPrize(), withLore).spellCandidate).toEqual(
+            {
+                spellId: SPELL_ID,
+                minLevelToLearn: 2,
+                maxUsages: 4,
+                relatedLore: [LORE_ID],
+            },
+        );
     });
 
     it('answers no rewards without a prize (D-08)', () => {

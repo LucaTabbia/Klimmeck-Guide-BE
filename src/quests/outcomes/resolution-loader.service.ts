@@ -55,10 +55,17 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
+import {
+    isSpellSchool,
+    loreStudyChanceOf,
+    schoolOriginOf,
+} from '../spell-schools';
 import { isPetXpCap } from './pets/pet-xp';
 import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
+    isLearnLevel,
+    learnTimeOf,
     type PrizesSnapshot,
     type RewardCatalog,
     type RewardRefs,
@@ -112,6 +119,12 @@ export interface StandardLoad {
     ownerId: Types.ObjectId;
 }
 
+// la sorgente del sorteggio delle magie: i premi dicono se sorteggiare, il tipo della quest quale origine (Phase 24 D-10)
+export interface SpellPoolSource {
+    prizes: PrizesSnapshot | null | undefined;
+    questType: unknown;
+}
+
 export interface CatalogEnemy {
     snapshot: CombatEnemySnapshot;
     quantity: number;
@@ -160,11 +173,22 @@ type PrizePetEntry = CatalogEntry<{
 }>;
 
 type LearnableSpellEntry = CatalogEntry<{
-    minXpToLearn?: unknown;
+    minLevelToLearn?: unknown;
     maxUsages?: unknown;
+    relatedLore?: unknown;
+    name?: unknown;
+    requiredLearnTime?: unknown;
 }>;
 
-const LEARNABLE_SPELL_PROJECTION = { minXpToLearn: 1, maxUsages: 1 } as const;
+const LEARNABLE_SPELL_PROJECTION = {
+    minLevelToLearn: 1,
+    maxUsages: 1,
+    // le lore della magia, sbloccate quando viene imparata (Phase 24 D-24)
+    relatedLore: 1,
+    // nome e tempo di apprendimento per la parte di apprendimento del sorteggio (Phase 24 D-26, D-29)
+    name: 1,
+    requiredLearnTime: 1,
+} as const;
 
 // i campi di CombatEnemySnapshot, come le altre letture del catalogo
 const COMBAT_ENEMY_PROJECTION = {
@@ -177,14 +201,35 @@ const COMBAT_ENEMY_PROJECTION = {
     relatedLore: 1,
 } as const;
 
-// una magia senza soglia valida o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07): mai valori impliciti
+// una magia senza soglia valida (livello intero ≥ 1) o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07, Phase 24 D-07): mai valori impliciti
+// solo valori validi: un nome vuoto o un tempo non valido restano assenti, mai impliciti (Phase 24 D-26, D-29)
+function learningFactsOf(
+    name: unknown,
+    requiredLearnTime: unknown,
+): Pick<SpellCandidate, 'name' | 'learnTime'> {
+    const learnTime = learnTimeOf(requiredLearnTime);
+    return {
+        ...(typeof name === 'string' && name.length > 0 ? { name } : {}),
+        ...(learnTime !== null ? { learnTime } : {}),
+    };
+}
+
 const learnableSpellOf = ({
     _id,
-    minXpToLearn,
+    minLevelToLearn,
     maxUsages,
+    relatedLore,
+    name,
+    requiredLearnTime,
 }: LearnableSpellEntry): SpellCandidate | null =>
-    isFiniteNumber(minXpToLearn) && isUsageCount(maxUsages)
-        ? { spellId: _id, minXpToLearn, maxUsages }
+    isLearnLevel(minLevelToLearn) && isUsageCount(maxUsages)
+        ? {
+              spellId: _id,
+              minLevelToLearn,
+              maxUsages,
+              relatedLore: relatedLoreIdsOf(relatedLore),
+              ...learningFactsOf(name, requiredLearnTime),
+          }
         : null;
 
 const isSpellCandidate = (
@@ -413,6 +458,25 @@ export class ResolutionLoader {
         );
     }
 
+    // fine della parte di apprendimento (Phase 24 D-26): chi è ancora attivo sulla corsia standard di quella PendingQuest
+    async snapshotOnStandardLaneInSession(
+        pendingQuestId: Types.ObjectId,
+        session: ClientSession,
+    ): Promise<ResolutionCharacter> {
+        return this.snapshotWhere(standardLaneFilter(pendingQuestId), session);
+    }
+
+    // la magia come sta a catalogo alla fine della parte di apprendimento (Phase 24 D-26): null se sparita o non più insegnabile
+    async readLearnableSpell(
+        spellId: Types.ObjectId,
+    ): Promise<SpellCandidate | null> {
+        const spell = await this.spellModel
+            .findById(spellId, LEARNABLE_SPELL_PROJECTION)
+            .lean<LearnableSpellEntry | null>()
+            .exec();
+        return spell ? learnableSpellOf(spell) : null;
+    }
+
     private async snapshotWhere(
         filter: Record<string, unknown>,
         session: ClientSession,
@@ -439,8 +503,10 @@ export class ResolutionLoader {
         const rewards = {
             ...(await this.readRewardCatalog(quest)),
             studyLorePool: await this.readStudyLorePool(quest),
-            studyLoreChance:
+            studyLoreChance: loreStudyChanceOf(
+                quest.infos?.type,
                 this.loreConfig?.studyChance ?? DEFAULT_LORE_STUDY_CHANCE,
+            ),
         };
         return { ...combat, rewards };
     }
@@ -617,16 +683,16 @@ export class ResolutionLoader {
     private async readRewardCatalog(
         quest: ResolutionQuest,
     ): Promise<RewardCatalog> {
-        return this.readRewardCatalogFor(
-            rewardRefsOf(prizeBlocksOf(quest)),
-            quest.prizes,
-        );
+        return this.readRewardCatalogFor(rewardRefsOf(prizeBlocksOf(quest)), {
+            prizes: quest.prizes,
+            questType: quest.infos?.type,
+        });
     }
 
     // catalogo dei premi di ref arbitrari (D-22): una sorgente del pool nulla lascia vuoto il sorteggio delle magie
     async readRewardCatalogFor(
         refs: RewardRefs,
-        spellPoolSource: PrizesSnapshot | null | undefined,
+        spellPoolSource: SpellPoolSource | null,
     ): Promise<RewardCatalog> {
         const idsOf = (itemType: string) =>
             refs.items
@@ -674,10 +740,7 @@ export class ResolutionLoader {
             spells
                 .map(learnableSpellOf)
                 .filter(isSpellCandidate)
-                .map(({ spellId, minXpToLearn, maxUsages }) => [
-                    spellId.toHexString(),
-                    { minXpToLearn, maxUsages },
-                ]),
+                .map(({ spellId, ...spell }) => [spellId.toHexString(), spell]),
         );
     }
 
@@ -710,29 +773,47 @@ export class ResolutionLoader {
     }
 
     // D-08, C-3: pool intero fuori transazione, il piano lo filtra contro lo snapshot in sessione; ordine per id così il tiro è riproducibile
+    // Phase 24 D-25: la lore di una magia si sblocca solo imparando la magia, quindi resta fuori dal pool (cambia il pool, non i tiri)
     private async readStudyLorePool(
         quest: ResolutionQuest,
     ): Promise<Types.ObjectId[]> {
         const type = quest.infos?.type;
-        if (type !== QuestType.study && type !== QuestType.magic) return [];
+        if (type !== QuestType.study && !isSpellSchool(type)) return [];
         const lore = await this.loreModel
             .find({ type: { $in: [...STUDY_LORE_TYPES] } }, { _id: 1 })
             .lean<{ _id: Types.ObjectId }[]>()
             .exec();
+        if (lore.length === 0) return [];
+        const spellLore = await this.readSpellLoreHexes();
         return lore
             .map(({ _id }) => _id)
+            .filter((id) => !spellLore.has(id.toHexString()))
             .sort((left, right) =>
                 left.toHexString().localeCompare(right.toHexString()),
             );
     }
 
-    // D-31: l'intero catalogo delle magie solo per la study che sorteggia; ordine per id così il tiro è riproducibile
-    private async readSpellPool(
-        prizes: PrizesSnapshot | null | undefined,
-    ): Promise<SpellCandidate[]> {
-        if (prizes?.spellDraw !== true) return [];
+    // ogni lore puntata da una magia, in qualunque forma salvata (id o esadecimale da script di contenuto)
+    private async readSpellLoreHexes(): Promise<Set<string>> {
         const spells = await this.spellModel
-            .find({}, LEARNABLE_SPELL_PROJECTION)
+            .find({ 'relatedLore.0': { $exists: true } }, { relatedLore: 1 })
+            .lean<CatalogEntry<{ relatedLore?: unknown }>[]>()
+            .exec();
+        return new Set(
+            spells.flatMap(({ relatedLore }) =>
+                relatedLoreIdsOf(relatedLore).map((id) => id.toHexString()),
+            ),
+        );
+    }
+
+    // D-31, Phase 24 D-10: una scuola pesca solo la propria origine; ogni altro tipo che sorteggia l'intero catalogo; ordine per id così il tiro è riproducibile
+    private async readSpellPool(
+        source: SpellPoolSource | null,
+    ): Promise<SpellCandidate[]> {
+        if (source?.prizes?.spellDraw !== true) return [];
+        const origin = schoolOriginOf(source.questType);
+        const spells = await this.spellModel
+            .find(origin ? { origin } : {}, LEARNABLE_SPELL_PROJECTION)
             .lean<LearnableSpellEntry[]>()
             .exec();
         return spells

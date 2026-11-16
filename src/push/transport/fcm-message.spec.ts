@@ -1,6 +1,8 @@
 import { PushEventType } from 'src/push/push-event-type.enum';
 import {
     questEnd,
+    spellResearchFailed,
+    spellResearchSucceeded,
     streamerLive,
     testPushMessage,
     travelEnd,
@@ -46,6 +48,11 @@ describe('toFcmBase', () => {
         ['travelEnd', travelEnd('c1')],
         ['questEnd', questEnd('q1')],
         ['streamerLive', streamerLive()],
+        [
+            'spellResearchSucceeded',
+            spellResearchSucceeded('r1', 'Dardo', 1_800_000),
+        ],
+        ['spellResearchFailed', spellResearchFailed('r1')],
     ])('serializes every %s data value as a string', (_type, message) => {
         const { data } = toFcmBase(message, NOW);
 

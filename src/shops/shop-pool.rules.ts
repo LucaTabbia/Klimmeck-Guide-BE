@@ -1,8 +1,13 @@
 import { Types } from 'mongoose';
+import { citySizeOf } from 'src/cities/city-size';
 import { CitySize } from 'src/models/enums/city-size.enum';
+import { CityType } from 'src/models/enums/city-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { refIdOf } from 'src/mongo/document-id';
-import { SHOP_ALLOWED_RARITIES } from './shop-pool.constants';
+import {
+    CITY_TIER_SHOP_TYPES,
+    SHOP_ALLOWED_RARITIES,
+} from './shop-pool.constants';
 
 type PoolList = readonly unknown[] | null;
 
@@ -48,4 +53,10 @@ export function shelfInPoolOrder<
 
 export function allowedRaritiesOf(size: CitySize): readonly RarityType[] {
     return SHOP_ALLOWED_RARITIES[size];
+}
+
+export function shopTierOf(type: CityType): CitySize {
+    return CITY_TIER_SHOP_TYPES.includes(type)
+        ? CitySize.city
+        : citySizeOf(type);
 }

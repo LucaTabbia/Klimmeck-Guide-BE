@@ -51,7 +51,7 @@ export class QuestPrizes {
     @Prop({ type: QuestCureSchema, default: null })
     cure?: QuestCure | null;
 
-    // D-31: la study di Valantar sorteggia la magia alla risoluzione; campo interno, mai nello SDL
+    // il blocco sorteggia una magia alla fine della «Fase di ricerca» (D-31, Phase 24 D-26): sul filo dal resolver sul tipo, mai un input
     @Prop({ type: Boolean, default: false })
     spellDraw: boolean;
 

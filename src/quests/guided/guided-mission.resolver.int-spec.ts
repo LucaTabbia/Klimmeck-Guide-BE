@@ -713,22 +713,22 @@ describe('GuidedMissionResolver (wire)', () => {
                 ),
                 learnable: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Scintilla', minXpToLearn: 100 }),
+                        buildSpell({ name: 'Scintilla', minLevelToLearn: 2 }),
                     ),
                 ),
                 costly: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Meteora', minXpToLearn: 999999 }),
+                        buildSpell({ name: 'Meteora', minLevelToLearn: 13 }),
                     ),
                 ),
                 known: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Lampo', minXpToLearn: 100 }),
+                        buildSpell({ name: 'Lampo', minLevelToLearn: 2 }),
                     ),
                 ),
                 blockSpell: idOf(
                     await spells.create(
-                        buildSpell({ name: 'Benedizione', minXpToLearn: 0 }),
+                        buildSpell({ name: 'Benedizione', minLevelToLearn: 1 }),
                     ),
                 ),
             };
@@ -851,6 +851,50 @@ describe('GuidedMissionResolver (wire)', () => {
             expect(idsOf(options.pets)).toEqual([catalogue.rarePet]);
             expect(idsOf(options.spells)).toEqual(
                 [catalogue.learnable, catalogue.blockSpell].sort(),
+            );
+        });
+
+        // il mago di prova ha 20 000 xp = livello 12 dalla tabella unica; Meteora chiede il 13
+        it('offers the innkeeper a spell at the level the character has from the level table (D-08)', async () => {
+            const catalogue = await prizeCatalogue();
+            const atTwelve = idOf(
+                await world.models.spells.create(
+                    buildSpell({ name: 'Tempesta', minLevelToLearn: 12 }),
+                ),
+            );
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(paladin),
+                String(mage.characterId),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            const spells = idsOf(body.data!.missionPrizeOptions!.spells);
+            expect(spells).toContain(atTwelve);
+            expect(spells).not.toContain(catalogue.costly);
+        });
+
+        it('reads the level from the xp and not from the stored level (D-08)', async () => {
+            const catalogue = await prizeCatalogue();
+            const { mage, paladin } = await mageAndPaladin(catalogue);
+            await world.models.characters.collection.updateOne(
+                { _id: mage.characterId },
+                { $set: { 'status.level': 20 } },
+            );
+            const oste = await innkeeper();
+
+            const body = await optionsOf(
+                hexOf(paladin),
+                String(mage.characterId),
+                oste.bearer,
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(idsOf(body.data!.missionPrizeOptions!.spells)).not.toContain(
+                catalogue.costly,
             );
         });
 

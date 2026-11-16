@@ -81,6 +81,27 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [x] **BE-PET-13**: Gate (tsc, suite, SDL solo additivo al boot reale) e handoff `BACKEND-NOTES.md` per la FE Phase 22 con la descrizione della tabella dei tempi di recupero
 - [x] **BE-PET-14**: Livelli del compagno: 10 livelli sul tetto di xp (`Pet.maxXp`), vita massima dalla base del catalogo al doppio, serviti sul filo (`OwnedPet.level`, `OwnedPet.maxLifePoints`) e letti da ogni regola che usa il massimo del compagno
 
+### Spell Origins and Schools (BE-ORIGIN) — Phase 24, aggiunta 2026-11-15
+
+- [x] **BE-ORIGIN-01**: Tipi di città `aarakocraCapital`, `dragonbornCapital` (taglia `capital`) e `dragonbornVillage` (villaggio) nell'enum, nella tabella esaustiva delle taglie e sul filo; le tre città già a DB tornano servibili da `cities` e `city`; il report dei negozi giudica le due capitali nuove con la fascia `city` (la taglia resta `capital`)
+- [x] **BE-ORIGIN-02**: Città di nascita: dragonborn → `dragonbornCapital`, aarakocra → `aarakocraCapital`, solo per i personaggi nuovi
+- [x] **BE-ORIGIN-03**: Enum `SpellOrigin` (`void`, `arcane`, `shamanic`) e `Spell.origin: String!` su schema Mongoose (validazione enum) e filo; nessun effetto sul combattimento, sugli slot né su chi può imparare una magia
+- [x] **BE-ORIGIN-04**: `Spell.minLevelToLearn: Int!` al posto di `minXpToLearn` su schema e filo (cambio SDL non additivo dichiarato nel handoff); `SpellInput` morto rimosso; conteggio al boot delle magie senza origine o livello validi
+- [x] **BE-ORIGIN-05**: Cancello a livello (livello dopo l'esito, dalla tabella unica) nel premio fisso, nei premi per titolo e nel sorteggio delle quest; una magia senza livello intero ≥ 1 non si insegna
+- [x] **BE-ORIGIN-06**: Cancello a livello nelle opzioni dei premi dell'oste e nella loro rivalidazione a salvataggio e completamento, con il livello derivato dall'xp nella tabella unica
+- [x] **BE-ORIGIN-07**: Tipi di quest di scuola `arcane` (il vecchio `magic`, rinominato), `shamanic` e `void`, identici fra loro: ripetibili, senza registrazione, corsia standard, avvio all'arrivo, pool dello studio, nessun soccorso; nessun cambio SDL, nessun lettore tollera più `magic`
+- [x] **BE-ORIGIN-08**: Il sorteggio di una quest `arcane` / `shamanic` / `void` prende solo le magie dell'origine con lo stesso nome (tabella tipo → origine esplicita); ogni altro tipo con `spellDraw` pesca dall'intero catalogo come oggi; nessun tiro aggiunto o spostato
+- [x] **BE-ORIGIN-09**: Il generatore non crea mai su un POI di una città `necrorianCity` una quest con `minTitle` sotto mage (pavimento per tipo di città, boss misti compresi)
+- [x] **BE-ORIGIN-10**: Migratore una tantum idempotente prima di ogni hook: `minLevelToLearn` da `minXpToLearn` con la tabella dei livelli e `origin: arcane` dove manca (lascia `minXpToLearn` a DB); riscrive il tipo `magic` in `arcane` nelle quest e in ogni copia persistita del tipo; esce dal repo dopo il boot reale
+- [x] **BE-ORIGIN-11**: Gate (tsc, suite unit e integration, SDL rigenerato al boot reale di test) e handoff `BACKEND-NOTES.md` per la FE Phase 23 con il diff SDL, la finestra FE, il log del boot del migratore e i compiti di contenuto dell'orchestratore
+- [x] **BE-ORIGIN-12**: Lore dell'origine: `Spell.relatedLore: [Lore!]!` (additivo, filtrata per viewer) sbloccata a ogni magia imparata per qualunque via (sorteggio, premio fisso, premio per titolo, premio dell'oste) con il meccanismo degli altri sblocchi; la prima magia di un'origine sblocca la lore dell'origine, le successive non cambiano nulla
+- [x] **BE-ORIGIN-13**: Regola della ricerca e dell'apprendimento nel piano d'esito (D-26, D-30): la magia del sorteggio con un `requiredLearnTime` valido non si impara alla fine della ricerca, la corsia resta occupata e la sua lore non si sblocca; magia fissa, blocco per titolo, corsie GM e tempo non valido restano immediati; nessun tiro aggiunto o spostato
+- [x] **BE-ORIGIN-14**: Fine della ricerca (D-26): premi e stato assestati come oggi, `PendingQuest` riarmata per la parte di apprendimento (nuova `startDate`, `waitingTime` = `requiredLearnTime`, magia e foglio trattenuto), nessun `QuestResult`, job pianificato; individuale, boss e soccorso; ogni partecipante col proprio sorteggio
+- [x] **BE-ORIGIN-15**: Fine dell'apprendimento (D-26): magia fra le conosciute, lore della magia sbloccata, corsia libera, foglio trattenuto scritto con `spellLearned` e `loreUnlocked`; innescata dal job e recuperata dallo sweep dopo un riavvio; una sola volta
+- [x] **BE-ORIGIN-16**: Push di fine ricerca (D-29): `spellResearchSucceeded` col nome della magia e la durata dell'apprendimento, `spellResearchFailed` al posto di `questEnd` quando il sorteggio non dà nulla; `questEnd` alla fine dell'apprendimento
+- [x] **BE-ORIGIN-17**: Filo (D-26, D-29), solo aggiunte: `PendingQuest.learningSpell`, `QuestResult.spellResearchFailed`, `QuestPrizes.spellDraw`; il personaggio si ripubblica quando la `PendingQuest` passa all'apprendimento
+- [x] **BE-ORIGIN-18**: Gate del blocco 13–17 e handoff `BACKEND-NOTES.md` §8 per la FE (diff SDL, stati, push, esempi, compiti dell'orchestratore)
+
 ## Future Requirements
 
 Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
@@ -161,8 +182,26 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-PET-12 | Phase 23 | Complete |
 | BE-PET-13 | Phase 23 | Complete |
 | BE-PET-14 | Phase 23 | Complete |
+| BE-ORIGIN-01 | Phase 24 | Complete |
+| BE-ORIGIN-02 | Phase 24 | Complete |
+| BE-ORIGIN-03 | Phase 24 | Complete |
+| BE-ORIGIN-04 | Phase 24 | Complete |
+| BE-ORIGIN-05 | Phase 24 | Complete |
+| BE-ORIGIN-06 | Phase 24 | Complete |
+| BE-ORIGIN-07 | Phase 24 | Complete |
+| BE-ORIGIN-08 | Phase 24 | Complete |
+| BE-ORIGIN-09 | Phase 24 | Complete |
+| BE-ORIGIN-10 | Phase 24 | Complete |
+| BE-ORIGIN-11 | Phase 24 | Complete |
+| BE-ORIGIN-12 | Phase 24 | Complete |
+| BE-ORIGIN-13 | Phase 24 | Complete |
+| BE-ORIGIN-14 | Phase 24 | Complete |
+| BE-ORIGIN-15 | Phase 24 | Complete |
+| BE-ORIGIN-16 | Phase 24 | Complete |
+| BE-ORIGIN-17 | Phase 24 | Complete |
+| BE-ORIGIN-18 | Phase 24 | Complete |
 
-**Coverage:** 55 / 55 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23). Nessun orfano, nessun duplicato.
+**Coverage:** 73 / 73 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23, 18 BE-ORIGIN → Phase 24). Nessun orfano, nessun duplicato.
 
 ---
 

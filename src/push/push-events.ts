@@ -1,3 +1,4 @@
+import { durationLabelOf } from 'src/push/duration-label';
 import { PushEventType } from 'src/push/push-event-type.enum';
 import { PushMessage } from 'src/push/push-message';
 
@@ -61,6 +62,18 @@ const CATALOG: Record<PushEventType, CatalogEntry> = {
         body: "Hai subito un'imboscata.",
         ttlSeconds: PERSONAL_TTL_SECONDS,
     },
+    [PushEventType.spellResearchSucceeded]: {
+        type: PushEventType.spellResearchSucceeded,
+        title: 'Ricerca riuscita',
+        body: "Hai scoperto una magia: comincia l'apprendimento.",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
+    [PushEventType.spellResearchFailed]: {
+        type: PushEventType.spellResearchFailed,
+        title: 'Ricerca conclusa',
+        body: "Nessuna magia scoperta: scopri com'è andata la missione.",
+        ttlSeconds: PERSONAL_TTL_SECONDS,
+    },
 };
 
 const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
@@ -72,6 +85,8 @@ const IDENTIFIED_TYPES: ReadonlySet<PushEventType> = new Set([
     PushEventType.missionStart,
     PushEventType.petRecovered,
     PushEventType.ambush,
+    PushEventType.spellResearchSucceeded,
+    PushEventType.spellResearchFailed,
 ]);
 
 // Phase 8 (fine viaggio), Phase 9 (esiti delle missioni, OutcomeWriter), Phase 6 (stream.online) chiamano PushService con questi builder (D-12)
@@ -123,6 +138,26 @@ export const petRecovered = (
     ...CATALOG[PushEventType.petRecovered],
     id: petId,
     body: `${companionName} è di nuovo in forze`,
+});
+
+// fine della «Fase di ricerca» con una magia trovata (Phase 24 D-29, D-31): id = QuestResult della ricerca (il foglio con spellFound), corpo col nome e la durata dell'apprendimento
+export const spellResearchSucceeded = (
+    resultId: string,
+    spellName: string | null,
+    learnTimeMs: number,
+): PushMessage => {
+    const discovery = spellName ? `«${spellName}»` : 'una magia';
+    return {
+        ...CATALOG[PushEventType.spellResearchSucceeded],
+        id: resultId,
+        body: `Hai scoperto ${discovery}: l'apprendimento dura ${durationLabelOf(learnTimeMs)}.`,
+    };
+};
+
+// fine di una ricerca senza magia (Phase 24 D-29): id = QuestResult, parte al posto di questEnd
+export const spellResearchFailed = (resultId: string): PushMessage => ({
+    ...CATALOG[PushEventType.spellResearchFailed],
+    id: resultId,
 });
 
 export const streamerLive = (): PushMessage => ({

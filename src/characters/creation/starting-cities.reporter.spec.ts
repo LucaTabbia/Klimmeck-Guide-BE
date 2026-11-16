@@ -11,8 +11,8 @@ const ALL_HOME_CITY_TYPES = [
     'elfCapital',
     'motherCapital',
     'liberiaCapital',
-    'aarakocraVillage',
-    'mountainVillage',
+    'aarakocraCapital',
+    'dragonbornCapital',
 ];
 
 function cityModelReturning(exec: () => Promise<unknown[]>) {
@@ -40,6 +40,19 @@ describe('racesWithoutHomeCity', () => {
             'tiefling',
             'aarakocra',
         ]);
+    });
+
+    it('leaves dragonborn and aarakocra homeless when only their old villages exist (D-18)', () => {
+        expect(
+            racesWithoutHomeCity([
+                'elfCapital',
+                'motherCapital',
+                'liberiaCapital',
+                'drusteaCapital',
+                'aarakocraVillage',
+                'mountainVillage',
+            ]),
+        ).toEqual([RaceType.dragonborn, RaceType.aarakocra]);
     });
 
     it('ignores city types that are no race home', () => {

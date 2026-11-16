@@ -145,8 +145,11 @@ enum CitySize {
 }
 
 enum CityType {
+  aarakocraCapital
   aarakocraVillage
   desertVillage
+  dragonbornCapital
+  dragonbornVillage
   drusteaCapital
   drusteaCity
   drusteaSeaCity
@@ -609,6 +612,7 @@ type PathResponse {
 type PendingQuest {
   arrivedAt: DateTime
   id: ID!
+  learningSpell: Spell
   pointsSpent: Int!
   quest: Quest!
   startDate: DateTime
@@ -726,6 +730,8 @@ enum PushEventType {
   prisonRelease
   questCancelled
   questEnd
+  spellResearchFailed
+  spellResearchSucceeded
   streamerLive
   travelEnd
 }
@@ -833,6 +839,7 @@ type QuestPrizes {
   prizeItem: AssetQuantity
   randomLoot: [AssetQuantity!]!
   spell: Spell
+  spellDraw: Boolean!
   xpPrize: Int
 }
 
@@ -882,7 +889,9 @@ type QuestResult {
   rescuedCharacters: [ID!]!
   resolvedAt: DateTime!
   rewards: QuestRewards!
+  spellFound: Spell
   spellLearned: Spell
+  spellResearchFailed: Boolean!
   spellsUsed: [SpellUsage!]!
   stagesCleared: Int
   stagesTotal: Int
@@ -1015,9 +1024,11 @@ type Spell {
   energyDamage: EnergyDamage!
   id: ID!
   maxUsages: Int!
-  minXpToLearn: Int!
+  minLevelToLearn: Int!
   name: String!
+  origin: String!
   recoveryTime: Int!
+  relatedLore: [Lore!]!
   requiredLearnTime: Int!
   useType: String!
 }

@@ -57,6 +57,7 @@ import { GmRequestReader } from './gm-request.reader';
 import { PlaceholderCombatResolver } from './combat/placeholder-combat-resolver';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
 import { PlaceholderDungeonResolver } from './dungeon/placeholder-dungeon-resolver';
+import { SpellLearningService } from './learning/spell-learning.service';
 import { OutcomeWriter } from './outcome-writer.service';
 import { QuestResolutionProcessor } from './quest-resolution.processor';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -108,6 +109,8 @@ import { QuestResolutionSchedulingModule } from './scheduling/quest-resolution-s
         ConclusionEventDrawer,
         BossResolutionService,
         RescueResolutionService,
+        // fine della parte di apprendimento, smistata da QuestResolutionService (Phase 24 D-26)
+        SpellLearningService,
         QuestResolutionService,
         QuestResolutionProcessor,
         questConfigProvider,

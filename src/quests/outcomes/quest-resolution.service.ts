@@ -11,9 +11,12 @@ import { combatContextOf } from './combatant-plan';
 import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { planConclusion } from './conclusion/conclusion-plan';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { SpellLearningService } from './learning/spell-learning.service';
 import {
     type CommittedOutcome,
+    emptyCommitted,
     OutcomeWriter,
+    recordParticipant,
     StaleResolution,
 } from './outcome-writer.service';
 import {
@@ -52,13 +55,16 @@ export class QuestResolutionService {
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
         private readonly conclusionEvents: ConclusionEventDrawer,
+        private readonly learning: SpellLearningService,
     ) {}
 
-    // unico ingresso dei trigger della corsia standard: smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
+    // unico ingresso dei trigger della corsia standard: chiude la parte di apprendimento (Phase 24 D-26), poi smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
     async resolveStandard(
         trigger: StandardTrigger,
     ): Promise<ResolutionOutcome> {
         const now = this.clock.now();
+        const learned = await this.learning.completeDue(trigger, now);
+        if (learned) return learned;
         const loaded = await this.load(trigger, now);
         if (typeof loaded === 'string') return loaded;
         switch (resolutionKindOf(loaded.quest)) {
@@ -130,7 +136,11 @@ export class QuestResolutionService {
                     now,
                 });
                 await this.writer.writeParticipant(plan, session);
-                await this.writer.deletePendingQuest(pendingQuestId, session);
+                await this.writer.closePendingQuest(
+                    pendingQuestId,
+                    plan,
+                    session,
+                );
                 const questUpdate = questUpdateOf({
                     type: loaded.quest.infos.type,
                     verdicts: [{ characterId: snapshot._id, verdict }],
@@ -153,13 +163,18 @@ export class QuestResolutionService {
                         session,
                     );
                 }
+                const committed = emptyCommitted();
+                recordParticipant(committed, plan, {
+                    pendingQuestId,
+                    userId: loaded.ownerId,
+                });
+                if (aid) committed.aids.push({ aidQuestId, since: now });
+                committed.regenerate = regeneratesAfter(
+                    loaded.quest,
+                    questUpdate,
+                );
                 outcome.verdict = verdict;
-                outcome.committed = {
-                    results: [{ resultId, userId: loaded.ownerId }],
-                    aids: aid ? [{ aidQuestId, since: now }] : [],
-                    spellRecoveries: plan.spellRecoveries,
-                    regenerate: regeneratesAfter(loaded.quest, questUpdate),
-                };
+                outcome.committed = committed;
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
@@ -176,7 +191,9 @@ export class QuestResolutionService {
         if (turnWarning) this.logger.warn(turnWarning);
         await this.writer.deliver(outcome.committed);
         this.logger.log(
-            `Missione in attesa ${pendingQuestId.toHexString()} risolta: ${outcome.verdict}`,
+            outcome.committed.learnings?.length
+                ? `Missione in attesa ${pendingQuestId.toHexString()}: ricerca conclusa, apprendimento avviato`
+                : `Missione in attesa ${pendingQuestId.toHexString()} risolta: ${outcome.verdict}`,
         );
         return 'resolved';
     }

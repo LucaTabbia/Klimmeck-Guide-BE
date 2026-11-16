@@ -41,6 +41,7 @@ import {
     type CommittedOutcome,
     emptyCommitted,
     OutcomeWriter,
+    recordParticipant,
     StaleResolution,
 } from './outcome-writer.service';
 import {
@@ -441,13 +442,16 @@ export class RescueResolutionService {
                 now,
             });
             await this.writer.writeParticipant(plan, session);
-            await this.writer.deletePendingQuest(seat.pendingQuestId, session);
+            await this.writer.closePendingQuest(
+                seat.pendingQuestId,
+                plan,
+                session,
+            );
             verdicts.push({ characterId: snapshot._id, verdict });
-            committed.results.push({
-                resultId: seat.resultId,
+            recordParticipant(committed, plan, {
+                pendingQuestId: seat.pendingQuestId,
                 userId: seat.ownerId,
             });
-            committed.spellRecoveries.push(...plan.spellRecoveries);
             if (nextAid) fallen.push(snapshot._id);
         }
         for (const { pendingQuestId } of roster.seatHolders) {

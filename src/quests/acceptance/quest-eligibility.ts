@@ -31,12 +31,14 @@ const REPEATABLE_TYPES: ReadonlySet<QuestType> = new Set([
     QuestType.heal,
     QuestType.job,
     QuestType.study,
-    QuestType.magic,
+    QuestType.arcane,
+    QuestType.shamanic,
+    QuestType.void,
     QuestType.crime,
     QuestType.guard,
 ]);
 
-// registrazione sulla Quest con capienza (Phase 7 D-03 + D-27); hunt, dungeon, job, heal, study, magic restano senza registrazione
+// registrazione sulla Quest con capienza (Phase 7 D-03 + D-27); hunt, dungeon, job, heal, study e le tre scuole restano senza registrazione
 const REGISTERED_TYPES: ReadonlySet<QuestType> = new Set([
     QuestType.worldMission,
     QuestType.boss,

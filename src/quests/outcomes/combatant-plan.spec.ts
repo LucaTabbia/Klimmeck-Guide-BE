@@ -335,7 +335,9 @@ describe('planCombatant defeat by quest type', () => {
         QuestType.heal,
         QuestType.job,
         QuestType.study,
-        QuestType.magic,
+        QuestType.arcane,
+        QuestType.shamanic,
+        QuestType.void,
         QuestType.crime,
         QuestType.guard,
     ])('concludes a lost %s without aid at one life point (D-19)', (type) => {

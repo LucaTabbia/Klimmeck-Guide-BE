@@ -283,6 +283,20 @@ export class QuestResult {
     })
     spellLearned?: Types.ObjectId | Spell | null;
 
+    // ricerca vinta senza magia (Phase 24 D-29): il sorteggio non ha dato nulla; falso per ogni altro esito
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    spellResearchFailed: boolean;
+
+    // magia scoperta dal sorteggio e non ancora imparata (Phase 24 D-31): null su ogni altro foglio
+    @Field(() => Spell, { nullable: true })
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Spell.name,
+        default: null,
+    })
+    spellFound?: Types.ObjectId | Spell | null;
+
     // sole lore nuove di questo esito (Phase 16 D-09): mai filtrate per viewer, sbloccate per costruzione
     @Field(() => [Lore])
     @Prop({

@@ -16,6 +16,7 @@ export const CITY_SIZE_BY_TYPE = {
     motherVillage: CitySize.village,
     liberiaVillage: CitySize.village,
     talmvereVillage: CitySize.village,
+    dragonbornVillage: CitySize.village,
     drusteaCity: CitySize.city,
     drusteaSeaCity: CitySize.city,
     valanCity: CitySize.city,
@@ -36,6 +37,8 @@ export const CITY_SIZE_BY_TYPE = {
     flameSouthCapital: CitySize.capital,
     motherCapital: CitySize.capital,
     liberiaCapital: CitySize.capital,
+    aarakocraCapital: CitySize.capital,
+    dragonbornCapital: CitySize.capital,
 } as const satisfies Record<CityType, CitySize>;
 
 export function citySizeOf(type: CityType): CitySize {

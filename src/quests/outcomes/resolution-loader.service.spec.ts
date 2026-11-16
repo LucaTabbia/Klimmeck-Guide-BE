@@ -2,7 +2,9 @@ import { Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
+import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
+import { MAX_LEVEL } from './progression/level-table';
 import { ResolutionLoader } from './resolution-loader.service';
 
 const AMBUSH_SUBJECT = "dell'imboscata x";
@@ -312,6 +314,8 @@ const rewardLoaderWith = (models: {
     equipment?: CatalogDoc[];
     spells?: CatalogDoc[];
     pets?: CatalogDoc[];
+    lore?: CatalogDoc[];
+    spellModel?: ReturnType<typeof catalogModel>;
 }) =>
     new ResolutionLoader(
         null as never,
@@ -321,9 +325,9 @@ const rewardLoaderWith = (models: {
         catalogModel() as never,
         catalogModel(models.loot) as never,
         catalogModel(models.equipment) as never,
-        catalogModel(models.spells) as never,
+        (models.spellModel ?? catalogModel(models.spells)) as never,
         catalogModel(models.pets) as never,
-        catalogModel() as never,
+        catalogModel(models.lore) as never,
         undefined,
     );
 
@@ -333,6 +337,16 @@ const rankedBoss = (rankPrizes: Record<string, unknown>[]) => ({
     requirements: { minTitle: TitleType.paladin },
     prizes: { prizeCoins: null, xpPrize: 10, randomLoot: [], rankPrizes },
 });
+
+const drawingQuest = (type: string, spellDraw: boolean) => ({
+    _id: new Types.ObjectId(),
+    infos: { type, title: 'Scuola', markerLocation: null },
+    requirements: { minTitle: TitleType.mage },
+    prizes: { prizeCoins: null, xpPrize: 10, randomLoot: [], spellDraw },
+});
+
+const filtersOf = (spellModel: ReturnType<typeof catalogModel>) =>
+    (spellModel.find.mock.calls as unknown[][]).map(([filter]) => filter);
 
 describe('ResolutionLoader reward catalog', () => {
     it('reads the reward catalog of every rank block (D-05, D-05a)', async () => {
@@ -374,8 +388,8 @@ describe('ResolutionLoader reward catalog', () => {
         const S2 = new Types.ObjectId();
         const loader = rewardLoaderWith({
             spells: [
-                { _id: S1, minXpToLearn: 100, maxUsages: 2 },
-                { _id: S2, minXpToLearn: 300, maxUsages: 1 },
+                { _id: S1, minLevelToLearn: 2, maxUsages: 2 },
+                { _id: S2, minLevelToLearn: 3, maxUsages: 1 },
             ],
         });
         const quest = rankedBoss([
@@ -386,8 +400,16 @@ describe('ResolutionLoader reward catalog', () => {
         const { rewards } = await loader.readCatalog(quest as never, []);
 
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minXpToLearn: 100, maxUsages: 2 },
-            [S2.toHexString()]: { minXpToLearn: 300, maxUsages: 1 },
+            [S1.toHexString()]: {
+                minLevelToLearn: 2,
+                maxUsages: 2,
+                relatedLore: [],
+            },
+            [S2.toHexString()]: {
+                minLevelToLearn: 3,
+                maxUsages: 1,
+                relatedLore: [],
+            },
         });
     });
 
@@ -399,7 +421,7 @@ describe('ResolutionLoader reward catalog', () => {
         const loader = rewardLoaderWith({
             loot: [{ _id: L1, rarity: RarityType.uncommon }],
             equipment: [{ _id: E1, rarity: RarityType.rare }],
-            spells: [{ _id: S1, minXpToLearn: 200, maxUsages: 3 }],
+            spells: [{ _id: S1, minLevelToLearn: 2, maxUsages: 3 }],
             pets: [{ _id: P1, maxLifePoints: 40, relatedLore: [] }],
         });
 
@@ -420,11 +442,363 @@ describe('ResolutionLoader reward catalog', () => {
             [`EquipmentItem:${E1.toHexString()}`]: RarityType.rare,
         });
         expect(Object.fromEntries(rewards.spells)).toEqual({
-            [S1.toHexString()]: { minXpToLearn: 200, maxUsages: 3 },
+            [S1.toHexString()]: {
+                minLevelToLearn: 2,
+                maxUsages: 3,
+                relatedLore: [],
+            },
         });
         expect(Object.fromEntries(rewards.pets)).toEqual({
             [P1.toHexString()]: 40,
         });
         expect(rewards.spellPool).toEqual([]);
     });
+
+    it('projects the minimum level of the learnable spells (D-07)', async () => {
+        const S1 = new Types.ObjectId();
+        const spellModel = catalogModel([
+            { _id: S1, minLevelToLearn: 2, maxUsages: 3 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        await loader.readRewardCatalogFor(
+            { items: [], spellIds: [S1], petIds: [] },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
+        );
+
+        expect(spellModel.find).toHaveBeenCalledTimes(2);
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toEqual({
+                minLevelToLearn: 1,
+                maxUsages: 1,
+                relatedLore: 1,
+                name: 1,
+                requiredLearnTime: 1,
+            });
+        }
+    });
+
+    it.each([
+        [0],
+        [-1],
+        [2.5],
+        ['6'],
+        [null],
+        [undefined],
+        [NaN],
+        [MAX_LEVEL + 1],
+        [4000],
+    ])(
+        'leaves a spell without an integer minimum level from one to the top of the level table out of the catalogue (D-07, WR-03): %p',
+        async (minLevelToLearn) => {
+            const valid = new Types.ObjectId('64b0000000000000000000f1');
+            const dirty = new Types.ObjectId('64b0000000000000000000f2');
+            const loader = rewardLoaderWith({
+                spells: [
+                    { _id: valid, minLevelToLearn: 1, maxUsages: 2 },
+                    { _id: dirty, minLevelToLearn, maxUsages: 2 },
+                ],
+            });
+
+            const rewards = await loader.readRewardCatalogFor(
+                { items: [], spellIds: [valid, dirty], petIds: [] },
+                { prizes: { spellDraw: true }, questType: QuestType.study },
+            );
+
+            expect([...rewards.spells.keys()]).toEqual([valid.toHexString()]);
+            expect(rewards.spellPool).toEqual([
+                {
+                    spellId: valid,
+                    minLevelToLearn: 1,
+                    maxUsages: 2,
+                    relatedLore: [],
+                },
+            ]);
+        },
+    );
+    it('reads the related lore of the fixed spells and of the spell pool (D-24)', async () => {
+        const S1 = new Types.ObjectId('64b0000000000000000000a1');
+        const S2 = new Types.ObjectId('64b0000000000000000000a2');
+        const L1 = new Types.ObjectId('64b0000000000000000000d1');
+        const L2 = new Types.ObjectId('64b0000000000000000000d2');
+        const spellModel = catalogModel([
+            {
+                _id: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2.toHexString(), 'not-an-id', null],
+            },
+            { _id: S2, minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [S1, S2], petIds: [] },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
+        );
+
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toEqual({
+                minLevelToLearn: 1,
+                maxUsages: 1,
+                relatedLore: 1,
+                name: 1,
+                requiredLearnTime: 1,
+            });
+        }
+        expect(Object.fromEntries(rewards.spells)).toEqual({
+            [S1.toHexString()]: {
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2],
+            },
+            [S2.toHexString()]: {
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [],
+            },
+        });
+        expect(rewards.spellPool).toEqual([
+            {
+                spellId: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [L1, L2],
+            },
+            { spellId: S2, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+        ]);
+    });
+
+    it('reads the name and the learn time of the spells of the pool (D-26, D-29)', async () => {
+        const S1 = new Types.ObjectId('64b0000000000000000000a1');
+        const S2 = new Types.ObjectId('64b0000000000000000000a2');
+        const S3 = new Types.ObjectId('64b0000000000000000000a3');
+        const spellModel = catalogModel([
+            {
+                _id: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                name: 'Dardo',
+                requiredLearnTime: 1_800_000,
+            },
+            {
+                _id: S2,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                name: '',
+                requiredLearnTime: 0,
+            },
+            { _id: S3, minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [], petIds: [] },
+            { prizes: { spellDraw: true }, questType: QuestType.study },
+        );
+
+        for (const [, projection] of spellModel.find.mock
+            .calls as unknown[][]) {
+            expect(projection).toMatchObject({ name: 1, requiredLearnTime: 1 });
+        }
+        expect(rewards.spellPool).toEqual([
+            {
+                spellId: S1,
+                minLevelToLearn: 1,
+                maxUsages: 2,
+                relatedLore: [],
+                name: 'Dardo',
+                learnTime: 1_800_000,
+            },
+            { spellId: S2, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+            { spellId: S3, minLevelToLearn: 1, maxUsages: 2, relatedLore: [] },
+        ]);
+        expect(Object.keys(rewards.spellPool[1]).sort()).toEqual([
+            'maxUsages',
+            'minLevelToLearn',
+            'relatedLore',
+            'spellId',
+        ]);
+    });
+
+    it.each([
+        [QuestType.arcane, SpellOrigin.arcane],
+        [QuestType.shamanic, SpellOrigin.shamanic],
+        [QuestType.void, SpellOrigin.void],
+    ])(
+        'reads the spell pool of a school quest filtered by the origin of its type (D-10): %s',
+        async (type, origin) => {
+            const spellModel = catalogModel();
+            const loader = rewardLoaderWith({ spellModel });
+
+            await loader.readCatalog(drawingQuest(type, true) as never, []);
+
+            expect(filtersOf(spellModel)).toEqual([{ origin }]);
+        },
+    );
+
+    it('reads the whole spell catalogue for a drawing quest outside the schools (D-10)', async () => {
+        const spellModel = catalogModel();
+        const loader = rewardLoaderWith({ spellModel });
+
+        await loader.readCatalog(
+            drawingQuest(QuestType.study, true) as never,
+            [],
+        );
+
+        expect(filtersOf(spellModel)).toEqual([{}]);
+    });
+
+    it.each([
+        [QuestType.arcane],
+        [QuestType.shamanic],
+        [QuestType.void],
+        [QuestType.study],
+        [QuestType.hunt],
+    ])(
+        'reads no spell pool without the draw flag, whatever the type (D-10): %s',
+        async (type) => {
+            const spellModel = catalogModel();
+            const loader = rewardLoaderWith({ spellModel });
+
+            const { rewards } = await loader.readCatalog(
+                drawingQuest(type, false) as never,
+                [],
+            );
+
+            expect(spellModel.find).not.toHaveBeenCalled();
+            expect(rewards.spellPool).toEqual([]);
+        },
+    );
+
+    it('reads no spell pool for a null source (D-10)', async () => {
+        const spellModel = catalogModel([
+            { _id: new Types.ObjectId(), minLevelToLearn: 1, maxUsages: 2 },
+        ]);
+        const loader = rewardLoaderWith({ spellModel });
+
+        const rewards = await loader.readRewardCatalogFor(
+            { items: [], spellIds: [], petIds: [] },
+            null,
+        );
+
+        expect(spellModel.find).not.toHaveBeenCalled();
+        expect(rewards.spellPool).toEqual([]);
+    });
+});
+
+const sortedIds = (...ids: Types.ObjectId[]) =>
+    [...ids].sort((left, right) =>
+        left.toHexString().localeCompare(right.toHexString()),
+    );
+
+describe('ResolutionLoader study lore pool', () => {
+    it.each([
+        [QuestType.study],
+        [QuestType.arcane],
+        [QuestType.shamanic],
+        [QuestType.void],
+    ])(
+        'leaves the lore of every spell out of the study pool, by id (D-25): %s',
+        async (type) => {
+            const free = [new Types.ObjectId(), new Types.ObjectId()];
+            const linked = new Types.ObjectId();
+            const linkedAsHex = new Types.ObjectId();
+            const loader = rewardLoaderWith({
+                lore: [free[1], linked, free[0], linkedAsHex].map((_id) => ({
+                    _id,
+                })),
+                spells: [
+                    { _id: new Types.ObjectId(), relatedLore: [linked] },
+                    {
+                        _id: new Types.ObjectId(),
+                        relatedLore: [linkedAsHex.toHexString(), 'not-an-id'],
+                    },
+                    { _id: new Types.ObjectId() },
+                ],
+            });
+
+            const { rewards } = await loader.readCatalog(
+                drawingQuest(type, false) as never,
+                [],
+            );
+
+            expect(rewards.studyLorePool).toEqual(sortedIds(...free));
+        },
+    );
+
+    it('reads an empty study pool when every study lore belongs to a spell (D-25)', async () => {
+        const linked = [new Types.ObjectId(), new Types.ObjectId()];
+        const loader = rewardLoaderWith({
+            lore: linked.map((_id) => ({ _id })),
+            spells: [{ _id: new Types.ObjectId(), relatedLore: linked }],
+        });
+
+        const { rewards } = await loader.readCatalog(
+            drawingQuest(QuestType.study, false) as never,
+            [],
+        );
+
+        expect(rewards.studyLorePool).toEqual([]);
+    });
+});
+
+describe('ResolutionLoader learnable spell read', () => {
+    const SPELL_ID = new Types.ObjectId('64b0000000000000000000b1');
+    const LORE_ID = new Types.ObjectId('64b0000000000000000000b2');
+    const byIdModel = (entry: unknown) => ({
+        findById: jest.fn(() => ({
+            lean: () => ({ exec: () => Promise.resolve(entry) }),
+        })),
+    });
+    const loaderOver = (spellModel: ReturnType<typeof byIdModel>) =>
+        rewardLoaderWith({ spellModel: spellModel as never });
+
+    it('reads one learnable spell by id for the end of the learning part (D-26)', async () => {
+        const spellModel = byIdModel({
+            _id: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+            relatedLore: [LORE_ID, 'not-an-id'],
+            name: 'Dardo',
+            requiredLearnTime: 1_800_000,
+        });
+
+        const spell = await loaderOver(spellModel).readLearnableSpell(SPELL_ID);
+
+        expect(spellModel.findById).toHaveBeenCalledWith(SPELL_ID, {
+            minLevelToLearn: 1,
+            maxUsages: 1,
+            relatedLore: 1,
+            name: 1,
+            requiredLearnTime: 1,
+        });
+        expect(spell).toEqual({
+            spellId: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+            relatedLore: [LORE_ID],
+            name: 'Dardo',
+            learnTime: 1_800_000,
+        });
+    });
+
+    it.each([
+        ['a missing spell', null],
+        [
+            'a spell without valid usages',
+            { _id: SPELL_ID, minLevelToLearn: 6, maxUsages: -1 },
+        ],
+    ])(
+        'reads no learnable spell for the end of the learning part (D-26): %s',
+        async (_case, entry) => {
+            const spell = await loaderOver(byIdModel(entry)).readLearnableSpell(
+                SPELL_ID,
+            );
+
+            expect(spell).toBeNull();
+        },
+    );
 });

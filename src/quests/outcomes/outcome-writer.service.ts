@@ -27,7 +27,12 @@ import {
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { documentIdOf, objectIdFromHex } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
-import { questEnd } from 'src/push/push-events';
+import {
+    questEnd,
+    spellResearchFailed,
+    spellResearchSucceeded,
+} from 'src/push/push-events';
+import type { PushMessage } from 'src/push/push-message';
 import { PushService } from 'src/push/push.service';
 import { enqueueTrigger } from 'src/queues/enqueue-trigger';
 import { QUEUE_CALL_TIMEOUT } from 'src/queues/queue-call-timeout';
@@ -48,12 +53,32 @@ export class StaleResolution extends Error {
     }
 }
 
+export interface CommittedLearning {
+    pendingQuestId: Types.ObjectId;
+    // inizio della parte di apprendimento = fine della ricerca
+    startDate: Date;
+    learnTime: number;
+    userId: Types.ObjectId;
+    // foglio della ricerca: id del push della ricerca riuscita (D-31)
+    resultId: Types.ObjectId;
+    spellName: string | null;
+}
+
+export interface CommittedResult {
+    resultId: Types.ObjectId;
+    userId: Types.ObjectId;
+    // ricerca vinta senza magia (Phase 24 D-29): il push spellResearchFailed sostituisce questEnd
+    researchFailed?: boolean;
+}
+
 export interface CommittedOutcome {
-    results: { resultId: Types.ObjectId; userId: Types.ObjectId }[];
+    results: CommittedResult[];
     aids: { aidQuestId: Types.ObjectId; since: Date }[];
     spellRecoveries: SpellRecovery[];
     // una generata conclusa (D-17): dopo il commit si chiede una corsa del generatore
     regenerate?: boolean;
+    // ricerche riuscite (Phase 24 D-26): opzionale per i CommittedOutcome letterali senza sorteggio
+    learnings?: CommittedLearning[];
 }
 
 // una factory, non una costante: ogni esito riempie i propri array
@@ -62,7 +87,51 @@ export const emptyCommitted = (): CommittedOutcome => ({
     aids: [],
     spellRecoveries: [],
     regenerate: false,
+    learnings: [],
 });
+
+// dopo il commit: un foglio da notificare (questEnd o ricerca fallita) oppure una ricerca riuscita da notificare e un apprendimento da pianificare (Phase 24 D-26, D-31)
+export function recordParticipant(
+    committed: CommittedOutcome,
+    plan: ParticipantPlan,
+    seat: { pendingQuestId: Types.ObjectId; userId: Types.ObjectId },
+): void {
+    committed.spellRecoveries.push(...plan.spellRecoveries);
+    if (!plan.learning) {
+        committed.results.push({
+            resultId: plan.result._id,
+            userId: seat.userId,
+            ...(plan.result.spellResearchFailed === true && {
+                researchFailed: true,
+            }),
+        });
+        return;
+    }
+    (committed.learnings ??= []).push({
+        pendingQuestId: seat.pendingQuestId,
+        startDate: plan.result.resolvedAt,
+        learnTime: plan.learning.learnTime,
+        userId: seat.userId,
+        resultId: plan.result._id,
+        spellName: plan.learning.spellName,
+    });
+}
+
+function resultPushOf({
+    resultId,
+    researchFailed,
+}: CommittedResult): PushMessage {
+    const id = resultId.toHexString();
+    return researchFailed ? spellResearchFailed(id) : questEnd(id);
+}
+
+function researchSucceededPushOf({
+    resultId,
+    spellName,
+    learnTime,
+}: CommittedLearning): PushMessage {
+    return spellResearchSucceeded(resultId.toHexString(), spellName, learnTime);
+}
 
 // claim = la scrittura della Quest decide chi risolve; bestEffort = la quest può mancare senza bloccare l'esito
 export type QuestWriteMode = 'claim' | 'bestEffort';
@@ -140,6 +209,38 @@ export class OutcomeWriter {
         if (deleted.deletedCount === 0) throw new StaleResolution();
     }
 
+    // chiude la PendingQuest di un partecipante della corsia standard: cancellata a quest finita, riarmata per la parte di apprendimento (Phase 24 D-26)
+    async closePendingQuest(
+        pendingQuestId: Types.ObjectId,
+        plan: ParticipantPlan,
+        session: ClientSession,
+    ): Promise<void> {
+        // una PendingQuest già in apprendimento non si chiude due volte: il secondo trigger abortisce la transazione, foglio compreso
+        const filter = { _id: pendingQuestId, learningSpell: null };
+        if (!plan.learning) {
+            const deleted = await this.pendingQuestModel
+                .deleteOne(filter, { session })
+                .exec();
+            if (deleted.deletedCount === 0) throw new StaleResolution();
+            return;
+        }
+        const rearmed = await this.pendingQuestModel
+            .updateOne(
+                filter,
+                {
+                    $set: {
+                        startDate: plan.result.resolvedAt,
+                        waitingTime: plan.learning.learnTime,
+                        learningSpell: plan.learning.spellId,
+                        researchResult: plan.result._id,
+                    },
+                },
+                { session },
+            )
+            .exec();
+        if (rearmed.matchedCount === 0) throw new StaleResolution();
+    }
+
     async updateQuest(
         filter: Record<string, unknown>,
         update: Record<string, unknown> | null,
@@ -166,14 +267,25 @@ export class OutcomeWriter {
 
     // best-effort dopo il commit: un errore di consegna non annulla l'esito né le altre consegne
     async deliver(committed: CommittedOutcome): Promise<void> {
-        for (const { resultId, userId } of committed.results) {
-            await this.notify(resultId, userId);
+        for (const result of committed.results) {
+            await this.notify(result.userId, resultPushOf(result));
         }
         for (const aid of committed.aids) {
             await this.scheduler.scheduleAidTimeout(aid);
         }
         for (const recovery of committed.spellRecoveries) {
             await this.scheduleSpellRecovery(recovery);
+        }
+        for (const learning of committed.learnings ?? []) {
+            await this.scheduler.scheduleResolution({
+                pendingQuestId: learning.pendingQuestId,
+                startDate: learning.startDate,
+                waitingTime: learning.learnTime,
+            });
+            await this.notify(
+                learning.userId,
+                researchSucceededPushOf(learning),
+            );
         }
         if (committed.regenerate) this.requestGeneration();
     }
@@ -189,18 +301,16 @@ export class OutcomeWriter {
         }
     }
 
+    // ogni push degli esiti porta l'id del QuestResult: il WARN riporta solo tipo e id
     private async notify(
-        resultId: Types.ObjectId,
         userId: Types.ObjectId,
+        message: PushMessage,
     ): Promise<void> {
         try {
-            await this.push.sendToUser(
-                userId,
-                questEnd(resultId.toHexString()),
-            );
+            await this.push.sendToUser(userId, message);
         } catch {
             this.logger.warn(
-                `Push questEnd del risultato ${resultId.toHexString()} all'utente ${userId.toHexString()} non inviata`,
+                `Push ${message.type} del risultato ${message.id ?? 'sconosciuto'} all'utente ${userId.toHexString()} non inviata`,
             );
         }
     }

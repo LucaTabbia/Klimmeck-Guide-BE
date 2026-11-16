@@ -60,6 +60,7 @@ describe('QUEST_RESULT_POPULATE', () => {
             { path: 'rewards.items.item' },
             { path: 'spellsUsed.spell', model: 'Spell' },
             { path: 'spellLearned', model: 'Spell' },
+            { path: 'spellFound', model: 'Spell' },
             {
                 path: 'enemies.enemy',
                 model: 'Enemy',
@@ -139,6 +140,19 @@ describe('unpopulatedResultOf', () => {
         expect(result.enemies).toEqual([]);
         expect(result.stagesCleared).toBe(1);
         expect(result.stagesTotal).toBe(3);
+    });
+    // la populate annulla da sola la magia orfana (ref singolo): qui si prova che il path è elencato e che senza populate il foglio non serve un id nudo
+    it('nulls an orphan found spell without nulling the result (D-31)', () => {
+        expect(QUEST_RESULT_POPULATE).toContainEqual({
+            path: 'spellFound',
+            model: 'Spell',
+        });
+        const result = unpopulatedResultOf(
+            draftWith({ spellFound: new Types.ObjectId() }),
+        );
+
+        expect(result.spellFound).toBeNull();
+        expect(result.id).toBeDefined();
     });
     it('answers no unlocked lore without populate (D-09)', () => {
         const result = unpopulatedResultOf(draftWith());

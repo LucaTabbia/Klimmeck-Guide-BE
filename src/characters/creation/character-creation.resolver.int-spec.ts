@@ -146,7 +146,7 @@ describe('CharacterCreationResolver (wire)', () => {
         liberia = await seedCity('liberiaCapital', 'Liberia');
         minnely = await seedCity('elfCapital', 'Minnely');
         motherKingdom = await seedCity('motherCapital', 'Regno della Madre');
-        await seedCity('mountainVillage', 'Lamstone');
+        await seedCity('dragonbornCapital', 'Thengran');
         ({ user, bearer } = await createAuthenticatedUser(harness, {
             twitchId: TWITCH_ID,
         }));

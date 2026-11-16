@@ -1,10 +1,13 @@
 import { TitleType } from 'src/models/enums/title-type.enum';
 import {
+    allowsMixedLower,
+    allowsRank,
     BOSS_PARTY_AVERAGE_PE,
     BOSS_SHARE,
     bossSeatsFor,
     bossSeatsOf,
     budgetOf,
+    CITY_RANK_FLOORS,
     coverageRankOf,
     ENEMY_SEATS,
     GENERATED_RANKS,
@@ -22,6 +25,7 @@ import {
     PACK_ATTEMPTS,
     RANK_XP_BANDS,
     RANK_XP_FLOORS,
+    rankFloorOf,
     SINGLE_FORM_SHARE,
     XP_SCALE,
 } from 'src/quests/generation/generation-rules';
@@ -272,6 +276,64 @@ describe('generation rules', () => {
                     },
                 }),
             ).toBeNull();
+        });
+    });
+
+    describe('city rank floors', () => {
+        it('floors only the Necrorian city type, at mage (D-12)', () => {
+            expect(CITY_RANK_FLOORS).toEqual({ necrorianCity: 'mage' });
+        });
+
+        it('answers the floor of a city type and none for the others (D-12)', () => {
+            expect(rankFloorOf('necrorianCity')).toBe(TitleType.mage);
+        });
+
+        it.each([
+            ['drusteaCapital'],
+            ['atlantis'],
+            ['toString'],
+            [undefined],
+            [7],
+        ])('answers no floor for %p (D-12)', (cityType) => {
+            expect(rankFloorOf(cityType)).toBeNull();
+        });
+
+        it('allows every rank without a floor and only mage and hero above the mage floor (D-12)', () => {
+            expect(
+                GENERATED_RANKS.map((rank) => [
+                    rank,
+                    allowsRank(null, rank),
+                    allowsRank(TitleType.mage, rank),
+                ]),
+            ).toEqual([
+                [TitleType.rookie, true, false],
+                [TitleType.adventurer, true, false],
+                [TitleType.paladin, true, false],
+                [TitleType.mage, true, true],
+                [TitleType.hero, true, true],
+            ]);
+        });
+
+        it('never mixes a mage boss under the mage floor and still mixes a hero one (D-12)', () => {
+            expect(allowsMixedLower(TitleType.mage, TitleType.mage)).toBe(
+                false,
+            );
+            expect(allowsMixedLower(TitleType.mage, TitleType.hero)).toBe(true);
+        });
+
+        it('keeps the mixed bosses of a city without a floor as today (D-12)', () => {
+            expect(
+                GENERATED_RANKS.map((rank) => [
+                    rank,
+                    allowsMixedLower(null, rank),
+                ]),
+            ).toEqual([
+                [TitleType.rookie, false],
+                [TitleType.adventurer, true],
+                [TitleType.paladin, true],
+                [TitleType.mage, true],
+                [TitleType.hero, true],
+            ]);
         });
     });
 });

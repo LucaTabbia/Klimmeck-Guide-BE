@@ -59,7 +59,7 @@ const QUEST = `query Quest($id: String!) { quest(id: $id) { ${QUEST_FIELDS} } }`
 const MISSING_QUEST_ID = '64b0000000000000000000ff';
 const QUEST_IDS = 'query { quests { id } }';
 const QUEST_SPELLS =
-    'query { quests { id prizes { spell { id name minXpToLearn } } } }';
+    'query { quests { id prizes { spell { id name minLevelToLearn origin } } } }';
 const QUEST_PETS = 'query { quests { id prizes { pet { id name } } } }';
 const QUEST_ENEMY_SPELLS =
     'query { quests { id infos { enemies { enemy { id spells { id name } } } } } }';
@@ -87,6 +87,10 @@ const QUESTS_MIXED_LOOT =
     'query { quests { id prizes { randomLoot { quantity item { __typename ... on EquipmentItem { id } ... on LootItem { id } } } } } }';
 const QUESTS_SOLO_PRIZES =
     'query { quests { id prizes { xpPrize randomLoot { quantity } } } }';
+const QUESTS_SPELL_DRAW =
+    'query { quests { id prizes { spellDraw } rankPrizes { title prizes { spellDraw } } } }';
+const PENDING_QUEST_SPELL_DRAW =
+    'query { pendingQuests { id quest { prizes { spellDraw } } } }';
 const PENDING_QUEST_PRIZES =
     'query { pendingQuests { id quest { prizes { prizeCoins { gold } xpPrize randomLoot { quantity } pet { id } } } } }';
 
@@ -126,7 +130,8 @@ interface WireQuest {
 interface WireSpell {
     id: string;
     name: string;
-    minXpToLearn: number;
+    minLevelToLearn: number;
+    origin: string;
 }
 
 interface WireQuestSpell {
@@ -625,10 +630,10 @@ describe('quest catalog (wire)', () => {
     });
 
     // la magia del premio arriva popolata; un ref orfano vale null senza annullare la lista (D-17)
-    it('populates prizes.spell and tolerates an orphan spell', async () => {
+    it('populates prizes.spell and tolerates an orphan spell (D-07)', async () => {
         const spell = await persistSpell(modelOf(Spell.name, SpellSchema), {
             name: 'Palla di fuoco',
-            minXpToLearn: 40000,
+            minLevelToLearn: 15,
         });
         const withSpell = await persistCatalogQuest({
             prizes: { ...buildQuest().prizes, spell: spell._id },
@@ -651,7 +656,8 @@ describe('quest catalog (wire)', () => {
         expect(spellOf(withSpell._id)).toEqual({
             id: String(spell._id),
             name: 'Palla di fuoco',
-            minXpToLearn: 40000,
+            minLevelToLearn: 15,
+            origin: 'arcane',
         });
         expect(spellOf(orphan._id)).toBeNull();
     });
@@ -1304,6 +1310,86 @@ describe('quest catalog (wire)', () => {
                         randomLoot: [{ quantity: 3 }, { quantity: 1 }],
                     },
                 },
+            ]);
+        });
+
+        it('serves the spell draw of a quest that draws a spell (D-26)', async () => {
+            const study = await persistCatalogQuest({
+                infos: { type: 'study' },
+            });
+            await modelOf(Quest.name, QuestSchema).collection.updateOne(
+                { _id: study._id },
+                { $set: { 'prizes.spellDraw': true } },
+            );
+
+            const quests = await boardOf<{
+                id: string;
+                prizes: { spellDraw: boolean };
+                rankPrizes: unknown[];
+            }>(QUESTS_SPELL_DRAW, bearer);
+
+            expect(quests).toEqual([
+                {
+                    id: String(study._id),
+                    prizes: { spellDraw: true },
+                    rankPrizes: [],
+                },
+            ]);
+        });
+
+        it('serves a false spell draw for a quest without the flag and for a rank block without it (D-26)', async () => {
+            const legacy = await persistCatalogQuest();
+            await modelOf(Quest.name, QuestSchema).collection.updateOne(
+                { _id: legacy._id },
+                { $unset: { 'prizes.spellDraw': '' } },
+            );
+            const boss = await persistMixedBoss();
+            const innkeeper = await createPlayer(harness, {
+                twitchId: 'twitch-spell-draw-innkeeper',
+                role: RoleType.innkeeper,
+                withCharacter: false,
+            });
+            await modelOf(PendingQuest.name, PendingQuestSchema).create({
+                startDate: null,
+                waitingTime: 60,
+                quest: boss._id,
+            });
+
+            const quests = await boardOf<{
+                id: string;
+                prizes: { spellDraw: boolean };
+                rankPrizes: { title: string; prizes: { spellDraw: boolean } }[];
+            }>(QUESTS_SPELL_DRAW, bearer);
+            const pending = (
+                await graphqlRequest(
+                    harness.app,
+                    PENDING_QUEST_SPELL_DRAW,
+                    {},
+                    innkeeper.bearer,
+                )
+            ).body as {
+                data?: {
+                    pendingQuests?: { quest: { prizes: unknown } }[];
+                } | null;
+                errors?: unknown[];
+            };
+            const seen = (id: unknown) =>
+                quests.find((quest) => quest.id === String(id));
+
+            expect(seen(legacy._id)?.prizes).toEqual({ spellDraw: false });
+            expect(seen(boss._id)).toEqual({
+                id: String(boss._id),
+                prizes: { spellDraw: false },
+                rankPrizes: [
+                    { title: 'mage', prizes: { spellDraw: false } },
+                    { title: 'paladin', prizes: { spellDraw: false } },
+                ],
+            });
+            expect(pending.errors).toBeUndefined();
+            expect(pending.data?.pendingQuests).toEqual([
+                expect.objectContaining({
+                    quest: { prizes: { spellDraw: false } },
+                }),
             ]);
         });
 

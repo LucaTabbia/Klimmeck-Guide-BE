@@ -41,6 +41,8 @@ export interface GenerationWorldOptions {
     enemyLore?: boolean;
     // taglie ciclate per indice di città; default tutte capitali (13.1 D-04)
     sizes?: readonly CitySize[];
+    // tipo per indice di città: vince sul tipo derivato dalla taglia (Phase 24 D-12)
+    cityTypes?: Readonly<Record<number, CityType>>;
 }
 
 export interface GenerationWorldCity {
@@ -100,6 +102,7 @@ async function persistCityWithPois(
     poisPerCity: number,
     grid: number,
     size: CitySize,
+    cityType: CityType = CITY_TYPE_OF_SIZE[size],
 ): Promise<GenerationWorldCity> {
     const id = new Types.ObjectId();
     const x = (index % grid) * CITY_SPACING;
@@ -124,7 +127,7 @@ async function persistCityWithPois(
         buildCity({
             _id: id,
             name,
-            type: CITY_TYPE_OF_SIZE[size],
+            type: cityType,
             markerLocation: marker._id,
             pointsOfInterest: [marker._id, ...pois.map((poi) => poi._id)],
         }),
@@ -267,6 +270,7 @@ export async function persistGenerationWorld(
                 options.poisPerCity,
                 grid,
                 sizes[index % sizes.length],
+                options.cityTypes?.[index],
             ),
         );
     }
