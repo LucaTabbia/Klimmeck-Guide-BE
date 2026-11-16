@@ -55,7 +55,11 @@ import {
     type OutcomeQuestSnapshot,
 } from './outcome-plan';
 import { StaleResolution } from './outcome-writer.service';
-import { isSpellSchool, schoolOriginOf } from '../spell-schools';
+import {
+    isSpellSchool,
+    loreStudyChanceOf,
+    schoolOriginOf,
+} from '../spell-schools';
 import { isPetXpCap } from './pets/pet-xp';
 import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
@@ -499,8 +503,10 @@ export class ResolutionLoader {
         const rewards = {
             ...(await this.readRewardCatalog(quest)),
             studyLorePool: await this.readStudyLorePool(quest),
-            studyLoreChance:
+            studyLoreChance: loreStudyChanceOf(
+                quest.infos?.type,
                 this.loreConfig?.studyChance ?? DEFAULT_LORE_STUDY_CHANCE,
+            ),
         };
         return { ...combat, rewards };
     }

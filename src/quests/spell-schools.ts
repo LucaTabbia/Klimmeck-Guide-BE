@@ -19,3 +19,10 @@ export function schoolOriginOf(type: unknown): SpellOrigin | null {
 export function isSpellSchool(type: unknown): boolean {
     return schoolOriginOf(type) !== null;
 }
+
+// regola dell'utente (UAT 2026-11-16): nelle quest di scuola le nozioni si scoprono più di rado che nello studio
+export const SPELL_SCHOOL_LORE_STUDY_CHANCE = 0.15;
+
+export function loreStudyChanceOf(type: unknown, studyChance: number): number {
+    return isSpellSchool(type) ? SPELL_SCHOOL_LORE_STUDY_CHANCE : studyChance;
+}
