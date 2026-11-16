@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 24 — Origini delle magie, quest void e shamanic (↔ FE Phase 23) — ESEGUITA il 2026-11-15 su `feat/24-origini-magie-quest-void-shamanic`: Phase 24 eseguita (12/12); test:cov, verifica e audit, PR, boot reale dal ramo col migratore e sua rimozione, script di contenuto (origini, magie nuove, lore, quest, heal e negozi delle due capitali, lore delle città) e UAT su device con la FE Phase 23 a cura dell'orchestratore
+**Current focus:** Phase 24 — Origini delle magie, quest void e shamanic (↔ FE Phase 23) su `feat/24-origini-magie-quest-void-shamanic`: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
 Plan: 17 of 18
-Status: executing — blocco ricerca e apprendimento (D-26..D-31), piano 17 di 18 completato (filo: `PendingQuest.learningSpell`, `QuestResult.spellFound`, `QuestResult.spellResearchFailed`, `QuestPrizes.spellDraw`); restano gate e handoff (18).
-Last activity: 2026-11-16 -- piani 24-16 e 24-17 eseguiti (24-17: commit `dee838da`, `98f09667`, `7cf41a19`, `7a205321`): filo della ricerca e dell'apprendimento
-Next step: orchestratore: UAT su device con la FE Phase 23 (§7, 8 passi), merge di BE e FE, poi `$unset` di `minXpToLearn` a DB (§4 passo 7). Domande aperte in §7 (A2, A3, fascia nel report dei negozi).
+Status: executing — Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore.
+Last activity: 2026-11-16 -- piani 24-16, 24-17 e 24-18 eseguiti: push di fine ricerca, filo, gate verde (unit 310 / 4 495, integration 162 / 2 586) e handoff §8
+Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
 

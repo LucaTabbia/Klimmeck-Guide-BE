@@ -1,8 +1,8 @@
 ---
 phase: 24
 slug: origini-delle-magie-quest-void-e-shamanic
-status: executing
-nyquist_compliant: false
+status: complete
+nyquist_compliant: true
 wave_0_complete: true
 created: 2026-11-15
 ---
@@ -136,4 +136,4 @@ Stato delle tre verifiche manuali: **da eseguire** (a cura dell'orchestratore do
 - [x] Feedback latency < 180s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved 2026-11-15
+**Approval:** approved 2026-11-16
