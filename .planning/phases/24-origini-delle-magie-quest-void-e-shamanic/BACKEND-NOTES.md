@@ -558,3 +558,20 @@ Diagnosi: `pendingquests` (`startDate`, `waitingTime`, `learningSpell`, `researc
 - **BE-ORIGIN-16** (piano 16): push `spellResearchSucceeded` col nome, la durata e l'id del foglio della ricerca; `spellResearchFailed` al posto di `questEnd`; `questEnd` del secondo foglio; durata in italiano; consegna best-effort (D-29, D-31) — `src/push/push-events.spec.ts`, `src/push/duration-label.spec.ts`, `src/quests/outcomes/outcome-writer.spec.ts`, `src/quests/outcomes/study-spell-draw.int-spec.ts`, `src/quests/outcomes/spell-learning.int-spec.ts`.
 - **BE-ORIGIN-17** (piano 17): `learningSpell` su corsia, lista dell'oste e `characterUpdated` (nullo fuori dall'apprendimento e per magia sparita), ripubblicazione al riarmo, `spellFound` e `spellResearchFailed` sul foglio (nulli/falsi per i fogli vecchi), `spellDraw` sulla board e sui blocchi (D-26, D-29, D-31) — `src/characters/character-quest-lanes.int-spec.ts`, `src/characters/pending-quest-start.publisher.int-spec.ts`, `src/quests/results/quest-result.resolver.int-spec.ts`, `src/quests/quests.resolver.int-spec.ts`, `test/app.int-spec.ts`.
 - **BE-ORIGIN-18** (piano 18): gate del blocco (`24-18-SUMMARY.md`) e questa sezione.
+
+## 9. UAT su device del 2026-11-16 (FE 23 / BE 24)
+
+**Avvii reali.** Secondo avvio dalla build senza migratore: nessun passo di migrazione, nessun WARN del reporter delle magie né dei negozi fuori taglia. Terzo avvio dalla build col blocco ricerca/apprendimento (`f3313bd2`), quarto con D-33 (`3f82fa50`): puliti, soli avvisi dell'ambiente locale (NODE_ENV vuoto, Redis assente, EventSub locale). Un apprendimento scaduto a BE fermo è stato chiuso dallo sweep al riavvio.
+
+**Esito della UAT.** Riti sciamanico (Thengran), del Vuoto (Necrorian) e arcano (Valantar) provati fino in fondo: ricerca fallita con foglio e push `spellResearchFailed` ad app in background; ricerca riuscita con foglio `spellFound`, PendingQuest riarmata, secondo foglio a fine apprendimento con `spellLearned` e lore dell'origine alla prima magia del Vuoto. Non osservati su device: push `spellResearchSucceeded` e `questEnd` di fine apprendimento ad app in background; città di nascita di dragonborn e aarakocra (coperte dalle int-spec di creazione, scelta dell'utente).
+
+**Regola aggiunta in UAT (D-33).** Nelle tre quest di scuola il tiro della lore di studio riesce col 15% (`SPELL_SCHOOL_LORE_STUDY_CHANCE`, `loreStudyChanceOf` in `src/quests/spell-schools.ts`); le quest `study` tengono `LORE_STUDY_CHANCE` (default 0.5).
+
+**Contenuto scritto a DB dall'orchestratore su ordine dell'utente (nessun file nel repo; backup EJSON fuori dal repo).**
+- Immagini delle lore di Thengran, Murnborim, Veg Faldir e Balkuldir allineate agli asset nuovi.
+- Thengran e Balkuldir scambiate di posizione: aree, coordinate del POI di città, POI circostanti riassegnati, nome della città nei testi di 4 quest; ritocco alla lore di Thengran.
+- `requiredLearnTime`: 30 min (livello 6) → 12 h (livello 20), ritocco ±15% per potenza, in ms.
+- `recoveryTime`: 15 min (livello 6) → 8 h (livello 20), stesso ritocco, in ms.
+- Le quattro quest di scuola durano 4 h (erano 20 h), testi allineati.
+
+**Ancora da fare dopo la merge.** `$unset` di `minXpToLearn` sulle magie (il campo non è più nel modello né nello SDL).
