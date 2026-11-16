@@ -95,6 +95,12 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 - [x] **BE-ORIGIN-10**: Migratore una tantum idempotente prima di ogni hook: `minLevelToLearn` da `minXpToLearn` con la tabella dei livelli e `origin: arcane` dove manca (lascia `minXpToLearn` a DB); riscrive il tipo `magic` in `arcane` nelle quest e in ogni copia persistita del tipo; esce dal repo dopo il boot reale
 - [x] **BE-ORIGIN-11**: Gate (tsc, suite unit e integration, SDL rigenerato al boot reale di test) e handoff `BACKEND-NOTES.md` per la FE Phase 23 con il diff SDL, la finestra FE, il log del boot del migratore e i compiti di contenuto dell'orchestratore
 - [x] **BE-ORIGIN-12**: Lore dell'origine: `Spell.relatedLore: [Lore!]!` (additivo, filtrata per viewer) sbloccata a ogni magia imparata per qualunque via (sorteggio, premio fisso, premio per titolo, premio dell'oste) con il meccanismo degli altri sblocchi; la prima magia di un'origine sblocca la lore dell'origine, le successive non cambiano nulla
+- [ ] **BE-ORIGIN-13**: Regola della ricerca e dell'apprendimento nel piano d'esito (D-26, D-30): la magia del sorteggio con un `requiredLearnTime` valido non si impara alla fine della ricerca, la corsia resta occupata e la sua lore non si sblocca; magia fissa, blocco per titolo, corsie GM e tempo non valido restano immediati; nessun tiro aggiunto o spostato
+- [ ] **BE-ORIGIN-14**: Fine della ricerca (D-26): premi e stato assestati come oggi, `PendingQuest` riarmata per la parte di apprendimento (nuova `startDate`, `waitingTime` = `requiredLearnTime`, magia e foglio trattenuto), nessun `QuestResult`, job pianificato; individuale, boss e soccorso; ogni partecipante col proprio sorteggio
+- [ ] **BE-ORIGIN-15**: Fine dell'apprendimento (D-26): magia fra le conosciute, lore della magia sbloccata, corsia libera, foglio trattenuto scritto con `spellLearned` e `loreUnlocked`; innescata dal job e recuperata dallo sweep dopo un riavvio; una sola volta
+- [ ] **BE-ORIGIN-16**: Push di fine ricerca (D-29): `spellResearchSucceeded` col nome della magia e la durata dell'apprendimento, `spellResearchFailed` al posto di `questEnd` quando il sorteggio non dà nulla; `questEnd` alla fine dell'apprendimento
+- [ ] **BE-ORIGIN-17**: Filo (D-26, D-29), solo aggiunte: `PendingQuest.learningSpell`, `QuestResult.spellResearchFailed`, `QuestPrizes.spellDraw`; il personaggio si ripubblica quando la `PendingQuest` passa all'apprendimento
+- [ ] **BE-ORIGIN-18**: Gate del blocco 13–17 e handoff `BACKEND-NOTES.md` §8 per la FE (diff SDL, stati, push, esempi, compiti dell'orchestratore)
 
 ## Future Requirements
 
@@ -188,8 +194,14 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-ORIGIN-10 | Phase 24 | Complete |
 | BE-ORIGIN-11 | Phase 24 | Complete |
 | BE-ORIGIN-12 | Phase 24 | Complete |
+| BE-ORIGIN-13 | Phase 24 | Pending |
+| BE-ORIGIN-14 | Phase 24 | Pending |
+| BE-ORIGIN-15 | Phase 24 | Pending |
+| BE-ORIGIN-16 | Phase 24 | Pending |
+| BE-ORIGIN-17 | Phase 24 | Pending |
+| BE-ORIGIN-18 | Phase 24 | Pending |
 
-**Coverage:** 67 / 67 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23, 12 BE-ORIGIN → Phase 24). Nessun orfano, nessun duplicato.
+**Coverage:** 73 / 73 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23, 18 BE-ORIGIN → Phase 24). Nessun orfano, nessun duplicato.
 
 ---
 
