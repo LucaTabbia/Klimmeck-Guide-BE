@@ -744,3 +744,61 @@ describe('ResolutionLoader study lore pool', () => {
         expect(rewards.studyLorePool).toEqual([]);
     });
 });
+
+describe('ResolutionLoader learnable spell read', () => {
+    const SPELL_ID = new Types.ObjectId('64b0000000000000000000b1');
+    const LORE_ID = new Types.ObjectId('64b0000000000000000000b2');
+    const byIdModel = (entry: unknown) => ({
+        findById: jest.fn(() => ({
+            lean: () => ({ exec: () => Promise.resolve(entry) }),
+        })),
+    });
+    const loaderOver = (spellModel: ReturnType<typeof byIdModel>) =>
+        rewardLoaderWith({ spellModel: spellModel as never });
+
+    it('reads one learnable spell by id for the end of the learning part (D-26)', async () => {
+        const spellModel = byIdModel({
+            _id: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+            relatedLore: [LORE_ID, 'not-an-id'],
+            name: 'Dardo',
+            requiredLearnTime: 1_800_000,
+        });
+
+        const spell = await loaderOver(spellModel).readLearnableSpell(SPELL_ID);
+
+        expect(spellModel.findById).toHaveBeenCalledWith(SPELL_ID, {
+            minLevelToLearn: 1,
+            maxUsages: 1,
+            relatedLore: 1,
+            name: 1,
+            requiredLearnTime: 1,
+        });
+        expect(spell).toEqual({
+            spellId: SPELL_ID,
+            minLevelToLearn: 6,
+            maxUsages: 4,
+            relatedLore: [LORE_ID],
+            name: 'Dardo',
+            learnTime: 1_800_000,
+        });
+    });
+
+    it.each([
+        ['a missing spell', null],
+        [
+            'a spell without valid usages',
+            { _id: SPELL_ID, minLevelToLearn: 6, maxUsages: -1 },
+        ],
+    ])(
+        'reads no learnable spell for the end of the learning part (D-26): %s',
+        async (_case, entry) => {
+            const spell = await loaderOver(byIdModel(entry)).readLearnableSpell(
+                SPELL_ID,
+            );
+
+            expect(spell).toBeNull();
+        },
+    );
+});
