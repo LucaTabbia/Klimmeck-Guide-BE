@@ -11,6 +11,7 @@ import { combatContextOf } from './combatant-plan';
 import { ConclusionEventDrawer } from './conclusion/conclusion-event.drawer';
 import { planConclusion } from './conclusion/conclusion-plan';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
+import { SpellLearningService } from './learning/spell-learning.service';
 import {
     type CommittedOutcome,
     emptyCommitted,
@@ -54,13 +55,16 @@ export class QuestResolutionService {
         private readonly chance: ChanceSource,
         private readonly clock: Clock,
         private readonly conclusionEvents: ConclusionEventDrawer,
+        private readonly learning: SpellLearningService,
     ) {}
 
-    // unico ingresso dei trigger della corsia standard: smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
+    // unico ingresso dei trigger della corsia standard: chiude la parte di apprendimento (Phase 24 D-26), poi smista su individuale, gruppo boss o soccorso (D-01, D-05, D-09)
     async resolveStandard(
         trigger: StandardTrigger,
     ): Promise<ResolutionOutcome> {
         const now = this.clock.now();
+        const learned = await this.learning.completeDue(trigger, now);
+        if (learned) return learned;
         const loaded = await this.load(trigger, now);
         if (typeof loaded === 'string') return loaded;
         switch (resolutionKindOf(loaded.quest)) {

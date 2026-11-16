@@ -85,7 +85,7 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         prizes: { ...buildQuest().prizes, xpPrize: 300 },
     });
 
-    const drawSpellOn = (questId: unknown) =>
+    const drawSpellOn = (questId: Types.ObjectId) =>
         world.models.quests.collection.updateOne(
             { _id: questId },
             { $set: { 'prizes.spellDraw': true } },
@@ -207,7 +207,11 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         await service.resolveStandard(learningTriggerOf(subject));
 
         const listed = await world.models.questResults
-            .find(unacknowledgedResultsFilterOf(subject.player.user._id))
+            .find(
+                unacknowledgedResultsFilterOf(
+                    subject.player.user._id as Types.ObjectId,
+                ),
+            )
             .sort(UNACKNOWLEDGED_RESULTS_SORT)
             .lean<any[]>();
         expect(listed).toHaveLength(2);
