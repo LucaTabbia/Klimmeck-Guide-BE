@@ -17,6 +17,10 @@ export enum PushEventType {
     petRecovered = 'petRecovered',
     // ogni imboscata subita, vinta o persa (D-14, D-30); ambushDefeat resta nell'enum ma non parte più
     ambush = 'ambush',
+    // fine della «Fase di ricerca» con una magia trovata (Phase 24 D-29, D-31): personale, id = QuestResult della ricerca
+    spellResearchSucceeded = 'spellResearchSucceeded',
+    // fine di una ricerca senza magia (Phase 24 D-29): personale, id = QuestResult, al posto di questEnd
+    spellResearchFailed = 'spellResearchFailed',
 }
 
 registerEnumType(PushEventType, { name: 'PushEventType' });

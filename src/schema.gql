@@ -729,6 +729,8 @@ enum PushEventType {
   prisonRelease
   questCancelled
   questEnd
+  spellResearchFailed
+  spellResearchSucceeded
   streamerLive
   travelEnd
 }
