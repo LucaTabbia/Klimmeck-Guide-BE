@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { LoreType } from 'src/models/enums/lore-type.enum';
 import { SpellOrigin } from 'src/models/enums/spell-origin.enum';
 import { Lore } from 'src/models/lore.model';
+import { PushEventType } from 'src/push/push-event-type.enum';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
     buildQuest,
@@ -18,6 +19,7 @@ import {
     persistQuester,
     type Quester,
     type QuesterOptions,
+    registerDevice,
 } from '../../../test/quests/outcome-world';
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { QuestResolutionService } from './quest-resolution.service';
@@ -615,5 +617,133 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             { spell: fixed._id, usages: 4, recoveries: [], active: false },
         ]);
         expect(await learnedBy(subject)).toBe(String(fixed._id));
+    });
+
+    describe('research and learning parts', () => {
+        const LEARN_TIME = 1_800_000;
+        const learnableWithTime = () =>
+            persistSpell(world.models.spells, {
+                minLevelToLearn: 2,
+                maxUsages: 4,
+                requiredLearnTime: LEARN_TIME,
+            });
+        const researcher = async () => {
+            const subject = await quester({
+                questOverrides: questOfType('arcane', { xpPrize: 300 }),
+            });
+            await drawSpellOn(subject);
+            return subject;
+        };
+        const sheetsOf = (subject: Quester) =>
+            world.models.questResults
+                .find({ character: subject.characterId })
+                .lean<any[]>();
+        const pendingQuestOf = (subject: Quester) =>
+            world.models.pendingQuests
+                .findById(subject.pendingQuest._id)
+                .lean<any>();
+
+        it('writes the research sheet with the found spell at the end of the research (D-31)', async () => {
+            const spell = await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const sheets = await sheetsOf(subject);
+            expect(sheets).toHaveLength(1);
+            expect(String(sheets[0].spellFound)).toBe(String(spell._id));
+            expect(sheets[0].spellLearned).toBeNull();
+            expect(sheets[0].xpGained).toBe(300);
+            expect(sheets[0].resolvedAt).toEqual(NOW);
+        });
+
+        it('keeps the character engaged on the re-armed pending quest when the research finds a spell (D-26)', async () => {
+            const spell = await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            const [sheet] = await sheetsOf(subject);
+            const pendingQuest = await pendingQuestOf(subject);
+            expect(character.status.spellStates).toEqual([]);
+            expect(String(character.quests.pendingQuest)).toBe(
+                String(subject.pendingQuest._id),
+            );
+            expect(character.status.xp).toBe(300);
+            expect(pendingQuest.startDate).toEqual(NOW);
+            expect(pendingQuest.waitingTime).toBe(LEARN_TIME);
+            expect(String(pendingQuest.learningSpell)).toBe(String(spell._id));
+            expect(String(pendingQuest.researchResult)).toBe(String(sheet._id));
+        });
+
+        it('schedules the end of the learning part with the job id of the new start (D-26)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const resolves = world.questQueue.added.filter(
+                (job) => job.name === 'resolve',
+            );
+            expect(resolves).toHaveLength(1);
+            expect(resolves[0].data).toEqual({
+                pendingQuestId: String(subject.pendingQuest._id),
+                startDate: NOW.getTime(),
+                waitingTime: LEARN_TIME,
+            });
+        });
+
+        it('sends no quest end push for the research sheet of a found spell (D-31)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            await registerDevice(world.harness, subject.player);
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            expect(
+                world.push.sent.filter(
+                    ({ message }) => message.type === PushEventType.questEnd,
+                ),
+            ).toEqual([]);
+        });
+
+        it('ends the quest as before when the draw gives nothing (D-26)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0.9, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            const sheets = await sheetsOf(subject);
+            expect(await pendingQuestOf(subject)).toBeNull();
+            expect(character.quests.pendingQuest).toBeNull();
+            expect(sheets).toHaveLength(1);
+            expect(sheets[0].spellFound).toBeNull();
+            expect(world.questQueue.added).toEqual([]);
+        });
+
+        it('writes nothing on a second trigger of the same research (D-26)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+            chance.load([0, 0]);
+            const second = await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            const pendingQuest = await pendingQuestOf(subject);
+            expect(second).toBe('stale');
+            expect(character.status.xp).toBe(300);
+            expect(await sheetsOf(subject)).toHaveLength(1);
+            expect(pendingQuest.startDate).toEqual(NOW);
+            expect(pendingQuest.waitingTime).toBe(LEARN_TIME);
+        });
     });
 });

@@ -9,6 +9,7 @@ import type { ParticipantPlan } from './outcome-plan';
 import {
     emptyCommitted,
     OutcomeWriter,
+    recordParticipant,
     StaleResolution,
 } from './outcome-writer.service';
 
@@ -27,7 +28,10 @@ function fakeModels() {
             updateOne: jest.fn(() => execOf({ matchedCount: 1 })),
             create: jest.fn().mockResolvedValue([]),
         },
-        pendingQuest: { deleteOne: jest.fn(() => execOf({ deletedCount: 1 })) },
+        pendingQuest: {
+            deleteOne: jest.fn(() => execOf({ deletedCount: 1 })),
+            updateOne: jest.fn(() => execOf({ matchedCount: 1 })),
+        },
         questResult: { create: jest.fn().mockResolvedValue([]) },
     };
 }
@@ -36,7 +40,10 @@ describe('OutcomeWriter', () => {
     let models: ReturnType<typeof fakeModels>;
     let wallet: { applyCharacterCoinsDelta: jest.Mock };
     let push: { sendToUser: jest.Mock };
-    let scheduler: { scheduleAidTimeout: jest.Mock };
+    let scheduler: {
+        scheduleAidTimeout: jest.Mock;
+        scheduleResolution: jest.Mock;
+    };
     let queue: FakeTravelQueue;
     let trigger: { request: jest.Mock };
     let writer: OutcomeWriter;
@@ -53,6 +60,7 @@ describe('OutcomeWriter', () => {
         push = { sendToUser: jest.fn().mockResolvedValue({}) };
         scheduler = {
             scheduleAidTimeout: jest.fn().mockResolvedValue(undefined),
+            scheduleResolution: jest.fn().mockResolvedValue(undefined),
         };
         queue = new FakeTravelQueue();
         trigger = { request: jest.fn() };
@@ -214,6 +222,102 @@ describe('OutcomeWriter', () => {
                 resultId.toHexString(),
             );
         });
+
+        it('schedules the end of the learning part after the commit and sends no quest end push for the research sheet (D-26, D-31)', async () => {
+            const pendingQuestId = new Types.ObjectId();
+
+            await writer.deliver({
+                ...emptyCommitted(),
+                learnings: [
+                    {
+                        pendingQuestId,
+                        startDate: NOW,
+                        learnTime: 1_800_000,
+                        userId,
+                        resultId,
+                        spellName: 'Dardo',
+                    },
+                ],
+            });
+
+            expect(scheduler.scheduleResolution).toHaveBeenCalledTimes(1);
+            expect(scheduler.scheduleResolution).toHaveBeenCalledWith({
+                pendingQuestId,
+                startDate: NOW,
+                waitingTime: 1_800_000,
+            });
+            expect(push.sendToUser).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('closePendingQuest', () => {
+        const pendingQuestId = new Types.ObjectId();
+        const spellId = new Types.ObjectId();
+        const planWith = (learning: unknown): ParticipantPlan =>
+            ({
+                result: { _id: resultId, resolvedAt: NOW },
+                learning,
+            }) as unknown as ParticipantPlan;
+
+        it('deletes the pending quest of a finished quest (D-26)', async () => {
+            await writer.closePendingQuest(
+                pendingQuestId,
+                planWith(null),
+                SESSION,
+            );
+
+            expect(models.pendingQuest.deleteOne).toHaveBeenCalledWith(
+                { _id: pendingQuestId, learningSpell: null },
+                { session: SESSION },
+            );
+            expect(models.pendingQuest.updateOne).not.toHaveBeenCalled();
+        });
+
+        it('re-arms the pending quest for the learning part (D-26, D-31)', async () => {
+            await writer.closePendingQuest(
+                pendingQuestId,
+                planWith({ spellId, spellName: 'Dardo', learnTime: 1_800_000 }),
+                SESSION,
+            );
+
+            expect(models.pendingQuest.updateOne).toHaveBeenCalledWith(
+                { _id: pendingQuestId, learningSpell: null },
+                {
+                    $set: {
+                        startDate: NOW,
+                        waitingTime: 1_800_000,
+                        learningSpell: spellId,
+                        researchResult: resultId,
+                    },
+                },
+                { session: SESSION },
+            );
+            expect(models.pendingQuest.deleteOne).not.toHaveBeenCalled();
+        });
+
+        it('throws StaleResolution when the pending quest is gone or already learning (D-26)', async () => {
+            models.pendingQuest.deleteOne.mockReturnValueOnce(
+                execOf({ deletedCount: 0 }),
+            );
+            models.pendingQuest.updateOne.mockReturnValueOnce(
+                execOf({ matchedCount: 0 }),
+            );
+
+            await expect(
+                writer.closePendingQuest(
+                    pendingQuestId,
+                    planWith(null),
+                    SESSION,
+                ),
+            ).rejects.toBeInstanceOf(StaleResolution);
+            await expect(
+                writer.closePendingQuest(
+                    pendingQuestId,
+                    planWith({ spellId, spellName: null, learnTime: 1 }),
+                    SESSION,
+                ),
+            ).rejects.toBeInstanceOf(StaleResolution);
+        });
     });
 
     describe('session writes', () => {
@@ -333,6 +437,57 @@ describe('emptyCommitted', () => {
             aids: [],
             spellRecoveries: [],
             regenerate: false,
+            learnings: [],
         });
+    });
+});
+
+describe('recordParticipant', () => {
+    const pendingQuestId = new Types.ObjectId();
+    const userId = new Types.ObjectId();
+    const resultId = new Types.ObjectId();
+    const spellId = new Types.ObjectId();
+    const recovery = { characterId: 'c', spellId: 's', dueAt: NOW };
+    const planWith = (learning: unknown): ParticipantPlan =>
+        ({
+            result: { _id: resultId, resolvedAt: NOW },
+            spellRecoveries: [recovery],
+            learning,
+        }) as unknown as ParticipantPlan;
+
+    it('records a learning with the research sheet id for a participant who found a spell (D-26, D-31)', () => {
+        const committed = emptyCommitted();
+
+        recordParticipant(
+            committed,
+            planWith({ spellId, spellName: 'Dardo', learnTime: 1_800_000 }),
+            { pendingQuestId, userId },
+        );
+
+        expect(committed.learnings).toEqual([
+            {
+                pendingQuestId,
+                startDate: NOW,
+                learnTime: 1_800_000,
+                userId,
+                resultId,
+                spellName: 'Dardo',
+            },
+        ]);
+        expect(committed.results).toEqual([]);
+        expect(committed.spellRecoveries).toEqual([recovery]);
+    });
+
+    it('records a result for a participant without a learning part (D-26)', () => {
+        const committed = emptyCommitted();
+
+        recordParticipant(committed, planWith(null), {
+            pendingQuestId,
+            userId,
+        });
+
+        expect(committed.results).toEqual([{ resultId, userId }]);
+        expect(committed.learnings).toEqual([]);
+        expect(committed.spellRecoveries).toEqual([recovery]);
     });
 });

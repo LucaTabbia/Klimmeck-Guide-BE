@@ -1098,6 +1098,60 @@ describe('planParticipant', () => {
                 expect(plan.result.spellResearchFailed).toBe(false);
             },
         );
+
+        it('names the found spell on the research sheet (D-31)', () => {
+            const plan = researchWith();
+
+            expect(plan.result.spellFound).toBe(DRAWN_SPELL_ID);
+            expect(plan.result.spellLearned).toBeNull();
+            expect(plan.result.loreUnlocked).not.toContainEqual(ORIGIN_LORE);
+        });
+
+        it.each([
+            [
+                'a drawn spell without a learn time',
+                researchRewards({
+                    spellDraw: drawOf(drawnCandidate({ learnTime: undefined })),
+                }),
+                {},
+            ],
+            [
+                'a fixed spell',
+                rewardsWith({
+                    spellCandidate: {
+                        spellId: LEARNED_SPELL_ID,
+                        minLevelToLearn: 1,
+                        maxUsages: 4,
+                        name: 'Fisso',
+                        learnTime: LEARN_TIME,
+                    },
+                    spellDraw: drawOf(drawnCandidate()),
+                }),
+                {},
+            ],
+            [
+                'a GM lane',
+                researchRewards(),
+                {
+                    quest: questOf(QuestType.story, TitleType.rookie),
+                    lane: QuestLane.story,
+                    verdict: QuestOutcome.gmCompleted,
+                },
+            ],
+            [
+                'a missed draw',
+                researchRewards({ spellDraw: drawOf(drawnCandidate(), 0.9) }),
+                {},
+            ],
+            ['a lost quest', researchRewards(), lostQuest],
+        ] as [string, DrawnRewards, Partial<ParticipantPlanInput>][])(
+            'names no found spell on any other sheet (D-31): %s',
+            (_case, rewards, overrides) => {
+                const plan = researchWith(rewards, {}, overrides);
+
+                expect(plan.result.spellFound).toBeNull();
+            },
+        );
     });
 
     describe('the xp of the equipped companion', () => {

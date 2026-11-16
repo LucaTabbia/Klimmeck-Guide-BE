@@ -43,6 +43,31 @@ describe('quest lanes schemas', () => {
 
         expect(pendingQuest.get('pointsSpent')).toBe(0);
     });
+
+    it('stores the learning spell and the research sheet id of a pending quest, null by default (D-26, D-31)', () => {
+        expect(PendingQuestSchema.path('learningSpell').instance).toBe(
+            'ObjectId',
+        );
+        expect(PendingQuestSchema.path('researchResult').instance).toBe(
+            'ObjectId',
+        );
+
+        const Probe = model('PendingQuestLearningProbe', PendingQuestSchema);
+        const learningSpell = new Types.ObjectId();
+        const researchResult = new Types.ObjectId();
+        const idle = new Probe({ waitingTime: 0, quest: new Types.ObjectId() });
+        const learning = new Probe({
+            waitingTime: 1_800_000,
+            quest: new Types.ObjectId(),
+            learningSpell,
+            researchResult,
+        });
+
+        expect(idle.get('learningSpell')).toBeNull();
+        expect(idle.get('researchResult')).toBeNull();
+        expect(learning.get('learningSpell')).toEqual(learningSpell);
+        expect(learning.get('researchResult')).toEqual(researchResult);
+    });
 });
 
 describe('quest rank slots and registered adventurers schemas', () => {
