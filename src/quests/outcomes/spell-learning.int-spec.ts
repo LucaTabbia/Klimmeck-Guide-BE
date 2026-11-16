@@ -201,6 +201,11 @@ describe('QuestResolutionService.resolveStandard at the end of a learning part (
         });
         expect(learned.xpBefore).toBe(character.status.xp);
         expect(learned.xpAfter).toBe(character.status.xp);
+        // la FE riconosce il secondo foglio da spellLearned con guadagni a zero e vita invariata (D-31)
+        expect(learned.hpBefore).toBe(character.status.currentLifePoints);
+        expect(learned.hpAfter).toBe(learned.hpBefore);
+        expect(learned.companion).toBeNull();
+        expect(learned.spellResearchFailed).toBe(false);
         expect(learned.resolvedAt).toEqual(LEARNED_AT);
         expect(learned.spellFound).toBeNull();
         expect(learned.acknowledgedAt).toBeNull();
