@@ -42,6 +42,10 @@ export interface SpellCandidate {
     maxUsages: number;
     // lore sbloccate se la magia viene imparata (Phase 24 D-24); assente = nessuna lore
     relatedLore?: readonly Types.ObjectId[];
+    // nome mostrato nel push della ricerca riuscita (Phase 24 D-29); assente = nessun nome
+    name?: string;
+    // durata in ms della parte di apprendimento (Phase 24 D-26); assente = la magia si impara subito
+    learnTime?: number;
 }
 
 // pool ordinato per id esadecimale crescente: gate decide se si impara, roll sceglie fra le imparabili (quick 261111-sdc)
@@ -127,6 +131,12 @@ export const isLearnLevel = (value: unknown): value is number =>
     Number.isInteger(value) &&
     (value as number) >= 1 &&
     (value as number) <= MAX_LEVEL;
+
+// tempo di apprendimento letto lean (Phase 24 D-26): intero sicuro > 0 in ms; ogni altro valore = nessuna parte di apprendimento
+export const learnTimeOf = (value: unknown): number | null =>
+    Number.isSafeInteger(value) && (value as number) > 0
+        ? (value as number)
+        : null;
 
 // premi scritti a mano nel catalogo (D-16, T-09-11): tipo dell'enum, ref valido, quantità intera ≥ 1, altrimenti scartato
 function rewardItemOf(

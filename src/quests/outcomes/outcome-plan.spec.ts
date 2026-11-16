@@ -242,6 +242,7 @@ describe('planParticipant', () => {
                 coinsLost: null,
                 guardEncounter: false,
                 companion: null,
+                spellResearchFailed: false,
             });
         });
     });

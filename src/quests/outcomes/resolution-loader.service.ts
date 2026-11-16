@@ -61,6 +61,7 @@ import { prizeBlocksOf, type RankPrizesHolder } from '../prizes/rank-prizes';
 import { type QuestEnemyRef, validQuestEnemiesOf } from './quest-enemies';
 import {
     isLearnLevel,
+    learnTimeOf,
     type PrizesSnapshot,
     type RewardCatalog,
     type RewardRefs,
@@ -171,6 +172,8 @@ type LearnableSpellEntry = CatalogEntry<{
     minLevelToLearn?: unknown;
     maxUsages?: unknown;
     relatedLore?: unknown;
+    name?: unknown;
+    requiredLearnTime?: unknown;
 }>;
 
 const LEARNABLE_SPELL_PROJECTION = {
@@ -178,6 +181,9 @@ const LEARNABLE_SPELL_PROJECTION = {
     maxUsages: 1,
     // le lore della magia, sbloccate quando viene imparata (Phase 24 D-24)
     relatedLore: 1,
+    // nome e tempo di apprendimento per la parte di apprendimento del sorteggio (Phase 24 D-26, D-29)
+    name: 1,
+    requiredLearnTime: 1,
 } as const;
 
 // i campi di CombatEnemySnapshot, come le altre letture del catalogo
@@ -192,11 +198,25 @@ const COMBAT_ENEMY_PROJECTION = {
 } as const;
 
 // una magia senza soglia valida (livello intero ≥ 1) o senza maxUsages intero ≥ 0 non si insegna (D-17, 09.1 D-07, Phase 24 D-07): mai valori impliciti
+// solo valori validi: un nome vuoto o un tempo non valido restano assenti, mai impliciti (Phase 24 D-26, D-29)
+function learningFactsOf(
+    name: unknown,
+    requiredLearnTime: unknown,
+): Pick<SpellCandidate, 'name' | 'learnTime'> {
+    const learnTime = learnTimeOf(requiredLearnTime);
+    return {
+        ...(typeof name === 'string' && name.length > 0 ? { name } : {}),
+        ...(learnTime !== null ? { learnTime } : {}),
+    };
+}
+
 const learnableSpellOf = ({
     _id,
     minLevelToLearn,
     maxUsages,
     relatedLore,
+    name,
+    requiredLearnTime,
 }: LearnableSpellEntry): SpellCandidate | null =>
     isLearnLevel(minLevelToLearn) && isUsageCount(maxUsages)
         ? {
@@ -204,6 +224,7 @@ const learnableSpellOf = ({
               minLevelToLearn,
               maxUsages,
               relatedLore: relatedLoreIdsOf(relatedLore),
+              ...learningFactsOf(name, requiredLearnTime),
           }
         : null;
 
