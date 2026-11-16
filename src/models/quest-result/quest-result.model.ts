@@ -283,6 +283,14 @@ export class QuestResult {
     })
     spellLearned?: Types.ObjectId | Spell | null;
 
+    // magia scoperta dal sorteggio e non ancora imparata (Phase 24 D-31): null su ogni altro foglio
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Spell.name,
+        default: null,
+    })
+    spellFound?: Types.ObjectId | Spell | null;
+
     // sole lore nuove di questo esito (Phase 16 D-09): mai filtrate per viewer, sbloccate per costruzione
     @Field(() => [Lore])
     @Prop({

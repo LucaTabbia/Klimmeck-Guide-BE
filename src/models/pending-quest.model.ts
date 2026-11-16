@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType, Int } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import { Quest } from './quest/quest.model';
 
 @ObjectType()
@@ -35,6 +35,18 @@ export class PendingQuest {
     // marcatore del flusso guidato (D-18): solo Mongoose, il filo espone campi risolti; si azzera con un set a null (mai unset: il change stream lo vede, RESEARCH sonda 3)
     @Prop({ type: Date, default: null })
     missionDraftStartedAt: Date | null;
+
+    // parte di apprendimento (Phase 24 D-26): la magia trovata dal sorteggio, null fuori dall'apprendimento; il filo la espone da un resolver sul tipo
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Spell', default: null })
+    learningSpell: Types.ObjectId | null;
+
+    // foglio della ricerca che ha aperto l'apprendimento (Phase 24 D-31): da lì il secondo foglio prende quest e proprietario; mai sul filo
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: 'QuestResult',
+        default: null,
+    })
+    researchResult: Types.ObjectId | null;
 }
 
 export type PendingQuestDocument = PendingQuest & Document;

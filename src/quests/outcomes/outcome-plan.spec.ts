@@ -243,6 +243,7 @@ describe('planParticipant', () => {
                 guardEncounter: false,
                 companion: null,
                 spellResearchFailed: false,
+                spellFound: null,
             });
         });
     });

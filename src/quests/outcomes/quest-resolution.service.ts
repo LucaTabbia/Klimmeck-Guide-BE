@@ -13,7 +13,9 @@ import { planConclusion } from './conclusion/conclusion-plan';
 import { DungeonResolver } from './dungeon/dungeon-resolver';
 import {
     type CommittedOutcome,
+    emptyCommitted,
     OutcomeWriter,
+    recordParticipant,
     StaleResolution,
 } from './outcome-writer.service';
 import {
@@ -130,7 +132,11 @@ export class QuestResolutionService {
                     now,
                 });
                 await this.writer.writeParticipant(plan, session);
-                await this.writer.deletePendingQuest(pendingQuestId, session);
+                await this.writer.closePendingQuest(
+                    pendingQuestId,
+                    plan,
+                    session,
+                );
                 const questUpdate = questUpdateOf({
                     type: loaded.quest.infos.type,
                     verdicts: [{ characterId: snapshot._id, verdict }],
@@ -153,13 +159,18 @@ export class QuestResolutionService {
                         session,
                     );
                 }
+                const committed = emptyCommitted();
+                recordParticipant(committed, plan, {
+                    pendingQuestId,
+                    userId: loaded.ownerId,
+                });
+                if (aid) committed.aids.push({ aidQuestId, since: now });
+                committed.regenerate = regeneratesAfter(
+                    loaded.quest,
+                    questUpdate,
+                );
                 outcome.verdict = verdict;
-                outcome.committed = {
-                    results: [{ resultId, userId: loaded.ownerId }],
-                    aids: aid ? [{ aidQuestId, since: now }] : [],
-                    spellRecoveries: plan.spellRecoveries,
-                    regenerate: regeneratesAfter(loaded.quest, questUpdate),
-                };
+                outcome.committed = committed;
             });
         } catch (error) {
             if (!(error instanceof StaleResolution)) throw error;
@@ -176,7 +187,9 @@ export class QuestResolutionService {
         if (turnWarning) this.logger.warn(turnWarning);
         await this.writer.deliver(outcome.committed);
         this.logger.log(
-            `Missione in attesa ${pendingQuestId.toHexString()} risolta: ${outcome.verdict}`,
+            outcome.committed.learnings?.length
+                ? `Missione in attesa ${pendingQuestId.toHexString()}: ricerca conclusa, apprendimento avviato`
+                : `Missione in attesa ${pendingQuestId.toHexString()} risolta: ${outcome.verdict}`,
         );
         return 'resolved';
     }

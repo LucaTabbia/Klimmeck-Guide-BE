@@ -169,6 +169,8 @@ export interface QuestResultDraft extends DungeonTurnFields {
     companion?: CompanionOutcomeDraft | null;
     // esito vinto con un sorteggio senza magia fissa che non ha dato una magia (Phase 24 D-29): planParticipant lo scrive sempre
     spellResearchFailed?: boolean;
+    // magia scoperta dal sorteggio e non ancora imparata (Phase 24 D-31): planParticipant lo scrive sempre
+    spellFound?: Types.ObjectId | null;
 }
 
 export type PlanVerdict =
@@ -665,6 +667,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                 rewards.spellDraw !== null &&
                 !rewards.spellCandidate &&
                 !spellFound,
+            spellFound: learning?.spellId ?? null,
         },
         spellRecoveries: spells.recoveries,
         learning,
