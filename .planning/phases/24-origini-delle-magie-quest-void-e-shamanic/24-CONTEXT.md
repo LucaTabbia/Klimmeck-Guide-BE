@@ -22,3 +22,11 @@ Il contesto autorevole per entrambe le fasi è nel repo FE:
 - D-22: heal e negozi di Murnborim e Thengran da città, non da capitale (contenuto a DB); la taglia resta `capital`.
 - D-23: lore delle tre città cambiate riscritta (contenuto a DB).
 - D-24: la prima magia imparata di un'origine sblocca la lore di quell'origine: `Spell.relatedLore`, sbloccata a ogni magia imparata.
+
+## Emendamenti del 2026-11-16 (utente, durante la UAT su device — vincono sul testo sopra)
+
+- D-26: `Spell.requiredLearnTime` era servito ma mai usato. Le quest con sorteggio di magia (arcane, shamanic, void e ogni quest di studio con `spellDraw`) hanno due parti: la «Fase di ricerca» è la durata standard della quest e finisce col tiro; se il tiro dà una magia si aggiunge una parte di apprendimento lunga quanto il `requiredLearnTime` di quella magia, il personaggio resta impegnato e la magia (con la lore della sua origine, D-24/D-25) è conosciuta solo alla fine dell'apprendimento. Se il tiro non dà nulla la quest finisce come oggi.
+- D-27: tempi di apprendimento riscritti a DB: 30 minuti al livello 6 fino a 12 ore al livello 20, a scalare col livello con un ritocco per potenza. Contenuto scritto dall'orchestratore, non codice del repo.
+- D-28: il foglio della magia nel FE non mostra più il tempo di apprendimento (il campo resta servito: serve al FE per la fase di apprendimento).
+- D-29: push alla fine della «Fase di ricerca»: riuscita (nome della magia e quanto dura l'apprendimento) oppure fallita. Lo stesso dato deve essere leggibile dal FE in sessione.
+- D-30: il tempo di apprendimento vale solo per le quest con tiro. Le magie date come premio fisso (oste, premio per titolo, missioni guidate) restano immediate.
