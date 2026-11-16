@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
-Plan: 16 of 18
-Status: executing — blocco ricerca e apprendimento (D-26..D-31), piano 16 di 18 completato (push `spellResearchSucceeded` alla fine della ricerca riuscita, `spellResearchFailed` al posto di `questEnd` per la ricerca senza magia); restano filo (17), gate e handoff (18).
-Last activity: 2026-11-16 -- piano 24-16 eseguito (commit `6a7e059d`, `013b10b0`, `d8599260`, `0232708a`): push di fine ricerca
+Plan: 17 of 18
+Status: executing — blocco ricerca e apprendimento (D-26..D-31), piano 17 di 18 completato (filo: `PendingQuest.learningSpell`, `QuestResult.spellFound`, `QuestResult.spellResearchFailed`, `QuestPrizes.spellDraw`); restano gate e handoff (18).
+Last activity: 2026-11-16 -- piani 24-16 e 24-17 eseguiti (24-17: commit `dee838da`, `98f09667`, `7cf41a19`, `7a205321`): filo della ricerca e dell'apprendimento
 Next step: orchestratore: UAT su device con la FE Phase 23 (§7, 8 passi), merge di BE e FE, poi `$unset` di `minXpToLearn` a DB (§4 passo 7). Domande aperte in §7 (A2, A3, fascia nel report dei negozi).
 
 ## Current Milestone
