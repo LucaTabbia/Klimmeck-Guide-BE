@@ -46,3 +46,12 @@ export class QuestPrizesResolver {
         }));
     }
 }
+
+// il blocco sorteggia una magia alla fine della «Fase di ricerca» (Phase 24 D-26): vero solo col booleano esplicito
+@Resolver(() => QuestPrizes)
+export class QuestPrizesSpellDrawResolver {
+    @ResolveField('spellDraw', () => Boolean)
+    spellDraw(@Parent() prizes: PrizesSnapshot): boolean {
+        return prizes.spellDraw === true;
+    }
+}

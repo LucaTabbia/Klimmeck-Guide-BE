@@ -31,7 +31,10 @@ import { QuestAwaitingRescueResolver } from './awaiting-rescue/quest-awaiting-re
 import { QuestsAwaitingRescueService } from './awaiting-rescue/quests-awaiting-rescue.service';
 import { QuestNoEffectResolver } from './no-effect/quest-no-effect.resolver';
 import { ViewerVitalsService } from './no-effect/viewer-vitals.service';
-import { QuestPrizesResolver } from './prizes/quest-prizes.resolver';
+import {
+    QuestPrizesResolver,
+    QuestPrizesSpellDrawResolver,
+} from './prizes/quest-prizes.resolver';
 import { QuestsPublisher } from './quests.publisher';
 import { QuestsResolver } from './quests.resolver';
 import { QuestsService } from './quests.service';
@@ -64,6 +67,7 @@ import { QuestsService } from './quests.service';
         ViewerVitalsService,
         QuestNoEffectResolver,
         QuestPrizesResolver,
+        QuestPrizesSpellDrawResolver,
         QuestsAwaitingRescueService,
         QuestAwaitingRescueResolver,
         QuestFacedEnemiesResolver,

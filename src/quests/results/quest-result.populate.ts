@@ -19,6 +19,7 @@ export const QUEST_RESULT_POPULATE: PopulateOptions[] = [
     { path: 'rewards.items.item' },
     { path: 'spellsUsed.spell', model: Spell.name },
     { path: 'spellLearned', model: Spell.name },
+    { path: 'spellFound', model: Spell.name },
     {
         path: 'enemies.enemy',
         model: Enemy.name,
@@ -82,6 +83,8 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         })),
         rewards: { coins: draft.rewards.coins, items: [], pet: null },
         spellLearned: null,
+        spellFound: null,
+        spellResearchFailed: draft.spellResearchFailed ?? false,
         loreUnlocked: [],
         enemies: [],
     };
