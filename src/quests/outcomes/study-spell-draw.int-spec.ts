@@ -807,6 +807,31 @@ describe('QuestResolutionService.resolveStandard with a spell-draw study (replSe
             expect(world.questQueue.added).toEqual([]);
         });
 
+        it('stores the failed research on the sheet of a draw that gives nothing (D-29)', async () => {
+            await learnableWithTime();
+            const subject = await researcher();
+            chance.load([0.9, 0]);
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(sheet.spellResearchFailed).toBe(true);
+            expect(sheet.spellFound).toBeNull();
+            expect(sheet.spellLearned).toBeNull();
+        });
+
+        it('stores no failed research on the sheet of a study without a draw (D-29)', async () => {
+            await learnableWithTime();
+            const subject = await quester({
+                questOverrides: studyQuest({ xpPrize: 300 }),
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const [sheet] = await sheetsOf(subject);
+            expect(sheet.spellResearchFailed).toBe(false);
+        });
+
         it('writes nothing on a second trigger of the same research (D-26)', async () => {
             await learnableWithTime();
             const subject = await researcher();

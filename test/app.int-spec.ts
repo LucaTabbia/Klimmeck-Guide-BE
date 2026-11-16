@@ -705,8 +705,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type AwaitingAid \{[^}]*\}/)?.[0]).toBe(
             'type AwaitingAid {\n  aidQuest: ID!\n  quest: ID!\n  since: DateTime!\n}',
         );
+        // il blocco sorteggia una magia alla fine della «Fase di ricerca» (Phase 24 D-26)
         expect(schema.match(/type QuestPrizes \{[^}]*\}/)?.[0]).toBe(
-            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  xpPrize: Int\n}',
+            'type QuestPrizes {\n  cure: QuestCure\n  pet: Pet\n  prizeCoins: Coins\n  prizeItem: AssetQuantity\n  randomLoot: [AssetQuantity!]!\n  spell: Spell\n  spellDraw: Boolean!\n  xpPrize: Int\n}',
         );
         expect(schema.match(/type Quest \{[^}]*\}/)?.[0]).toBe(
             'type Quest {\n  awaitingRescue: Boolean!\n  id: ID!\n  infos: QuestInfos!\n  noEffect: Boolean!\n  prizes: QuestPrizes!\n  rankPrizes: [QuestRankPrizes!]!\n  registeredAdventurers: [QuestRegistration!]!\n  requirements: QuestRequirements!\n}',
@@ -803,8 +804,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
+        // magia scoperta (Phase 24 D-31) e ricerca fallita (Phase 24 D-29): righe additive
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellLearned: Spell\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellFound: Spell\n  spellLearned: Spell\n  spellResearchFailed: Boolean!\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type CompanionOutcome \{[^}]*\}/)?.[0]).toBe(
             'type CompanionOutcome {\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  lifeBefore: Int!\n  lifePoints: Int!\n  maxLifePoints: Int!\n  name: String!\n}',
