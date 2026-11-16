@@ -9,6 +9,7 @@ import {
     PendingQuestDocument,
 } from 'src/models/pending-quest.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
+import { Spell } from 'src/models/spell.model';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
 import {
     graphqlWsUrl,
@@ -21,7 +22,7 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { persistQuest } from '../../test/fixtures';
+import { persistQuest, persistSpell } from '../../test/fixtures';
 
 const START = new Date('2026-10-21T10:00:00.000Z');
 const START_ON_THE_WIRE = '2026-10-21T10:00:00.000Z';
@@ -30,11 +31,26 @@ const LANE_FIELDS = 'id startDate waitingTime pointsSpent quest { id }';
 const LANES_QUERY = `query Lanes($id: String!) { character(id: $id) { id quests { completedQuests { id } pendingQuest { ${LANE_FIELDS} } activeStoryQuest { ${LANE_FIELDS} } activeWorldMissionQuest { ${LANE_FIELDS} } } } }`;
 const INNKEEPER_LANES_QUERY =
     '{ characters { id quests { completedQuests { id } pendingQuest { id quest { id } } activeStoryQuest { id quest { id } } activeWorldMissionQuest { id quest { id } } } } }';
+const LEARNING_LANE_FIELDS =
+    'id startDate waitingTime learningSpell { id name origin requiredLearnTime minLevelToLearn }';
+const LEARNING_LANE_QUERY = `query LearningLane($id: String!) { character(id: $id) { quests { pendingQuest { ${LEARNING_LANE_FIELDS} } } } }`;
+const INNKEEPER_LEARNING_QUERY = `{ characters { id quests { pendingQuest { ${LEARNING_LANE_FIELDS} } } } }`;
+const LEARNING_SUBSCRIPTION = `subscription OnLearning($id: String!) { characterUpdated(id: $id) { id quests { pendingQuest { ${LEARNING_LANE_FIELDS} } } } }`;
+const LEARN_TIME = 1_800_000;
 const LANES_SUBSCRIPTION =
     'subscription OnLanes($id: String!) { characterUpdated(id: $id) { id quests { pendingQuest { id pointsSpent quest { id } } activeStoryQuest { id pointsSpent waitingTime quest { id } } } } }';
 
+interface WireLearningSpell {
+    id: string;
+    name: string;
+    origin: string;
+    requiredLearnTime: number;
+    minLevelToLearn: number;
+}
+
 interface WireLane {
     id: string;
+    learningSpell?: WireLearningSpell | null;
     startDate?: string;
     waitingTime?: number;
     pointsSpent?: number;
@@ -357,6 +373,163 @@ describe('Character quest lanes (wire)', () => {
             pointsSpent: 5000,
             waitingTime: 0,
             quest: { id: seeded.story.id },
+        });
+    });
+    describe('learning part on the standard lane', () => {
+        const spellFields = async () => {
+            const spell = await persistSpell(
+                harness.connection.model(Spell.name),
+                { requiredLearnTime: LEARN_TIME, minLevelToLearn: 6 },
+            );
+            return {
+                spell,
+                wire: {
+                    id: String(spell._id),
+                    name: spell.name as string,
+                    origin: spell.origin as string,
+                    requiredLearnTime: LEARN_TIME,
+                    minLevelToLearn: 6,
+                },
+            };
+        };
+
+        const learningLane = (learningSpell: Types.ObjectId) =>
+            pendingQuests.create({
+                startDate: START,
+                waitingTime: LEARN_TIME,
+                pointsSpent: 0,
+                quest: seeded.hunt._id,
+                learningSpell,
+            });
+
+        async function readLearningLane(player: TestPlayer): Promise<WireBody> {
+            const response = await graphqlRequest(
+                harness.app,
+                LEARNING_LANE_QUERY,
+                { id: String(player.character?._id) },
+                player.bearer,
+            );
+            return response.body as WireBody;
+        }
+
+        it('serves the spell being learned on the standard lane during the learning part (D-26, D-29)', async () => {
+            const { spell, wire } = await spellFields();
+            const learning = await learningLane(spell._id as Types.ObjectId);
+            const alice = await createAliceWith({
+                completedQuests: [],
+                pendingQuest: learning._id,
+            });
+
+            const body = await readLearningLane(alice);
+
+            expect(body).toEqual({
+                data: {
+                    character: {
+                        quests: {
+                            pendingQuest: {
+                                id: learning.id,
+                                startDate: START_ON_THE_WIRE,
+                                waitingTime: LEARN_TIME,
+                                learningSpell: wire,
+                            },
+                        },
+                    },
+                },
+            });
+        });
+
+        it.each([
+            ['without the field', false],
+            ['with the field null', true],
+        ])(
+            'serves a null learning spell outside the learning part (D-26): %s',
+            async (_name, withField) => {
+                const written = await pendingQuests.collection.insertOne({
+                    startDate: START,
+                    waitingTime: 60000,
+                    pointsSpent: 0,
+                    quest: seeded.hunt._id,
+                    ...(withField && { learningSpell: null }),
+                });
+                const alice = await createAliceWith({
+                    completedQuests: [],
+                    pendingQuest: written.insertedId,
+                });
+
+                const body = await readLearningLane(alice);
+
+                expect(body).toEqual({
+                    data: {
+                        character: {
+                            quests: {
+                                pendingQuest: {
+                                    id: written.insertedId.toHexString(),
+                                    startDate: START_ON_THE_WIRE,
+                                    waitingTime: 60000,
+                                    learningSpell: null,
+                                },
+                            },
+                        },
+                    },
+                });
+            },
+        );
+
+        it('serves a null learning spell when the spell no longer exists (D-26)', async () => {
+            const learning = await learningLane(new Types.ObjectId());
+            const alice = await createAliceWith({
+                completedQuests: [],
+                pendingQuest: learning._id,
+            });
+
+            const body = await readLearningLane(alice);
+
+            expect(body.errors).toBeUndefined();
+            expect(body.data?.character?.quests.pendingQuest).toEqual({
+                id: learning.id,
+                startDate: START_ON_THE_WIRE,
+                waitingTime: LEARN_TIME,
+                learningSpell: null,
+            });
+        });
+
+        it('serves the learning spell to the innkeeper list and in the characterUpdated snapshot (D-29)', async () => {
+            const { spell, wire } = await spellFields();
+            const learning = await learningLane(spell._id as Types.ObjectId);
+            const alice = await createAliceWith({
+                completedQuests: [],
+                pendingQuest: learning._id,
+            });
+            const oste = await createPlayer(harness, {
+                twitchId: 'twitch-lanes-oste',
+                role: RoleType.innkeeper,
+                withCharacter: false,
+            });
+
+            const response = await graphqlRequest(
+                harness.app,
+                INNKEEPER_LEARNING_QUERY,
+                undefined,
+                oste.bearer,
+            );
+            const body = response.body as WireBody;
+            const subscription = openSubscription<LanesUpdatedResult>(
+                graphqlWsUrl(harness.port),
+                { Authorization: alice.bearer },
+                {
+                    query: LEARNING_SUBSCRIPTION,
+                    variables: { id: String(alice.character?._id) },
+                },
+            );
+            opened.push(subscription);
+            const snapshot = await nextLanes(subscription);
+
+            expect(body.errors).toBeUndefined();
+            const listed = body.data?.characters?.find(
+                (character) => character.id === String(alice.character?._id),
+            );
+            expect(listed?.quests.pendingQuest?.learningSpell).toEqual(wire);
+            expect(snapshot.quests.pendingQuest?.learningSpell).toEqual(wire);
         });
     });
 });

@@ -403,8 +403,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema.match(/type CharacterQuests \{[^}]*\}/)?.[0]).toBe(
             'type CharacterQuests {\n  activeStoryQuest: PendingQuest\n  activeWorldMissionQuest: PendingQuest\n  completedQuests: [Quest!]!\n  pendingQuest: PendingQuest\n}',
         );
+        // la magia in apprendimento (Phase 24 D-26): riga additiva
         expect(schema.match(/type PendingQuest \{[^}]*\}/)?.[0]).toBe(
-            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
+            'type PendingQuest {\n  arrivedAt: DateTime\n  id: ID!\n  learningSpell: Spell\n  pointsSpent: Int!\n  quest: Quest!\n  startDate: DateTime\n  waitingTime: Float!\n}',
         );
     });
 
@@ -939,6 +940,16 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         expect(pendingQuestType).toBeDefined();
         expect(pendingQuestType).not.toContain('missionDraftStartedAt');
+    });
+
+    it('keeps the research sheet id of the learning part off the pending quest type (D-31)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+        const pendingQuestType = schema.match(
+            /type PendingQuest \{[^}]*\}/,
+        )?.[0];
+
+        expect(pendingQuestType).toBeDefined();
+        expect(pendingQuestType).not.toContain('researchResult');
     });
 
     it('adds the guided mission draft to the schema (D-17)', () => {
