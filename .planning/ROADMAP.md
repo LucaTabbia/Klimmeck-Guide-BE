@@ -274,7 +274,7 @@ Plans:
 **Depends on**: Phase 9.1 (stato e apprendimento delle magie), Phase 11 (mondo a DB), Phase 13 e 13.1 (generazione quest, quest magic), Phase 21 (magia nei premi per titolo), Phase 23
 **Scope**: da fissare nel discuss (interattivo, congiunto con la FE Phase 23). Il contenuto (origine di ogni magia, magie nuove, livelli minimi) si scrive a DB dopo la revisione dell'utente, mai nel repo.
 **Requirements**: BE-ORIGIN-01, BE-ORIGIN-02, BE-ORIGIN-03, BE-ORIGIN-04, BE-ORIGIN-05, BE-ORIGIN-06, BE-ORIGIN-07, BE-ORIGIN-08, BE-ORIGIN-09, BE-ORIGIN-10, BE-ORIGIN-11, BE-ORIGIN-12
-**Plans**: 12 plans
+**Plans**: 18 plans
 
 Plans:
 - [x] 24-01-PLAN.md — Tipi di città, fascia dei negozi e città di nascita
@@ -289,6 +289,12 @@ Plans:
 - [x] 24-10-PLAN.md — Migratore una tantum
 - [x] 24-11-PLAN.md — Gate della fase
 - [x] 24-12-PLAN.md — Chiusura della fase e handoff
+- [ ] 24-13-PLAN.md — Ricerca e apprendimento: regola pura nel piano d'esito (D-26, D-29, D-30)
+- [ ] 24-14-PLAN.md — Fine della ricerca: la PendingQuest si riarma (individuale, boss, soccorso)
+- [ ] 24-15-PLAN.md — Fine dell'apprendimento: magia conosciuta, lore, foglio; job e sweep
+- [ ] 24-16-PLAN.md — Push di fine ricerca: riuscita e fallita
+- [ ] 24-17-PLAN.md — Filo: learningSpell, spellResearchFailed, spellDraw
+- [ ] 24-18-PLAN.md — Gate del blocco e handoff §8
 
 **Stato (2026-11-15)**: 12/12 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, boot reale col migratore e sua rimozione, contenuto a DB e UAT su device (BACKEND-NOTES.md §4, §5, §7, da eseguire) a cura dell'orchestratore
 
