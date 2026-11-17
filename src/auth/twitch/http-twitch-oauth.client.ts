@@ -4,6 +4,7 @@ import {
     TwitchOAuthError,
 } from 'src/auth/twitch/twitch-oauth.client';
 import type {
+    TwitchFollowQuery,
     TwitchTokenInfo,
     TwitchTokens,
 } from 'src/auth/twitch/twitch-oauth.client';
@@ -13,6 +14,8 @@ import type { AuthConfig, TwitchOAuthConfig } from 'src/config/auth-config';
 export const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 export const TWITCH_VALIDATE_URL = 'https://id.twitch.tv/oauth2/validate';
 export const TWITCH_REVOKE_URL = 'https://id.twitch.tv/oauth2/revoke';
+export const TWITCH_FOLLOWED_CHANNELS_URL =
+    'https://api.twitch.tv/helix/channels/followed';
 export const TWITCH_REQUEST_TIMEOUT_MS = 5000;
 export const TWITCH_REVOKE_TIMEOUT_MS = 2000;
 
@@ -29,6 +32,10 @@ interface TwitchValidateResponse {
     login?: unknown;
     scopes?: unknown;
     user_id?: unknown;
+}
+
+interface TwitchFollowedChannelsResponse {
+    data?: unknown;
 }
 
 @Injectable()
@@ -83,6 +90,35 @@ export class HttpTwitchOAuthClient extends TwitchOAuthClient {
             }).toString(),
             signal: AbortSignal.timeout(TWITCH_REVOKE_TIMEOUT_MS),
         });
+    }
+
+    // richiede lo scope user:read:follows sul token dell'utente
+    async followsChannel({
+        accessToken,
+        userId,
+        broadcasterId,
+    }: TwitchFollowQuery): Promise<boolean> {
+        const twitch = this.requireTwitch();
+        const url = new URL(TWITCH_FOLLOWED_CHANNELS_URL);
+        url.search = new URLSearchParams({
+            user_id: userId,
+            broadcaster_id: broadcasterId,
+        }).toString();
+        const response = await request('Twitch follow check', url.toString(), {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Client-Id': twitch.clientId,
+            },
+            signal: AbortSignal.timeout(TWITCH_REQUEST_TIMEOUT_MS),
+        });
+        return includesChannel(
+            await readJson<TwitchFollowedChannelsResponse>(
+                response,
+                'Twitch follow check',
+            ),
+            broadcasterId,
+        );
     }
 
     private requireTwitch(): TwitchOAuthConfig {
@@ -152,6 +188,21 @@ function toTwitchTokenInfo(body: TwitchValidateResponse): TwitchTokenInfo {
         login: typeof body.login === 'string' ? body.login : '',
         scopes: Array.isArray(body.scopes) ? body.scopes.filter(isString) : [],
     };
+}
+
+function includesChannel(
+    body: TwitchFollowedChannelsResponse,
+    broadcasterId: string,
+): boolean {
+    if (!Array.isArray(body.data)) {
+        throw new TwitchOAuthError(
+            'Twitch follow check response is missing data',
+        );
+    }
+    return body.data.some(
+        (channel: { broadcaster_id?: unknown } | null) =>
+            channel?.broadcaster_id === broadcasterId,
+    );
 }
 
 function isString(value: unknown): value is string {

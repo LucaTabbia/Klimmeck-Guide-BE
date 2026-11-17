@@ -1,5 +1,6 @@
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
 import type {
+    TwitchFollowQuery,
     TwitchTokenInfo,
     TwitchTokens,
 } from 'src/auth/twitch/twitch-oauth.client';
@@ -23,8 +24,11 @@ export class FakeTwitchOAuthClient extends TwitchOAuthClient {
     tokenInfo: TwitchTokenInfo = defaultTokenInfo();
     exchangeError: Error | null = null;
     revokeError: Error | null = null;
+    isFollowing = true;
+    followError: Error | null = null;
     readonly exchangedCodes: string[] = [];
     readonly revokedTokens: string[] = [];
+    readonly followQueries: TwitchFollowQuery[] = [];
 
     exchangeCode(code: string): Promise<TwitchTokens> {
         this.exchangedCodes.push(code);
@@ -46,11 +50,20 @@ export class FakeTwitchOAuthClient extends TwitchOAuthClient {
         return Promise.resolve();
     }
 
+    followsChannel(query: TwitchFollowQuery): Promise<boolean> {
+        this.followQueries.push(query);
+        if (this.followError) return Promise.reject(this.followError);
+        return Promise.resolve(this.isFollowing);
+    }
+
     reset(): void {
         this.tokenInfo = defaultTokenInfo();
         this.exchangeError = null;
         this.revokeError = null;
+        this.isFollowing = true;
+        this.followError = null;
         this.exchangedCodes.length = 0;
         this.revokedTokens.length = 0;
+        this.followQueries.length = 0;
     }
 }

@@ -163,7 +163,7 @@ function callbackModeOf(url: URL, isProduction: boolean): CallbackMode | null {
     return null;
 }
 
-function parseBroadcasterId(broadcasterId: string): string {
+export function parseBroadcasterId(broadcasterId: string): string {
     if (!TWITCH_USER_ID_PATTERN.test(broadcasterId)) {
         throw new Error(
             'TWITCH_BROADCASTER_ID must be the numeric Twitch user id of the channel',

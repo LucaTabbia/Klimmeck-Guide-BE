@@ -24,7 +24,10 @@ import {
     FAKE_TWITCH_ACCESS_TOKEN,
     FAKE_TWITCH_USER_ID,
 } from '../../../test/auth/fake-twitch-oauth.client';
-import { TEST_JWT_SECRET } from '../../../test/auth/test-auth-config';
+import {
+    buildTestAuthConfig,
+    TEST_JWT_SECRET,
+} from '../../../test/auth/test-auth-config';
 import { persistUser } from '../../../test/fixtures';
 
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
@@ -155,6 +158,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
                 expect(match).not.toBeNull();
                 const ticket = match?.[1] as string;
                 expect(harness.twitch.exchangedCodes).toEqual(['fake-code']);
+                expect(harness.twitch.followQueries).toEqual([]);
                 expect(harness.twitch.revokedTokens).toEqual([
                     FAKE_TWITCH_ACCESS_TOKEN,
                 ]);
@@ -338,6 +342,115 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
                     FAKE_TWITCH_ACCESS_TOKEN,
                 ]);
             });
+        });
+    });
+
+    describe('with the follow gate on', () => {
+        const BROADCASTER_ID = '999000999';
+        let harness: AuthTestApp;
+        let users: Model<UserDocument>;
+        let tickets: Model<LoginTicketDocument>;
+
+        beforeAll(async () => {
+            const twitch = buildTestAuthConfig().twitch;
+            harness = await createAuthTestApp({
+                authConfig: {
+                    twitch: twitch && {
+                        ...twitch,
+                        scopes: ['user:read:follows'],
+                        followGateBroadcasterId: BROADCASTER_ID,
+                    },
+                },
+            });
+            users = harness.connection.model<UserDocument>(User.name);
+            tickets = harness.connection.model<LoginTicketDocument>(
+                LoginTicket.name,
+            );
+        });
+
+        afterEach(async () => {
+            await harness.clearDatabase();
+        });
+
+        afterAll(async () => {
+            await harness.close();
+        });
+
+        async function login(): Promise<string> {
+            const start = locationOf(
+                await get(harness, '/auth/twitch/start', {
+                    challenge: CHALLENGE,
+                }),
+            );
+            return locationOf(
+                await get(harness, '/auth/twitch/callback', {
+                    code: 'fake-code',
+                    state: new URL(start).searchParams.get('state') as string,
+                }),
+            );
+        }
+
+        it('asks Twitch for the follow scope at the start', async () => {
+            const location = locationOf(
+                await get(harness, '/auth/twitch/start', {
+                    challenge: CHALLENGE,
+                }),
+            );
+
+            expect(new URL(location).searchParams.get('scope')).toBe(
+                'user:read:follows',
+            );
+        });
+
+        it('lets a follower in, checking the follow with the user token', async () => {
+            expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
+            expect(harness.twitch.followQueries).toEqual([
+                {
+                    accessToken: FAKE_TWITCH_ACCESS_TOKEN,
+                    userId: FAKE_TWITCH_USER_ID,
+                    broadcasterId: BROADCASTER_ID,
+                },
+            ]);
+        });
+
+        it('turns away who does not follow the channel, creating nothing and revoking the token', async () => {
+            harness.twitch.isFollowing = false;
+
+            expect(await login()).toBe(errorRedirect('not_following'));
+            expect(await users.countDocuments()).toBe(0);
+            expect(await tickets.countDocuments()).toBe(0);
+            expect(harness.twitch.revokedTokens).toEqual([
+                FAKE_TWITCH_ACCESS_TOKEN,
+            ]);
+        });
+
+        it('turns away an existing user who stopped following', async () => {
+            await persistUser(users, { twitchId: FAKE_TWITCH_USER_ID });
+            harness.twitch.isFollowing = false;
+
+            expect(await login()).toBe(errorRedirect('not_following'));
+            expect(await tickets.countDocuments()).toBe(0);
+        });
+
+        it('lets the broadcaster in without a follow check', async () => {
+            harness.twitch.tokenInfo = {
+                ...harness.twitch.tokenInfo,
+                userId: BROADCASTER_ID,
+            };
+            harness.twitch.isFollowing = false;
+
+            expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
+            expect(harness.twitch.followQueries).toEqual([]);
+        });
+
+        it('fails closed when the follow check fails', async () => {
+            harness.twitch.followError = new TwitchOAuthError(
+                'Twitch follow check failed with status 401',
+            );
+
+            expect(await login()).toBe(errorRedirect('twitch_exchange_failed'));
+            expect(await users.countDocuments()).toBe(0);
+            expect(await tickets.countDocuments()).toBe(0);
         });
     });
 
