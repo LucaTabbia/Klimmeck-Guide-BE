@@ -9,6 +9,7 @@ import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
 import { buildTwitchAuthorizeUrl } from 'src/auth/twitch/twitch-authorize-url';
 import { TwitchLoginErrorCode } from 'src/auth/twitch/twitch-login-error-code.enum';
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
+import type { TwitchTokenInfo } from 'src/auth/twitch/twitch-oauth.client';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig, TwitchOAuthConfig } from 'src/config/auth-config';
 import { UsersService } from 'src/users/users.service';
@@ -99,6 +100,15 @@ export class TwitchLoginService {
                     TwitchLoginErrorCode.TWITCH_CLIENT_MISMATCH,
                 );
             }
+            if (
+                !(await this.passesFollowGate(
+                    tokens.accessToken,
+                    tokenInfo,
+                    twitch,
+                ))
+            ) {
+                return this.errorRedirect(TwitchLoginErrorCode.NOT_FOLLOWING);
+            }
             const user = await this.usersService.findOrCreateByTwitchId(
                 tokenInfo.userId,
             );
@@ -113,6 +123,20 @@ export class TwitchLoginService {
         } finally {
             await this.revokeQuietly(tokens.accessToken);
         }
+    }
+
+    // lo streamer non può seguire il proprio canale: entra sempre
+    private async passesFollowGate(
+        accessToken: string,
+        { userId }: TwitchTokenInfo,
+        { followGateBroadcasterId: broadcasterId }: TwitchOAuthConfig,
+    ): Promise<boolean> {
+        if (broadcasterId === null || userId === broadcasterId) return true;
+        return this.twitchOAuthClient.followsChannel({
+            accessToken,
+            userId,
+            broadcasterId,
+        });
     }
 
     private async revokeQuietly(accessToken: string): Promise<void> {

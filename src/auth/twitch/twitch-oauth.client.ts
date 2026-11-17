@@ -11,6 +11,12 @@ export interface TwitchTokenInfo {
     scopes: string[];
 }
 
+export interface TwitchFollowQuery {
+    accessToken: string;
+    userId: string;
+    broadcasterId: string;
+}
+
 export class TwitchOAuthError extends Error {
     constructor(message: string) {
         super(message);
@@ -22,4 +28,5 @@ export abstract class TwitchOAuthClient {
     abstract exchangeCode(code: string): Promise<TwitchTokens>;
     abstract validate(accessToken: string): Promise<TwitchTokenInfo>;
     abstract revoke(accessToken: string): Promise<void>;
+    abstract followsChannel(query: TwitchFollowQuery): Promise<boolean>;
 }

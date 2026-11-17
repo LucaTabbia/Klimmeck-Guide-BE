@@ -16,6 +16,7 @@ const TWITCH: TwitchOAuthConfig = {
     clientSecret: 'test-client-secret',
     redirectUri: 'http://localhost:3000/auth/twitch/callback',
     scopes: [],
+    followGateBroadcasterId: null,
 };
 
 describe('buildTwitchAuthorizeUrl', () => {
@@ -133,6 +134,7 @@ describe('TwitchLoginErrorCode', () => {
                 'access_denied',
                 'invalid_request',
                 'invalid_state',
+                'not_following',
                 'rate_limited',
                 'twitch_client_mismatch',
                 'twitch_exchange_failed',

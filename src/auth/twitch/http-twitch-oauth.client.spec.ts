@@ -274,6 +274,74 @@ describe('HttpTwitchOAuthClient', () => {
         });
     });
 
+    describe('followsChannel', () => {
+        const QUERY = {
+            accessToken: 'at',
+            userId: '111',
+            broadcasterId: '999',
+        };
+
+        it('asks Helix for that one followed channel with the user token', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, {
+                    total: 1,
+                    data: [{ broadcaster_id: '999' }],
+                }),
+            );
+
+            await expect(client.followsChannel(QUERY)).resolves.toBe(true);
+
+            const { url, init } = lastRequest();
+            expect(url).toBe(
+                'https://api.twitch.tv/helix/channels/followed?user_id=111&broadcaster_id=999',
+            );
+            expect(init.method).toBe('GET');
+            expect(init.headers).toEqual({
+                Authorization: 'Bearer at',
+                'Client-Id': TEST_TWITCH_CLIENT_ID,
+            });
+            expect(init.signal).toBeInstanceOf(AbortSignal);
+        });
+
+        it('answers false when the user does not follow the channel', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, { total: 0, data: [] }),
+            );
+
+            await expect(client.followsChannel(QUERY)).resolves.toBe(false);
+        });
+
+        it('answers false when Twitch returns another channel', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, { data: [{ broadcaster_id: '555' }] }),
+            );
+
+            await expect(client.followsChannel(QUERY)).resolves.toBe(false);
+        });
+
+        it('rejects with the status only when the token lacks the follow scope', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(401, { message: 'Missing scope at' }),
+            );
+
+            await expect(client.followsChannel(QUERY)).rejects.toThrow(
+                new TwitchOAuthError(
+                    'Twitch follow check failed with status 401',
+                ),
+            );
+        });
+
+        it('rejects an answer without the data list', async () => {
+            fetchSpy.mockResolvedValue(jsonResponse(200, { total: 1 }));
+
+            await expect(client.followsChannel(QUERY)).rejects.toThrow(
+                new TwitchOAuthError(
+                    'Twitch follow check response is missing data',
+                ),
+            );
+        });
+    });
+
     describe('when Twitch is not configured', () => {
         beforeEach(() => {
             client = new HttpTwitchOAuthClient(
@@ -285,6 +353,15 @@ describe('HttpTwitchOAuthClient', () => {
             ['exchangeCode', () => client.exchangeCode(AUTH_CODE)],
             ['validate', () => client.validate('at')],
             ['revoke', () => client.revoke('at')],
+            [
+                'followsChannel',
+                () =>
+                    client.followsChannel({
+                        accessToken: 'at',
+                        userId: '111',
+                        broadcasterId: '999',
+                    }),
+            ],
         ])('%s rejects without calling fetch', async (_name, call) => {
             await expect(call()).rejects.toThrow(
                 new TwitchOAuthError('Twitch OAuth is not configured'),

@@ -1,6 +1,7 @@
 import type { FactoryProvider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readEnvKeys } from 'src/config/env-keys';
+import { parseBroadcasterId } from 'src/config/eventsub-config';
 import {
     hasWhitespaceOrControlCharacter,
     LOOPBACK_HOSTNAMES,
@@ -18,12 +19,15 @@ export const OAUTH_STATE_TTL_SECONDS = 600;
 export const DEFAULT_APP_AUTH_REDIRECT_URL = 'klimmeck://auth';
 export const JWT_SECRET_MIN_LENGTH = 32;
 export const DEV_AUTH_TOKEN_MIN_LENGTH = 16;
+export const FOLLOW_GATE_SCOPE = 'user:read:follows';
 
 export interface TwitchOAuthConfig {
     clientId: string;
     clientSecret: string;
     redirectUri: string;
     scopes: readonly string[];
+    // canale da seguire per entrare; null = login aperto a ogni account Twitch
+    followGateBroadcasterId: string | null;
 }
 
 export interface DevAuthConfig {
@@ -56,6 +60,7 @@ export const AUTH_ENV_KEYS = [
     'DEV_AUTH_TWITCH_ID',
     'DEV_AUTH_ROLE',
     'TWITCH_LOGIN_SCOPES',
+    'TWITCH_BROADCASTER_ID',
 ] as const;
 
 export type AuthEnv = Partial<Record<(typeof AUTH_ENV_KEYS)[number], string>>;
@@ -153,7 +158,11 @@ function parseDevAuthConfig(env: AuthEnv): DevAuthConfig | null {
 }
 
 function parseTwitchConfig(env: AuthEnv): TwitchOAuthConfig | null {
-    const scopes = parseLoginScopes(env);
+    const followGateBroadcasterId = parseFollowGateBroadcasterId(env);
+    const scopes = withFollowGateScope(
+        parseLoginScopes(env),
+        followGateBroadcasterId,
+    );
     const clientId = env.TWITCH_CLIENT_ID;
     const clientSecret = env.TWITCH_CLIENT_SECRET;
     const redirectUri = env.TWITCH_REDIRECT_URI;
@@ -163,7 +172,26 @@ function parseTwitchConfig(env: AuthEnv): TwitchOAuthConfig | null {
             'TWITCH_REDIRECT_URI must be an https URL or http://localhost / http://127.0.0.1',
         );
     }
-    return { clientId, clientSecret, redirectUri, scopes };
+    return {
+        clientId,
+        clientSecret,
+        redirectUri,
+        scopes,
+        followGateBroadcasterId,
+    };
+}
+
+function parseFollowGateBroadcasterId(env: AuthEnv): string | null {
+    const broadcasterId = (env.TWITCH_BROADCASTER_ID ?? '').trim();
+    return broadcasterId === '' ? null : parseBroadcasterId(broadcasterId);
+}
+
+function withFollowGateScope(
+    scopes: string[],
+    followGateBroadcasterId: string | null,
+): string[] {
+    if (followGateBroadcasterId === null) return scopes;
+    return [...new Set([...scopes, FOLLOW_GATE_SCOPE])];
 }
 
 function parseLoginScopes(env: AuthEnv): string[] {

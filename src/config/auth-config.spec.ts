@@ -71,6 +71,7 @@ describe('parseAuthConfig', () => {
                 clientSecret: 'client-secret',
                 redirectUri: 'https://api.example.com/auth/twitch/callback',
                 scopes: [],
+                followGateBroadcasterId: null,
             });
         });
 
@@ -174,6 +175,65 @@ describe('parseAuthConfig', () => {
 
         it('is declared among the auth env keys', () => {
             expect(AUTH_ENV_KEYS).toContain('TWITCH_LOGIN_SCOPES');
+        });
+    });
+
+    describe('follow gate (TWITCH_BROADCASTER_ID)', () => {
+        const BROADCASTER_ID = '123456789';
+        const BROADCASTER_MESSAGE =
+            'TWITCH_BROADCASTER_ID must be the numeric Twitch user id of the channel';
+
+        it('is off without a broadcaster id: no follow scope is requested', () => {
+            const config = parseWith(TWITCH_ENV);
+
+            expect(config.twitch?.followGateBroadcasterId).toBeNull();
+            expect(config.twitch?.scopes).toEqual([]);
+        });
+
+        it('is on with a broadcaster id and requests the follow scope', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_BROADCASTER_ID: BROADCASTER_ID,
+            });
+
+            expect(config.twitch?.followGateBroadcasterId).toBe(BROADCASTER_ID);
+            expect(config.twitch?.scopes).toEqual(['user:read:follows']);
+        });
+
+        it('adds the follow scope to the configured ones, once', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_BROADCASTER_ID: BROADCASTER_ID,
+                TWITCH_LOGIN_SCOPES:
+                    'user:read:follows channel:read:redemptions',
+            });
+
+            expect(config.twitch?.scopes).toEqual([
+                'user:read:follows',
+                'channel:read:redemptions',
+            ]);
+        });
+
+        it('treats a blank broadcaster id as off', () => {
+            const config = parseWith({
+                ...TWITCH_ENV,
+                TWITCH_BROADCASTER_ID: '   ',
+            });
+
+            expect(config.twitch?.followGateBroadcasterId).toBeNull();
+        });
+
+        it('rejects a malformed broadcaster id without leaking it', () => {
+            expect(() =>
+                parseWith({
+                    ...TWITCH_ENV,
+                    TWITCH_BROADCASTER_ID: 'lordreavor',
+                }),
+            ).toThrow(new Error(BROADCASTER_MESSAGE));
+        });
+
+        it('is declared among the auth env keys', () => {
+            expect(AUTH_ENV_KEYS).toContain('TWITCH_BROADCASTER_ID');
         });
     });
 
