@@ -38,4 +38,12 @@ export class SessionRevocationService {
         );
         this.registry.closeSessions(revoked, SessionRevokeReason.roleChanged);
     }
+
+    async revokeAllForAccessLoss(userId: string): Promise<void> {
+        const revoked = await this.sessions.revokeAllOf(
+            userId,
+            SessionRevokeReason.accessLost,
+        );
+        this.registry.closeSessions(revoked, SessionRevokeReason.accessLost);
+    }
 }

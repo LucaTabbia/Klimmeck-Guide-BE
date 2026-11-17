@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { StreamerCredentialStore } from 'src/auth/channel-access/streamer-credential.store';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { CODE_CHALLENGE_PATTERN } from 'src/auth/crypto/token-crypto';
 import {
@@ -9,8 +10,11 @@ import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
 import { buildTwitchAuthorizeUrl } from 'src/auth/twitch/twitch-authorize-url';
 import { TwitchLoginErrorCode } from 'src/auth/twitch/twitch-login-error-code.enum';
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
-import type { TwitchTokenInfo } from 'src/auth/twitch/twitch-oauth.client';
-import { AUTH_CONFIG } from 'src/config/auth-config';
+import type {
+    TwitchTokenInfo,
+    TwitchTokens,
+} from 'src/auth/twitch/twitch-oauth.client';
+import { AUTH_CONFIG, STREAMER_FOLLOWERS_SCOPE } from 'src/config/auth-config';
 import type { AuthConfig, TwitchOAuthConfig } from 'src/config/auth-config';
 import { UsersService } from 'src/users/users.service';
 
@@ -31,6 +35,7 @@ export class TwitchLoginService {
         private readonly twitchOAuthClient: TwitchOAuthClient,
         private readonly usersService: UsersService,
         private readonly loginTicketService: LoginTicketService,
+        private readonly streamerCredentials: StreamerCredentialStore,
     ) {}
 
     async buildStartRedirectUrl(challenge: unknown): Promise<string> {
@@ -84,13 +89,15 @@ export class TwitchLoginService {
         }
     }
 
-    // i token Twitch non vengono mai persistiti: servono solo a leggere l'identità e sono revocati subito (D-05)
+    // i token Twitch servono solo a leggere l'identità e sono revocati subito (D-05); unica eccezione il token dello
+    // streamer che concede moderator:read:followers, tenuto per riverificare chi segue il canale
     private async completeLogin(
         code: string,
         challenge: string,
         twitch: TwitchOAuthConfig,
     ): Promise<string> {
         const tokens = await this.twitchOAuthClient.exchangeCode(code);
+        let tokenKept = false;
         try {
             const tokenInfo = await this.twitchOAuthClient.validate(
                 tokens.accessToken,
@@ -109,6 +116,11 @@ export class TwitchLoginService {
             ) {
                 return this.errorRedirect(TwitchLoginErrorCode.NOT_FOLLOWING);
             }
+            tokenKept = await this.keepStreamerFollowersGrant(
+                tokens,
+                tokenInfo,
+                twitch,
+            );
             const user = await this.usersService.findOrCreateByTwitchId(
                 tokenInfo.userId,
             );
@@ -121,7 +133,7 @@ export class TwitchLoginService {
                 ticket,
             );
         } finally {
-            await this.revokeQuietly(tokens.accessToken);
+            if (!tokenKept) await this.revokeQuietly(tokens.accessToken);
         }
     }
 
@@ -137,6 +149,24 @@ export class TwitchLoginService {
             userId,
             broadcasterId,
         });
+    }
+
+    // scope e proprietario verificati qui: senza, Helix risponderebbe «nessun follower» per chiunque
+    private async keepStreamerFollowersGrant(
+        { refreshToken }: TwitchTokens,
+        { userId, scopes }: TwitchTokenInfo,
+        { followGateBroadcasterId: broadcasterId }: TwitchOAuthConfig,
+    ): Promise<boolean> {
+        if (
+            broadcasterId === null ||
+            userId !== broadcasterId ||
+            !scopes.includes(STREAMER_FOLLOWERS_SCOPE) ||
+            refreshToken === undefined
+        ) {
+            return false;
+        }
+        await this.streamerCredentials.save(broadcasterId, refreshToken);
+        return true;
     }
 
     private async revokeQuietly(accessToken: string): Promise<void> {

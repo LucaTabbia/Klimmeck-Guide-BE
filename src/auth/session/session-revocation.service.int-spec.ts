@@ -149,6 +149,20 @@ describe('SessionRevocationService (replSet)', () => {
         }
     });
 
+    it('revokes every session of the user with accessLost before closing their sockets', async () => {
+        const [foreign] = await createSessions(OTHER_USER_ID, 1);
+        const [a, b] = await createSessions(USER_ID, 2);
+
+        await revocation.revokeAllForAccessLoss(USER_ID);
+
+        expect(events).toEqual([
+            ['database'],
+            ['sockets', [a, b].sort(), 'accessLost'],
+        ]);
+        expect((await readSession(a))?.revokeReason).toBe('accessLost');
+        expect((await readSession(foreign))?.revokedAt).toBeNull();
+    });
+
     it('closes no socket when the database revocation fails (D-12)', async () => {
         const [, keep] = await createSessions(USER_ID, 2);
         const failure = new Error('database down');

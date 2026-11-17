@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
     TwitchOAuthClient,
     TwitchOAuthError,
+    TwitchRefreshRejectedError,
 } from 'src/auth/twitch/twitch-oauth.client';
 import type {
     TwitchFollowQuery,
@@ -16,10 +17,13 @@ export const TWITCH_VALIDATE_URL = 'https://id.twitch.tv/oauth2/validate';
 export const TWITCH_REVOKE_URL = 'https://id.twitch.tv/oauth2/revoke';
 export const TWITCH_FOLLOWED_CHANNELS_URL =
     'https://api.twitch.tv/helix/channels/followed';
+export const TWITCH_CHANNEL_FOLLOWERS_URL =
+    'https://api.twitch.tv/helix/channels/followers';
 export const TWITCH_REQUEST_TIMEOUT_MS = 5000;
 export const TWITCH_REVOKE_TIMEOUT_MS = 2000;
 
 const FORM_HEADERS = { 'Content-Type': 'application/x-www-form-urlencoded' };
+const REJECTED_REFRESH_STATUSES: readonly number[] = [400, 401];
 
 interface TwitchTokenResponse {
     access_token?: unknown;
@@ -34,9 +38,14 @@ interface TwitchValidateResponse {
     user_id?: unknown;
 }
 
-interface TwitchFollowedChannelsResponse {
+interface TwitchFollowListResponse {
     data?: unknown;
 }
+
+type TwitchFollowEntry = {
+    broadcaster_id?: unknown;
+    user_id?: unknown;
+} | null;
 
 @Injectable()
 export class HttpTwitchOAuthClient extends TwitchOAuthClient {
@@ -92,19 +101,73 @@ export class HttpTwitchOAuthClient extends TwitchOAuthClient {
         });
     }
 
-    // richiede lo scope user:read:follows sul token dell'utente
+    async refresh(refreshToken: string): Promise<TwitchTokens> {
+        const twitch = this.requireTwitch();
+        const operation = 'Twitch token refresh';
+        const response = await send(operation, TWITCH_TOKEN_URL, {
+            method: 'POST',
+            headers: FORM_HEADERS,
+            body: new URLSearchParams({
+                client_id: twitch.clientId,
+                client_secret: twitch.clientSecret,
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+            }).toString(),
+            signal: AbortSignal.timeout(TWITCH_REQUEST_TIMEOUT_MS),
+        });
+        if (REJECTED_REFRESH_STATUSES.includes(response.status)) {
+            throw new TwitchRefreshRejectedError(
+                failedWithStatus(operation, response),
+            );
+        }
+        assertOk(operation, response);
+        return toTwitchTokens(
+            await readJson<TwitchTokenResponse>(response, 'Twitch token'),
+        );
+    }
+
     async followsChannel({
         accessToken,
         userId,
         broadcasterId,
     }: TwitchFollowQuery): Promise<boolean> {
+        const follows = await this.listFollows(
+            'Twitch follow check',
+            TWITCH_FOLLOWED_CHANNELS_URL,
+            { user_id: userId, broadcaster_id: broadcasterId },
+            accessToken,
+        );
+        return follows.some(
+            (channel) => channel?.broadcaster_id === broadcasterId,
+        );
+    }
+
+    // senza lo scope o con il token di un altro utente Helix risponde 200 con la lista vuota: il token va quindi
+    // accettato solo da chi ha verificato scope e proprietario (TwitchLoginService)
+    async channelHasFollower({
+        accessToken,
+        userId,
+        broadcasterId,
+    }: TwitchFollowQuery): Promise<boolean> {
+        const followers = await this.listFollows(
+            'Twitch follower check',
+            TWITCH_CHANNEL_FOLLOWERS_URL,
+            { broadcaster_id: broadcasterId, user_id: userId },
+            accessToken,
+        );
+        return followers.some((follower) => follower?.user_id === userId);
+    }
+
+    private async listFollows(
+        operation: string,
+        endpoint: string,
+        query: Record<string, string>,
+        accessToken: string,
+    ): Promise<TwitchFollowEntry[]> {
         const twitch = this.requireTwitch();
-        const url = new URL(TWITCH_FOLLOWED_CHANNELS_URL);
-        url.search = new URLSearchParams({
-            user_id: userId,
-            broadcaster_id: broadcasterId,
-        }).toString();
-        const response = await request('Twitch follow check', url.toString(), {
+        const url = new URL(endpoint);
+        url.search = new URLSearchParams(query).toString();
+        const response = await request(operation, url.toString(), {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -112,13 +175,14 @@ export class HttpTwitchOAuthClient extends TwitchOAuthClient {
             },
             signal: AbortSignal.timeout(TWITCH_REQUEST_TIMEOUT_MS),
         });
-        return includesChannel(
-            await readJson<TwitchFollowedChannelsResponse>(
-                response,
-                'Twitch follow check',
-            ),
-            broadcasterId,
+        const body = await readJson<TwitchFollowListResponse>(
+            response,
+            operation,
         );
+        if (!Array.isArray(body.data)) {
+            throw new TwitchOAuthError(`${operation} response is missing data`);
+        }
+        return body.data as TwitchFollowEntry[];
     }
 
     private requireTwitch(): TwitchOAuthConfig {
@@ -135,18 +199,31 @@ async function request(
     url: string,
     init: RequestInit,
 ): Promise<Response> {
-    let response: Response;
+    const response = await send(operation, url, init);
+    assertOk(operation, response);
+    return response;
+}
+
+async function send(
+    operation: string,
+    url: string,
+    init: RequestInit,
+): Promise<Response> {
     try {
-        response = await fetch(url, init);
+        return await fetch(url, init);
     } catch {
         throw new TwitchOAuthError(`${operation} request failed`);
     }
+}
+
+function assertOk(operation: string, response: Response): void {
     if (!response.ok) {
-        throw new TwitchOAuthError(
-            `${operation} failed with status ${response.status}`,
-        );
+        throw new TwitchOAuthError(failedWithStatus(operation, response));
     }
-    return response;
+}
+
+function failedWithStatus(operation: string, response: Response): string {
+    return `${operation} failed with status ${response.status}`;
 }
 
 async function readJson<T>(response: Response, source: string): Promise<T> {
@@ -188,21 +265,6 @@ function toTwitchTokenInfo(body: TwitchValidateResponse): TwitchTokenInfo {
         login: typeof body.login === 'string' ? body.login : '',
         scopes: Array.isArray(body.scopes) ? body.scopes.filter(isString) : [],
     };
-}
-
-function includesChannel(
-    body: TwitchFollowedChannelsResponse,
-    broadcasterId: string,
-): boolean {
-    if (!Array.isArray(body.data)) {
-        throw new TwitchOAuthError(
-            'Twitch follow check response is missing data',
-        );
-    }
-    return body.data.some(
-        (channel: { broadcaster_id?: unknown } | null) =>
-            channel?.broadcaster_id === broadcasterId,
-    );
 }
 
 function isString(value: unknown): value is string {

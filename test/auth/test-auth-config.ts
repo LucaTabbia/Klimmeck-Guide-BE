@@ -16,6 +16,7 @@ export function buildTestAuthConfig(
         refreshTokenGraceSeconds: 30,
         loginTicketTtlSeconds: 60,
         oauthStateTtlSeconds: 600,
+        channelAccessRecheckSeconds: 3600,
         appAuthRedirectUrl: 'klimmeck://auth',
         twitch: {
             clientId: TEST_TWITCH_CLIENT_ID,

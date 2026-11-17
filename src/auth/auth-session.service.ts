@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthException } from 'src/auth/auth.exception';
+import { ChannelAccess } from 'src/auth/channel-access/channel-access.enum';
+import { ChannelAccessService } from 'src/auth/channel-access/channel-access.service';
 import { Clock } from 'src/auth/clock';
 import { AuthSession } from 'src/auth/dto/auth-session.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
@@ -21,6 +23,7 @@ export class AuthSessionService {
         private readonly usersService: UsersService,
         private readonly clock: Clock,
         private readonly revocation: SessionRevocationService,
+        private readonly channelAccess: ChannelAccessService,
     ) {}
 
     // l'ultimo login caccia l'altro (Phase 17 D-02): le altre sessioni attive dell'utente si revocano
@@ -61,6 +64,7 @@ export class AuthSessionService {
             await this.sessionService.revoke(session.sessionId, null);
             throw AuthException.sessionRevoked();
         }
+        await this.revokeIfChannelAccessLost(user);
         const signed = await this.signAccessToken(user, session.sessionId);
         const rotated = await this.sessionService.rotate(
             refreshToken,
@@ -78,6 +82,14 @@ export class AuthSessionService {
             );
         }
         return true;
+    }
+
+    // chi non ha più accesso al canale esce da ogni dispositivo, come con un login altrove
+    private async revokeIfChannelAccessLost(user: User): Promise<void> {
+        const access = await this.channelAccess.recheck(user.twitchId);
+        if (access !== ChannelAccess.lost) return;
+        await this.revocation.revokeAllForAccessLoss(user.id);
+        throw AuthException.sessionRevoked(SessionRevokeReason.accessLost);
     }
 
     private async buildSession(

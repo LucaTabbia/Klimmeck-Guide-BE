@@ -20,6 +20,8 @@ export const DEFAULT_APP_AUTH_REDIRECT_URL = 'klimmeck://auth';
 export const JWT_SECRET_MIN_LENGTH = 32;
 export const DEV_AUTH_TOKEN_MIN_LENGTH = 16;
 export const FOLLOW_GATE_SCOPE = 'user:read:follows';
+export const STREAMER_FOLLOWERS_SCOPE = 'moderator:read:followers';
+export const CHANNEL_ACCESS_RECHECK_SECONDS = 3600;
 
 export interface TwitchOAuthConfig {
     clientId: string;
@@ -43,6 +45,7 @@ export interface AuthConfig {
     refreshTokenGraceSeconds: number;
     loginTicketTtlSeconds: number;
     oauthStateTtlSeconds: number;
+    channelAccessRecheckSeconds: number;
     appAuthRedirectUrl: string;
     twitch: TwitchOAuthConfig | null;
     devAuth: DevAuthConfig | null;
@@ -94,6 +97,7 @@ export function parseAuthConfig(env: AuthEnv): AuthConfig {
         refreshTokenGraceSeconds: REFRESH_TOKEN_GRACE_SECONDS,
         loginTicketTtlSeconds: LOGIN_TICKET_TTL_SECONDS,
         oauthStateTtlSeconds: OAUTH_STATE_TTL_SECONDS,
+        channelAccessRecheckSeconds: CHANNEL_ACCESS_RECHECK_SECONDS,
         appAuthRedirectUrl: parseAppAuthRedirectUrl(env),
         twitch: parseTwitchConfig(env),
         devAuth: parseDevAuthConfig(env),

@@ -1,5 +1,8 @@
 import { HttpTwitchOAuthClient } from 'src/auth/twitch/http-twitch-oauth.client';
-import { TwitchOAuthError } from 'src/auth/twitch/twitch-oauth.client';
+import {
+    TwitchOAuthError,
+    TwitchRefreshRejectedError,
+} from 'src/auth/twitch/twitch-oauth.client';
 import {
     buildTestAuthConfig,
     TEST_TWITCH_CLIENT_ID,
@@ -342,6 +345,124 @@ describe('HttpTwitchOAuthClient', () => {
         });
     });
 
+    describe('refresh', () => {
+        it('posts a refresh_token grant and returns the rotated tokens', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, {
+                    access_token: 'new-at',
+                    refresh_token: 'new-rt',
+                    expires_in: 14400,
+                    scope: ['moderator:read:followers'],
+                    token_type: 'bearer',
+                }),
+            );
+
+            await expect(client.refresh('old-rt')).resolves.toEqual({
+                accessToken: 'new-at',
+                refreshToken: 'new-rt',
+                expiresIn: 14400,
+            });
+
+            const { url, init } = lastRequest();
+            expect(url).toBe('https://id.twitch.tv/oauth2/token');
+            expect(init.method).toBe('POST');
+            expect(init.signal).toBeInstanceOf(AbortSignal);
+            const form = lastForm();
+            expect(form.get('grant_type')).toBe('refresh_token');
+            expect(form.get('refresh_token')).toBe('old-rt');
+            expect(form.get('client_id')).toBe(TEST_TWITCH_CLIENT_ID);
+            expect(form.get('client_secret')).toBe(TEST_CLIENT_SECRET);
+        });
+
+        it.each([400, 401])(
+            'tells a refresh token rejected by Twitch (%p) apart, without leaking it',
+            async (status) => {
+                fetchSpy.mockResolvedValue(
+                    jsonResponse(status, { message: 'Invalid refresh token' }),
+                );
+
+                const error: unknown = await client
+                    .refresh('old-rt')
+                    .catch((caught: unknown) => caught);
+
+                expect(error).toBeInstanceOf(TwitchRefreshRejectedError);
+                expect((error as Error).message).toBe(
+                    `Twitch token refresh failed with status ${status}`,
+                );
+            },
+        );
+
+        it('keeps a Twitch outage apart from a rejected refresh token', async () => {
+            fetchSpy.mockResolvedValue(jsonResponse(503, {}));
+
+            const error: unknown = await client
+                .refresh('old-rt')
+                .catch((caught: unknown) => caught);
+
+            expect(error).toBeInstanceOf(TwitchOAuthError);
+            expect(error).not.toBeInstanceOf(TwitchRefreshRejectedError);
+        });
+    });
+
+    describe('channelHasFollower', () => {
+        const QUERY = {
+            accessToken: 'streamer-at',
+            userId: '111',
+            broadcasterId: '999',
+        };
+
+        it('asks Helix whether that user follows the channel, with the streamer token', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, { total: 42, data: [{ user_id: '111' }] }),
+            );
+
+            await expect(client.channelHasFollower(QUERY)).resolves.toBe(true);
+
+            const { url, init } = lastRequest();
+            expect(url).toBe(
+                'https://api.twitch.tv/helix/channels/followers?broadcaster_id=999&user_id=111',
+            );
+            expect(init.method).toBe('GET');
+            expect(init.headers).toEqual({
+                Authorization: 'Bearer streamer-at',
+                'Client-Id': TEST_TWITCH_CLIENT_ID,
+            });
+            expect(init.signal).toBeInstanceOf(AbortSignal);
+        });
+
+        it('answers false when the follower list comes back empty', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(200, { total: 42, data: [] }),
+            );
+
+            await expect(client.channelHasFollower(QUERY)).resolves.toBe(false);
+        });
+
+        it('rejects with the status only on a refused token', async () => {
+            fetchSpy.mockResolvedValue(
+                jsonResponse(401, {
+                    message: 'Invalid OAuth token streamer-at',
+                }),
+            );
+
+            await expect(client.channelHasFollower(QUERY)).rejects.toThrow(
+                new TwitchOAuthError(
+                    'Twitch follower check failed with status 401',
+                ),
+            );
+        });
+
+        it('rejects an answer without the data list', async () => {
+            fetchSpy.mockResolvedValue(jsonResponse(200, { total: 42 }));
+
+            await expect(client.channelHasFollower(QUERY)).rejects.toThrow(
+                new TwitchOAuthError(
+                    'Twitch follower check response is missing data',
+                ),
+            );
+        });
+    });
+
     describe('when Twitch is not configured', () => {
         beforeEach(() => {
             client = new HttpTwitchOAuthClient(
@@ -353,6 +474,16 @@ describe('HttpTwitchOAuthClient', () => {
             ['exchangeCode', () => client.exchangeCode(AUTH_CODE)],
             ['validate', () => client.validate('at')],
             ['revoke', () => client.revoke('at')],
+            ['refresh', () => client.refresh('rt')],
+            [
+                'channelHasFollower',
+                () =>
+                    client.channelHasFollower({
+                        accessToken: 'at',
+                        userId: '111',
+                        broadcasterId: '999',
+                    }),
+            ],
             [
                 'followsChannel',
                 () =>

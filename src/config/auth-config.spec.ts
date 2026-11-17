@@ -38,6 +38,7 @@ describe('parseAuthConfig', () => {
             refreshTokenGraceSeconds: 30,
             loginTicketTtlSeconds: 60,
             oauthStateTtlSeconds: 600,
+            channelAccessRecheckSeconds: 3600,
             appAuthRedirectUrl: 'klimmeck://auth',
             twitch: null,
             devAuth: null,
