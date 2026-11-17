@@ -9,6 +9,8 @@ import { TEST_TWITCH_CLIENT_ID } from './test-auth-config';
 export const FAKE_TWITCH_USER_ID = 'twitch-user-1';
 export const FAKE_TWITCH_ACCESS_TOKEN = 'fake-twitch-access-token';
 export const FAKE_TWITCH_REFRESH_TOKEN = 'fake-twitch-refresh-token';
+export const FAKE_STREAMER_ACCESS_TOKEN = 'fake-streamer-access-token';
+export const FAKE_STREAMER_REFRESH_TOKEN = 'fake-streamer-refresh-token';
 
 function defaultTokenInfo(): TwitchTokenInfo {
     return {
@@ -29,6 +31,12 @@ export class FakeTwitchOAuthClient extends TwitchOAuthClient {
     readonly exchangedCodes: string[] = [];
     readonly revokedTokens: string[] = [];
     readonly followQueries: TwitchFollowQuery[] = [];
+    isFollower = true;
+    followerError: Error | null = null;
+    refreshError: Error | null = null;
+    streamerTokenSeconds = 3600;
+    readonly followerQueries: TwitchFollowQuery[] = [];
+    readonly refreshedWith: string[] = [];
 
     exchangeCode(code: string): Promise<TwitchTokens> {
         this.exchangedCodes.push(code);
@@ -56,6 +64,22 @@ export class FakeTwitchOAuthClient extends TwitchOAuthClient {
         return Promise.resolve(this.isFollowing);
     }
 
+    refresh(refreshToken: string): Promise<TwitchTokens> {
+        this.refreshedWith.push(refreshToken);
+        if (this.refreshError) return Promise.reject(this.refreshError);
+        return Promise.resolve({
+            accessToken: FAKE_STREAMER_ACCESS_TOKEN,
+            refreshToken: FAKE_STREAMER_REFRESH_TOKEN,
+            expiresIn: this.streamerTokenSeconds,
+        });
+    }
+
+    channelHasFollower(query: TwitchFollowQuery): Promise<boolean> {
+        this.followerQueries.push(query);
+        if (this.followerError) return Promise.reject(this.followerError);
+        return Promise.resolve(this.isFollower);
+    }
+
     reset(): void {
         this.tokenInfo = defaultTokenInfo();
         this.exchangeError = null;
@@ -65,5 +89,11 @@ export class FakeTwitchOAuthClient extends TwitchOAuthClient {
         this.exchangedCodes.length = 0;
         this.revokedTokens.length = 0;
         this.followQueries.length = 0;
+        this.isFollower = true;
+        this.followerError = null;
+        this.refreshError = null;
+        this.streamerTokenSeconds = 3600;
+        this.followerQueries.length = 0;
+        this.refreshedWith.length = 0;
     }
 }

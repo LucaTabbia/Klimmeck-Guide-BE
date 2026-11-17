@@ -5,4 +5,5 @@ export enum SessionRevokeReason {
     roleChanged = 'roleChanged',
     reuseDetected = 'reuseDetected',
     userLogout = 'userLogout',
+    accessLost = 'accessLost',
 }

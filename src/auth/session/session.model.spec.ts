@@ -11,12 +11,13 @@ const SessionModel: Model<SessionDocument> =
     mongoose.models.Session || mongoose.model(Session.name, SessionSchema);
 
 describe('Session model', () => {
-    it('pins the four revoke reasons of the contract (D-05)', () => {
+    it('pins the revoke reasons of the contract (D-05)', () => {
         expect(Object.values(SessionRevokeReason)).toEqual([
             'newLogin',
             'roleChanged',
             'reuseDetected',
             'userLogout',
+            'accessLost',
         ]);
     });
 

@@ -6,6 +6,17 @@ import { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
 import { AuthResolver } from 'src/auth/auth.resolver';
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import { AuthStartupReporter } from 'src/auth/auth-startup.reporter';
+import {
+    ChannelAccessCheck,
+    ChannelAccessCheckSchema,
+} from 'src/auth/channel-access/channel-access-check.model';
+import { ChannelAccessService } from 'src/auth/channel-access/channel-access.service';
+import { StreamerAccessTokenProvider } from 'src/auth/channel-access/streamer-access-token.provider';
+import {
+    StreamerCredential,
+    StreamerCredentialSchema,
+} from 'src/auth/channel-access/streamer-credential.model';
+import { StreamerCredentialStore } from 'src/auth/channel-access/streamer-credential.store';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { DevAuthStrategy } from 'src/auth/dev/dev-auth.strategy';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
@@ -39,6 +50,8 @@ import { UsersModule } from 'src/users/users.module';
             { name: Session.name, schema: SessionSchema },
             { name: LoginTicket.name, schema: LoginTicketSchema },
             { name: User.name, schema: UserSchema },
+            { name: StreamerCredential.name, schema: StreamerCredentialSchema },
+            { name: ChannelAccessCheck.name, schema: ChannelAccessCheckSchema },
         ]),
     ],
     controllers: [TwitchAuthController],
@@ -53,6 +66,9 @@ import { UsersModule } from 'src/users/users.module';
         SessionRevocationService,
         UserRoleChangesPublisher,
         LoginTicketService,
+        StreamerCredentialStore,
+        StreamerAccessTokenProvider,
+        ChannelAccessService,
         DevAuthStrategy,
         AuthIdentityResolver,
         WsConnectionAuthenticator,

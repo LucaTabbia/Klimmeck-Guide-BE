@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { AuthSessionService } from 'src/auth/auth-session.service';
+import { StreamerCredentialStore } from 'src/auth/channel-access/streamer-credential.store';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import {
     LoginTicket,
@@ -22,6 +23,7 @@ import {
 } from '../../../test/auth/auth-test-app';
 import {
     FAKE_TWITCH_ACCESS_TOKEN,
+    FAKE_TWITCH_REFRESH_TOKEN,
     FAKE_TWITCH_USER_ID,
 } from '../../../test/auth/fake-twitch-oauth.client';
 import {
@@ -441,6 +443,57 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
 
             expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
             expect(harness.twitch.followQueries).toEqual([]);
+        });
+
+        describe('streamer followers grant', () => {
+            const FOLLOWERS_SCOPE = 'moderator:read:followers';
+
+            function storedRefreshToken(): Promise<string | null> {
+                return harness.app
+                    .get(StreamerCredentialStore)
+                    .load(BROADCASTER_ID);
+            }
+
+            it('keeps the token of the broadcaster who granted the followers scope, without revoking it', async () => {
+                harness.twitch.tokenInfo = {
+                    ...harness.twitch.tokenInfo,
+                    userId: BROADCASTER_ID,
+                    scopes: ['user:read:follows', FOLLOWERS_SCOPE],
+                };
+
+                expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
+                expect(await storedRefreshToken()).toBe(
+                    FAKE_TWITCH_REFRESH_TOKEN,
+                );
+                expect(harness.twitch.revokedTokens).toEqual([]);
+            });
+
+            it('keeps nothing when the broadcaster did not grant the followers scope', async () => {
+                harness.twitch.tokenInfo = {
+                    ...harness.twitch.tokenInfo,
+                    userId: BROADCASTER_ID,
+                    scopes: ['user:read:follows'],
+                };
+
+                expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
+                expect(await storedRefreshToken()).toBeNull();
+                expect(harness.twitch.revokedTokens).toEqual([
+                    FAKE_TWITCH_ACCESS_TOKEN,
+                ]);
+            });
+
+            it('never keeps the token of a viewer, whatever scope it carries', async () => {
+                harness.twitch.tokenInfo = {
+                    ...harness.twitch.tokenInfo,
+                    scopes: ['user:read:follows', FOLLOWERS_SCOPE],
+                };
+
+                expect(await login()).toMatch(TICKET_REDIRECT_PATTERN);
+                expect(await storedRefreshToken()).toBeNull();
+                expect(harness.twitch.revokedTokens).toEqual([
+                    FAKE_TWITCH_ACCESS_TOKEN,
+                ]);
+            });
         });
 
         it('fails closed when the follow check fails', async () => {
