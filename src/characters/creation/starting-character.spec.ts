@@ -29,7 +29,7 @@ describe('buildStartingCharacter', () => {
                 race: 'elf',
                 classType: 'wizard',
                 age: 120,
-                background: '',
+                background: [],
                 imagePath: null,
             },
             status: {
@@ -65,6 +65,21 @@ describe('buildStartingCharacter', () => {
 
         expect(status.unlockedLore).toEqual([a, b]);
         expect(status.knownEnemies).toEqual([]);
+    });
+
+    it('opens the background with the story written at creation', () => {
+        const { infos } = buildStartingCharacter(
+            { ...INPUT, background: 'Nata a Drustea.' },
+            locationId,
+        );
+
+        expect(infos.background).toEqual(['Nata a Drustea.']);
+    });
+
+    it('leaves the background without entries when no story was written', () => {
+        const { infos } = buildStartingCharacter(INPUT, locationId);
+
+        expect(infos.background).toEqual([]);
     });
 
     it('starts a character with the single empty list of spell states (D-07)', () => {

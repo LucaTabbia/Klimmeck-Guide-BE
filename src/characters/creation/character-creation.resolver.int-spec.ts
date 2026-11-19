@@ -72,7 +72,7 @@ interface WireCharacter {
         name: string;
         race: string;
         age: number;
-        background: string | null;
+        background: string[];
         imagePath: string | null;
     };
 }
@@ -329,7 +329,7 @@ describe('CharacterCreationResolver (wire)', () => {
                 name: 'Aria',
                 race: 'human',
                 age: 25,
-                background: 'Nata a Drustea.',
+                background: ['Nata a Drustea.'],
                 imagePath: 'https://cdn.test/image.png',
             });
 
@@ -408,7 +408,7 @@ describe('CharacterCreationResolver (wire)', () => {
             await expectLocation(character, motherKingdom);
         });
 
-        it('defaults a missing image to null and a missing background to empty', async () => {
+        it('defaults a missing image to null and a missing background to no entries', async () => {
             const input: CharacterInput = { ...VALID_INPUT };
             delete input.imagePath;
             delete input.background;
@@ -416,7 +416,7 @@ describe('CharacterCreationResolver (wire)', () => {
             const character = createdCharacterOf(await create(input));
 
             expect(character.infos.imagePath).toBeNull();
-            expect(character.infos.background).toBe('');
+            expect(character.infos.background).toEqual([]);
         });
 
         it('rejects a second character with CHARACTER_ALREADY_EXISTS', async () => {

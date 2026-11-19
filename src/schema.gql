@@ -83,7 +83,7 @@ type CharacterAssets {
 
 type CharacterInfos {
   age: Int!
-  background: String!
+  background: [String!]!
   classType: String!
   imagePath: String
   name: String!

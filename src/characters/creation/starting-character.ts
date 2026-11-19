@@ -10,7 +10,10 @@ const STARTING_LIFE_POINTS = LEVEL_TABLE[0].maxLifePoints;
 const STARTING_SILVER = 5;
 
 export interface StartingCharacter {
-    infos: NormalizedCharacterInput;
+    // la storia scritta alla creazione apre l'elenco del background
+    infos: Omit<NormalizedCharacterInput, 'background'> & {
+        background: string[];
+    };
     status: {
         xp: number;
         level: number;
@@ -50,7 +53,7 @@ export function buildStartingCharacter(
             race: input.race,
             classType: input.classType,
             age: input.age,
-            background: input.background,
+            background: input.background ? [input.background] : [],
             imagePath: input.imagePath,
         },
         status: {
