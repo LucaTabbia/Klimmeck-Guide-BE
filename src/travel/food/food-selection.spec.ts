@@ -134,23 +134,34 @@ describe('food selection', () => {
         });
     });
 
-    it('selects within the bound on huge stacks and needs (D-07)', () => {
-        const huge = Array.from({ length: 33 }, (_, i) =>
-            stack(
-                new Types.ObjectId((0x1000 + i).toString(16).padStart(24, '0')),
-                5 + 6 * i,
-                2_000_000_000,
+    // nessun cronometro: un ciclo per unità su pile da due miliardi sfora il timeout di jest, un runner lento no
+    it('ignores the copies beyond the useful ones on huge stacks and needs (D-07)', () => {
+        const needed = 16_460;
+        const powers = Array.from({ length: 33 }, (_, i) => 5 + 6 * i);
+        const cap = needed + Math.max(...powers) - 1;
+        const stacksOf = (quantityOf: (power: number) => number) =>
+            powers.map((power, i) =>
+                stack(
+                    new Types.ObjectId(
+                        (0x1000 + i).toString(16).padStart(24, '0'),
+                    ),
+                    power,
+                    quantityOf(power),
+                ),
+            );
+
+        const selection = selectFood(
+            needed,
+            stacksOf(() => 2_000_000_000),
+        );
+
+        expect(selection.covered).toBeGreaterThanOrEqual(needed);
+        expect(selection.covered - needed).toBeLessThan(Math.max(...powers));
+        expect(selection).toEqual(
+            selectFood(
+                needed,
+                stacksOf((power) => Math.ceil(cap / power)),
             ),
         );
-        const started = performance.now();
-        const selection = selectFood(16_460, huge);
-        const elapsed = performance.now() - started;
-
-        expect(selection.covered).toBeGreaterThanOrEqual(16_460);
-        expect(selection.covered - 16_460).toBeLessThan(197);
-        for (const eaten of selection.consumed) {
-            expect(eaten.quantity).toBeLessThanOrEqual(2_000_000_000);
-        }
-        expect(elapsed).toBeLessThan(1000);
     });
 });
