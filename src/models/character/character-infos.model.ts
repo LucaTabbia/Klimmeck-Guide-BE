@@ -37,9 +37,10 @@ export class CharacterInfos {
     @Prop({ type: Number })
     age: number;
 
-    @Field(() => String,)
-    @Prop({ type: String })
-    background: string;
+    // voci in ordine di arrivo: la prima è la storia scritta alla creazione
+    @Field(() => [String])
+    @Prop({ type: [String], default: [] })
+    background: string[];
 }
 
 export type CharacterInfosDocument = CharacterInfos & Document;
@@ -69,7 +70,7 @@ export class CharacterInfosInput {
     @Field(() => Int)
     age: number;
 
-    @Field(() => String)
-    background: string;
+    @Field(() => [String])
+    background: string[];
 }
 

@@ -24,7 +24,7 @@ export function buildCharacter(overrides: Record<string, any> = {}) {
             pronoun: 'he', // PronounType.he
             classType: 'fighter', // ClassType.fighter
             age: 20,
-            background: 'test',
+            background: ['test'],
             imagePath: null,
         },
         status: {
