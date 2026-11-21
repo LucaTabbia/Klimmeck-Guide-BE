@@ -16,7 +16,7 @@ tech-stack:
   added: []
   patterns:
     - "la cura riceve l'origine calcolata DOPO la correzione, mai quella dello snapshot"
-    - "chiave del $set in spread condizionale: si scrive solo se la lista finale differisce da quella letta"
+    - "chiave del set in spread condizionale: si scrive solo se la lista finale differisce da quella letta"
 key-files:
   created: []
   modified:
