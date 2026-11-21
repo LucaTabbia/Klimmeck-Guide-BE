@@ -5,6 +5,7 @@ import {
     asInnkeeperHand,
     handInflictedOf,
     innkeeperInjuriesOf,
+    netWoundCorrectionOf,
     type CorrectedWounds,
     type WoundEffects,
     type WoundStatus,
@@ -439,5 +440,173 @@ describe('handInflictedOf', () => {
                 [sprain],
             ),
         ).toEqual([]);
+    });
+});
+
+describe('netWoundCorrectionOf', () => {
+    const sorted = (injuries: readonly unknown[]): string[] =>
+        injuries.map(String).sort();
+
+    const foldedStateOf = (
+        status: WoundStatus,
+        sequence: readonly WoundEffects[],
+    ): WoundStatus =>
+        sequence.reduce<WoundStatus>(
+            (state, effects) => applyWoundCorrection(state, effects),
+            status,
+        );
+
+    it.each<[string, WoundStatus, WoundEffects[]]>([
+        [
+            'no fight',
+            { injuries: [deepCut, sprain], innkeeperInjuries: [sprain] },
+            [],
+        ],
+        [
+            'additions in two fights',
+            { injuries: [sprain] },
+            [
+                { injuriesAdded: [deepCut] },
+                { injuriesAdded: [deepCut, infection] },
+            ],
+        ],
+        [
+            'a wound added by the first fight and removed by the second',
+            { injuries: [sprain] },
+            [
+                { injuriesAdded: [deepCut] },
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+            ],
+        ],
+        [
+            'a carried wound removed by the first fight and added back by hand in the second',
+            { injuries: [deepCut, sprain] },
+            [
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+                { injuriesAdded: [deepCut], innkeeperInjuries: [deepCut] },
+            ],
+        ],
+        [
+            'an innkeeper wound removed by the first fight and simulated again in the second',
+            { injuries: [deepCut, sprain], innkeeperInjuries: [deepCut] },
+            [
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+                { injuriesAdded: [deepCut] },
+            ],
+        ],
+        [
+            'a wound removed and added again in a single fight',
+            { injuries: [deepCut] },
+            [
+                {
+                    injuriesAdded: [deepCut],
+                    injuriesRemoved: [deepCut],
+                    innkeeperInjuries: [deepCut],
+                },
+            ],
+        ],
+        [
+            'a hand-inflicted wound of the first fight left alone by the second',
+            {},
+            [
+                { injuriesAdded: [frostbite], innkeeperInjuries: [frostbite] },
+                { injuriesAdded: [frostbite, sprain] },
+            ],
+        ],
+        [
+            'duplicated wounds and a legacy string',
+            {
+                injuries: ['oldWound', deepCut, deepCut, sprain, sprain],
+                innkeeperInjuries: [sprain, sprain],
+            },
+            [
+                { injuriesAdded: [infection], injuriesRemoved: [sprain] },
+                { injuriesAdded: [sprain], injuriesRemoved: [infection] },
+            ],
+        ],
+        [
+            'a duplicated wound removed and added again with the same origin',
+            { injuries: [deepCut, deepCut, sprain] },
+            [
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+                { injuriesAdded: [deepCut] },
+            ],
+        ],
+    ])(
+        'gives back the folded state when applied to the starting state: %s (D-13)',
+        (_label, status, sequence) => {
+            const folded = foldedStateOf(status, sequence);
+
+            const netted = applyWoundCorrection(
+                status,
+                netWoundCorrectionOf(status, sequence),
+            );
+
+            expect(sorted(netted.injuries)).toEqual(
+                sorted(folded.injuries ?? []),
+            );
+            expect(sorted(netted.innkeeperInjuries)).toEqual(
+                sorted(innkeeperInjuriesOf(folded)),
+            );
+        },
+    );
+
+    it('drops a wound added by a fight and removed by a later one (D-13)', () => {
+        expect(
+            netWoundCorrectionOf({ injuries: [sprain] }, [
+                { injuriesAdded: [deepCut], innkeeperInjuries: [deepCut] },
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+            ]),
+        ).toEqual({ injuriesAdded: [] });
+    });
+
+    it('removes and adds again a wound whose origin changed (D-16)', () => {
+        expect(
+            netWoundCorrectionOf({ injuries: [deepCut, sprain] }, [
+                { injuriesAdded: [], injuriesRemoved: [deepCut] },
+                { injuriesAdded: [deepCut], innkeeperInjuries: [deepCut] },
+            ]),
+        ).toEqual({
+            injuriesAdded: [deepCut],
+            injuriesRemoved: [deepCut],
+            innkeeperInjuries: [deepCut],
+        });
+        expect(
+            netWoundCorrectionOf(
+                { injuries: [deepCut], innkeeperInjuries: [deepCut] },
+                [
+                    { injuriesAdded: [], injuriesRemoved: [deepCut] },
+                    { injuriesAdded: [deepCut] },
+                ],
+            ),
+        ).toEqual({ injuriesAdded: [deepCut], injuriesRemoved: [deepCut] });
+    });
+
+    it('carries no removal nor origin key when nothing was removed or hand-inflicted (D-13)', () => {
+        const net = netWoundCorrectionOf({ injuries: [sprain] }, [
+            { injuriesAdded: [deepCut] },
+            { injuriesAdded: [sprain, infection] },
+        ]);
+
+        expect(net).toEqual({ injuriesAdded: [deepCut, infection] });
+        expect(net).not.toHaveProperty('injuriesRemoved');
+        expect(net).not.toHaveProperty('innkeeperInjuries');
+    });
+
+    it('does not mutate what it reads (D-13)', () => {
+        const status = { injuries: [deepCut], innkeeperInjuries: [deepCut] };
+        const sequence = [
+            { injuriesAdded: [sprain], injuriesRemoved: [deepCut] },
+        ];
+
+        netWoundCorrectionOf(status, sequence);
+
+        expect(status).toEqual({
+            injuries: [deepCut],
+            innkeeperInjuries: [deepCut],
+        });
+        expect(sequence).toEqual([
+            { injuriesAdded: [sprain], injuriesRemoved: [deepCut] },
+        ]);
     });
 });
