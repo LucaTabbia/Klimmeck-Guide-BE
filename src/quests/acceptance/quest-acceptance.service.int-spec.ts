@@ -701,6 +701,19 @@ describe('QuestAcceptanceService (replSet)', () => {
             return charId;
         }
 
+        async function woundedByInnkeeperAt(
+            hp: number,
+            injuries: string[],
+            innkeeperInjuries: string[],
+        ): Promise<Types.ObjectId> {
+            const charId = await woundedAt(hp, injuries);
+            await characters.collection.updateOne(
+                { _id: charId },
+                { $set: { 'status.innkeeperInjuries': innkeeperInjuries } },
+            );
+            return charId;
+        }
+
         async function everything() {
             const [rawCharacters, rawQuestDocs, rawPending, rawUsers] =
                 await Promise.all([
@@ -771,6 +784,29 @@ describe('QuestAcceptanceService (replSet)', () => {
             await expectAccepted(
                 await woundedAt(400, ['infection']),
                 await curingQuestOf('heal'),
+            );
+        });
+
+        it('refuses a heal quest that would heal only innkeeper wounds (D-14)', async () => {
+            await expectRefusedWithoutWrites(
+                await woundedByInnkeeperAt(1000, ['deepCut'], ['deepCut']),
+                await curingQuestOf('heal'),
+            );
+        });
+
+        it('accepts a heal quest with a curable ordinary wound beside an innkeeper one (D-14)', async () => {
+            await expectAccepted(
+                await woundedByInnkeeperAt(
+                    1000,
+                    ['deepCut', 'infection'],
+                    ['infection'],
+                ),
+                await curingQuestOf('heal', {
+                    cure: {
+                        lifePointsShare: 0.5,
+                        canHeal: ['deepCut', 'infection'],
+                    },
+                }),
             );
         });
 
