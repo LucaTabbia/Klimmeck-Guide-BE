@@ -321,7 +321,7 @@ Plans:
 - [x] 25-01-PLAN.md — Origine delle ferite sul personaggio e sul filo
 - [x] 25-02-PLAN.md — La regola delle cure in un solo posto e la pozione
 - [x] 25-03-PLAN.md — «Senza effetto» ignora le ferite dell'oste
-- [ ] 25-04-PLAN.md — Correzione pura delle ferite e piano d'esito
+- [x] 25-04-PLAN.md — Correzione pura delle ferite e piano d'esito
 - [ ] 25-05-PLAN.md — `QuestResult.injuriesRemoved`
 - [ ] 25-06-PLAN.md — Correzioni del completamento semplice
 - [ ] 25-07-PLAN.md — Scontri guidati: rimozioni salvate e origine fra gli scontri
@@ -381,7 +381,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
-| 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 3/14 | In Progress | - |
+| 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 4/14 | In Progress | - |
 
 ---
 
