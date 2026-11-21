@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-05-PLAN.md"
-last_updated: "2026-11-21T18:30:00.000Z"
-last_activity: 2026-11-21 -- Phase 25 piano 05 completato (`QuestResult.injuriesRemoved` sul foglio del risultato)
+stopped_at: "Completato 25-06-PLAN.md"
+last_updated: "2026-11-21T16:57:07.000Z"
+last_activity: 2026-11-21 -- Phase 25 piano 06 completato (correzioni del completamento semplice: rimozioni e ferite dell'oste)
 progress:
   total_phases: 6
   completed_phases: 5
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 05 of 14
-Status: executing — Phase 25 in esecuzione (5/14): `QuestResult.injuriesRemoved` è su schema e filo (lista vuota sui fogli di prima); le ferite tolte dall'oste non entrano mai in `injuriesHealed`.
-Last activity: 2026-11-21 -- Phase 25 piano 05 completato (`QuestResult.injuriesRemoved` sul foglio del risultato)
+Plan: 06 of 14
+Status: executing — Phase 25 in esecuzione (6/14): `ParticipantOverrideInput.injuriesRemoved` è sul filo; `completePendingRequest` toglie qualunque ferita portata e ogni ferita che aggiunge è dell'oste (la cura dello stesso esito non la tocca).
+Last activity: 2026-11-21 -- Phase 25 piano 06 completato (correzioni del completamento semplice: rimozioni e ferite dell'oste)
 Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
