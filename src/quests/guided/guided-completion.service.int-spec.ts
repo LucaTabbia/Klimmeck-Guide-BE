@@ -1116,6 +1116,211 @@ describe('GuidedCompletionService (replSet)', () => {
         });
     });
 
+    describe('background additions', () => {
+        const MILLER = 'Ha salvato il mugnaio.';
+        const BRIDGE = 'Ha tenuto il ponte da sola.';
+        const EARLIER = ['Nata a Klim.', 'Cresciuta fra i mulini.'];
+        const BACKGROUND_ADDITION_TOO_LONG = {
+            code: 'BACKGROUND_ADDITION_TOO_LONG',
+        };
+
+        const additionOf = (subject: Quester, text: string) => ({
+            characterId: String(subject.characterId),
+            text,
+        });
+
+        const saveAdditions = (
+            subject: Quester,
+            ...backgroundAdditions: ReturnType<typeof additionOf>[]
+        ) =>
+            saver.save({
+                pendingQuestId: hexOf(subject),
+                backgroundAdditions,
+            });
+
+        // un testo che il salvataggio rifiuterebbe o pulirebbe: lo si scrive diretto nella bozza
+        const persistAddition = (subject: Quester, text: string) =>
+            world.harness.connection.collection('missiondrafts').updateOne(
+                {},
+                {
+                    $set: {
+                        backgroundAdditions: [
+                            { character: subject.characterId, text },
+                        ],
+                    },
+                },
+            );
+
+        const backgroundOf = async (subject: Quester): Promise<unknown> =>
+            (await characterOf(subject)).infos.background;
+
+        // due iscritti: il primo ha già due voci nel background
+        async function storiedMission() {
+            const { first, second } = await guidedWorldMission();
+            await world.models.characters.collection.updateOne(
+                { _id: first.characterId },
+                { $set: { 'infos.background': EARLIER } },
+            );
+            return { first, second };
+        }
+
+        it('appends the addition at the end of the background (D-08)', async () => {
+            const { first } = await storiedMission();
+            await saveAdditions(first, additionOf(first, MILLER));
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual([...EARLIER, MILLER]);
+        });
+
+        it('writes nothing for a participant without an addition (D-06)', async () => {
+            const { first } = await storiedMission();
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual(EARLIER);
+            expect((await resultOf(first)).backgroundEntryAdded).toBe(false);
+        });
+
+        it('marks the result of each participant whose background got an entry (D-09)', async () => {
+            const { first, second } = await storiedMission();
+            const untouched = await backgroundOf(second);
+            await saveAdditions(first, additionOf(first, MILLER));
+
+            const sheets = await service.complete(hexOf(second));
+
+            expect(sheets.map((sheet) => sheet.backgroundEntryAdded)).toEqual([
+                true,
+                false,
+            ]);
+            expect((await resultOf(first)).backgroundEntryAdded).toBe(true);
+            expect((await resultOf(second)).backgroundEntryAdded).toBe(false);
+            expect(await backgroundOf(second)).toEqual(untouched);
+        });
+
+        it('writes each addition to its own participant (D-06)', async () => {
+            const { first, second } = await storiedMission();
+            const [earlier] = (await backgroundOf(second)) as string[];
+            await saveAdditions(
+                first,
+                additionOf(second, BRIDGE),
+                additionOf(first, MILLER),
+            );
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual([...EARLIER, MILLER]);
+            expect(await backgroundOf(second)).toEqual([earlier, BRIDGE]);
+        });
+
+        it('writes no background when the completion is refused (D-05)', async () => {
+            const { first, second } = await storiedMission();
+            const catalogue = await prizeCatalogue();
+            await saver.save({
+                pendingQuestId: hexOf(first),
+                prizes: [
+                    prizeOf(second, {
+                        items: [
+                            { item: String(catalogue.commonLoot), quantity: 1 },
+                        ],
+                    }),
+                ],
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+            await world.models.lootItems.updateOne(
+                { _id: catalogue.commonLoot },
+                { $set: { rarity: 'legendary' } },
+            );
+
+            await expectRefusedWithoutWriting(first);
+            expect(await backgroundOf(first)).toEqual(EARLIER);
+        });
+
+        it('writes no background when the draft was saved after the read (D-05)', async () => {
+            const { first, second } = await storiedMission();
+            await saveAdditions(first, additionOf(first, MILLER));
+            const readDraft = drafts.requireFor.bind(drafts);
+            const state: { saved: Record<string, unknown> | null } = {
+                saved: null,
+            };
+            const spy = jest
+                .spyOn(drafts, 'requireFor')
+                .mockImplementationOnce(async (request) => {
+                    const stale = await readDraft(request);
+                    await saveAdditions(second, additionOf(second, BRIDGE));
+                    state.saved = await rawDocuments();
+                    return stale;
+                });
+
+            try {
+                await expect(
+                    service.complete(hexOf(first)),
+                ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            } finally {
+                spy.mockRestore();
+            }
+            expect(await rawDocuments()).toEqual(state.saved);
+            expect(await backgroundOf(first)).toEqual(EARLIER);
+            expect(questEndPushes()).toHaveLength(0);
+        });
+
+        it('creates the list for a character written without a background (D-08)', async () => {
+            const { first } = await storiedMission();
+            await world.models.characters.collection.updateOne(
+                { _id: first.characterId },
+                { $unset: { 'infos.background': '' } },
+            );
+            await saveAdditions(first, additionOf(first, MILLER));
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual([MILLER]);
+        });
+
+        it('refuses at completion an addition over the limit left in the draft (D-07)', async () => {
+            const { first } = await storiedMission();
+            await persistAddition(first, 'a'.repeat(1001));
+            const before = await rawDocuments();
+
+            await expect(service.complete(hexOf(first))).rejects.toMatchObject(
+                BACKGROUND_ADDITION_TOO_LONG,
+            );
+            expect(await rawDocuments()).toEqual(before);
+            expect(questEndPushes()).toHaveLength(0);
+        });
+
+        it('ignores a blank addition left in the draft (D-06)', async () => {
+            const { first } = await storiedMission();
+            await persistAddition(first, '   ');
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual(EARLIER);
+            expect((await resultOf(first)).backgroundEntryAdded).toBe(false);
+        });
+
+        it('writes nothing for an addition cleared before the completion (D-06)', async () => {
+            const { first } = await storiedMission();
+            await saveAdditions(first, additionOf(first, MILLER));
+            await saveAdditions(first, additionOf(first, ''));
+
+            await service.complete(hexOf(first));
+
+            expect(await backgroundOf(first)).toEqual(EARLIER);
+            expect((await resultOf(first)).backgroundEntryAdded).toBe(false);
+        });
+
+        it('deletes the draft with its additions (D-05)', async () => {
+            const { first } = await storiedMission();
+            await saveAdditions(first, additionOf(first, MILLER));
+
+            await service.complete(hexOf(first));
+
+            expect(await draftModel.countDocuments()).toBe(0);
+            expect(await backgroundOf(first)).toEqual([...EARLIER, MILLER]);
+        });
+    });
+
     describe('the companion at completion (Phase 23)', () => {
         const RECOVERY_MS = 3_600_000;
 

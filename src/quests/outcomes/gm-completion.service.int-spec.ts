@@ -334,7 +334,8 @@ describe('GmCompletionService.complete (replSet)', () => {
         expect(questEndPushes()).toHaveLength(3);
     });
 
-    it('deletes the guided draft of the request in its transaction (D-25)', async () => {
+    // due iscritti a una worldMission con la bozza guidata già aperta
+    async function draftedWorldMission(draft: Record<string, unknown> = {}) {
         const first = await quester({
             lane: QuestLane.worldMission,
             questOverrides: gmQuest('worldMission', { xpPrize: 100 }),
@@ -364,7 +365,13 @@ describe('GmCompletionService.complete (replSet)', () => {
             })),
             startedAt: NOW,
             updatedAt: NOW,
+            ...draft,
         });
+        return { first, second, subjects };
+    }
+
+    it('deletes the guided draft of the request in its transaction (D-25)', async () => {
+        const { second, subjects } = await draftedWorldMission();
 
         const drafts = await service.complete(inputOf(second));
 
@@ -372,6 +379,43 @@ describe('GmCompletionService.complete (replSet)', () => {
         for (const subject of subjects) {
             expect(await resultsOf(subject)).toHaveLength(1);
             expect(await pendingQuestExists(subject)).toBe(false);
+        }
+        expect(await missionDrafts.countDocuments()).toBe(0);
+    });
+
+    it('never writes a background entry on a plain completion (D-10)', async () => {
+        const { first, subjects } = await draftedWorldMission();
+        await missionDrafts.collection.updateOne(
+            {},
+            {
+                $set: {
+                    backgroundAdditions: [
+                        {
+                            character: first.characterId,
+                            text: 'Ha salvato il mugnaio.',
+                        },
+                    ],
+                },
+            },
+        );
+        const backgroundsBefore = await Promise.all(
+            subjects.map(async (subject) => {
+                const { infos } = await characterOf(subject);
+                return infos.background;
+            }),
+        );
+
+        const drafts = await service.complete(inputOf(first));
+
+        expect(drafts.map((draft) => draft.backgroundEntryAdded)).toEqual([
+            false,
+            false,
+        ]);
+        for (const [index, subject] of subjects.entries()) {
+            const { infos } = await characterOf(subject);
+            expect(infos.background).toEqual(backgroundsBefore[index]);
+            const [result] = await resultsOf(subject);
+            expect(result.backgroundEntryAdded).toBe(false);
         }
         expect(await missionDrafts.countDocuments()).toBe(0);
     });
