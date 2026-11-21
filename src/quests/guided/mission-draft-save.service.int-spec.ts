@@ -1140,4 +1140,231 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(await storedDraft()).toEqual(before);
         });
     });
+
+    describe('background additions', () => {
+        const MILLER = 'Ha salvato il mugnaio.';
+        const BRIDGE = 'Ha tenuto il ponte da sola.';
+        const BACKGROUND_ADDITION_TOO_LONG = {
+            code: 'BACKGROUND_ADDITION_TOO_LONG',
+        };
+
+        const additionOf = (subject: Quester, text: string) => ({
+            characterId: String(subject.characterId),
+            text,
+        });
+
+        const entryOf = (subject: Quester, text: string) => ({
+            character: String(subject.characterId),
+            text,
+        });
+
+        const entriesOf = (draft: MissionDraftRecord | null) =>
+            (draft?.backgroundAdditions ?? []).map(({ character, text }) => ({
+                character: String(character),
+                text,
+            }));
+
+        const storedAdditions = async () => entriesOf(await storedDraft());
+
+        it('saves one addition per participant and reads it back (D-05, D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+
+            const saved = await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            const expected = [entryOf(first, MILLER), entryOf(second, BRIDGE)];
+            expect(entriesOf(saved)).toEqual(expected);
+            expect(await storedAdditions()).toEqual(expected);
+        });
+
+        it('replaces the whole section when it is sent again (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [additionOf(second, MILLER)],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, MILLER)]);
+        });
+
+        it('leaves the additions untouched when the section is absent (D-05)', async () => {
+            const { first } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, { step: MissionDraftStep.recap });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
+        });
+
+        it.each([
+            ['empty', ''],
+            ['blank', '  \n\t '],
+        ])('drops an addition left empty: %s (D-06)', async (_name, text) => {
+            const { first, second } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, text),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('clears a saved addition when its text comes back empty (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, ''),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('accepts a section with an empty text for every participant (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, ''),
+                    additionOf(second, '   '),
+                ],
+            });
+
+            expect((await storedDraft())!.backgroundAdditions).toEqual([]);
+        });
+
+        it('trims the text it saves (D-07)', async () => {
+            const { first } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, `  ${MILLER}\n`)],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
+        });
+
+        it('accepts an addition of exactly 1000 graphemes (D-07)', async () => {
+            const { first } = await startedWorldMission();
+            const text = 'é'.repeat(1000);
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, text)],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, text)]);
+        });
+
+        it('refuses an addition of 1001 graphemes and leaves the draft as it was (D-07)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+            const before = await storedDraft();
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [
+                        additionOf(second, BRIDGE),
+                        additionOf(first, 'é'.repeat(1001)),
+                    ],
+                }),
+            ).rejects.toMatchObject(BACKGROUND_ADDITION_TOO_LONG);
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.rev).toBe(before!.rev);
+        });
+
+        it('refuses an addition for a character outside the draft (D-06)', async () => {
+            const { first } = await startedWorldMission();
+            const stranger = await quester({ questOverrides: gmQuest() });
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [additionOf(stranger, MILLER)],
+                }),
+            ).rejects.toMatchObject(OUTCOME_NOT_PARTICIPANT);
+
+            expect(await storedAdditions()).toEqual([]);
+        });
+
+        it('refuses two additions for the same character (D-06)', async () => {
+            const { first } = await startedWorldMission();
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [
+                        additionOf(first, MILLER),
+                        additionOf(first, ''),
+                    ],
+                }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+
+            expect(await storedAdditions()).toEqual([]);
+        });
+
+        it('saves the stories step (D-05)', async () => {
+            const { first } = await startedWorldMission();
+
+            const saved = await save(first, { step: MissionDraftStep.stories });
+
+            expect(saved.step).toBe(MissionDraftStep.stories);
+            expect((await storedDraft())!.step).toBe(MissionDraftStep.stories);
+        });
+
+        it('bumps the revision of the draft with the additions (D-05)', async () => {
+            const { first } = await startedWorldMission();
+            const before = (await storedDraft())!.rev;
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.rev).toBe(before + 1);
+        });
+
+        it('keeps fights and prizes when only the additions are saved (D-05)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            const before = await storedDraft();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.fights).toEqual(before!.fights);
+            expect(after!.prizes).toEqual(before!.prizes);
+            expect(after!.step).toBe(before!.step);
+        });
+    });
 });

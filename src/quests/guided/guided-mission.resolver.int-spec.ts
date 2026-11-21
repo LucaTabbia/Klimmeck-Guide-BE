@@ -1153,6 +1153,150 @@ describe('GuidedMissionResolver (wire)', () => {
             });
         });
 
+        describe('background additions', () => {
+            const STORIES =
+                'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { step backgroundAdditions { character text } } }';
+            const READ_STORIES =
+                'query MissionDraft($pendingQuestId: ID!) { missionDraft(pendingQuestId: $pendingQuestId) { step backgroundAdditions { character text } } }';
+            const MILLER = 'Ha salvato il mugnaio.';
+
+            interface StoriesDraft {
+                step: string;
+                backgroundAdditions: { character: string; text: string }[];
+            }
+
+            interface StoriesBody {
+                data?: {
+                    saveMissionDraft?: StoriesDraft | null;
+                    missionDraft?: StoriesDraft | null;
+                } | null;
+                errors?: {
+                    message: string;
+                    extensions: Record<string, unknown>;
+                }[];
+            }
+
+            async function startedPair() {
+                const [first, second] = await worldMissionPair();
+                const oste = await innkeeper();
+                await send(START, hexOf(first), oste.bearer);
+                return { first, second, oste };
+            }
+
+            async function saveStories(
+                first: Quester,
+                oste: TestPlayer,
+                texts: [Quester, string][],
+            ): Promise<StoriesBody> {
+                const response = await graphqlRequest(
+                    world.harness.app,
+                    STORIES,
+                    {
+                        input: {
+                            pendingQuestId: hexOf(first),
+                            step: 'stories',
+                            backgroundAdditions: texts.map(
+                                ([subject, text]) => ({
+                                    characterId: String(subject.characterId),
+                                    text,
+                                }),
+                            ),
+                        },
+                    },
+                    oste.bearer,
+                );
+                return response.body as StoriesBody;
+            }
+
+            async function readStories(
+                subject: Quester,
+                oste: TestPlayer,
+            ): Promise<StoriesBody> {
+                const response = await graphqlRequest(
+                    world.harness.app,
+                    READ_STORIES,
+                    { pendingQuestId: hexOf(subject) },
+                    oste.bearer,
+                );
+                return response.body as StoriesBody;
+            }
+
+            const codesOf = (body: StoriesBody) =>
+                body.errors?.map(({ extensions }) => extensions.code);
+
+            it('saves and reads the background additions over the wire (D-05, D-06)', async () => {
+                const { first, second, oste } = await startedPair();
+                const expected = {
+                    step: 'stories',
+                    backgroundAdditions: [
+                        { character: String(first.characterId), text: MILLER },
+                    ],
+                };
+
+                const saved = await saveStories(first, oste, [
+                    [first, MILLER],
+                    [second, ''],
+                ]);
+
+                expect(saved.errors).toBeUndefined();
+                expect(saved.data!.saveMissionDraft).toEqual(expected);
+                const read = await readStories(second, oste);
+                expect(read.errors).toBeUndefined();
+                expect(read.data!.missionDraft).toEqual(expected);
+            });
+
+            it('answers its own code for an addition over 1000 characters (D-07)', async () => {
+                const { first, oste } = await startedPair();
+
+                const body = await saveStories(first, oste, [
+                    [first, 'a'.repeat(1001)],
+                ]);
+
+                expect(body.data ?? null).toBeNull();
+                expect(codesOf(body)).toEqual(['BACKGROUND_ADDITION_TOO_LONG']);
+                const read = await readStories(first, oste);
+                expect(read.data!.missionDraft!.backgroundAdditions).toEqual(
+                    [],
+                );
+            });
+
+            it('answers a form error for an addition over the wire cap (D-07)', async () => {
+                const { first, oste } = await startedPair();
+
+                const body = await saveStories(first, oste, [
+                    [first, 'a'.repeat(8001)],
+                ]);
+
+                expect(body.data ?? null).toBeNull();
+                expect(codesOf(body)).toEqual(['BAD_USER_INPUT']);
+            });
+
+            it('accepts an empty text over the wire and clears the saved addition (D-06)', async () => {
+                const { first, second, oste } = await startedPair();
+                await saveStories(first, oste, [
+                    [first, MILLER],
+                    [second, MILLER],
+                ]);
+
+                const body = await saveStories(first, oste, [
+                    [first, ''],
+                    [second, MILLER],
+                ]);
+
+                expect(body.errors).toBeUndefined();
+                const kept = [
+                    { character: String(second.characterId), text: MILLER },
+                ];
+                expect(
+                    body.data!.saveMissionDraft!.backgroundAdditions,
+                ).toEqual(kept);
+                const read = await readStories(first, oste);
+                expect(read.data!.missionDraft!.backgroundAdditions).toEqual(
+                    kept,
+                );
+            });
+        });
+
         it('refuses an adventurer (D-10)', async () => {
             const { first, enemy } = await simulatedPair();
 
