@@ -1,11 +1,14 @@
 import { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import {
     lastCompanionLifeOf,
     type ParticipantEffects,
 } from 'src/quests/outcomes/combat/combat-resolver';
+import {
+    netWoundCorrectionOf,
+    type WoundStatus,
+} from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
     type CompanionFight,
     companionEnemiesXpOf,
@@ -70,10 +73,11 @@ const companionLifeOf = (
         {},
     );
 
-// vita dell'ultimo scontro, ferite unite, consumi e usi sommati per id, vita del compagno dell'ultimo scontro che la porta; nessuno scontro = nessun combattimento
+// vita dell'ultimo scontro, ferite dalla piega in ordine sullo stato letto (Phase 25 D-13), consumi e usi sommati per id, vita del compagno dell'ultimo scontro che la porta; nessuno scontro = nessun combattimento
 export function aggregateEffectsOf(
     fights: readonly MissionFightRecord[],
     characterHex: string,
+    status: WoundStatus,
 ): ParticipantEffects | null {
     const sequence = effectiveSequenceOf(fights, characterHex).map(
         ({ effects }) => effects,
@@ -83,11 +87,7 @@ export function aggregateEffectsOf(
     return {
         characterId: characterHex,
         hpAfter: last.hpAfter,
-        injuriesAdded: [
-            ...new Set<InjuryType>(
-                sequence.flatMap(({ injuriesAdded }) => injuriesAdded),
-            ),
-        ],
+        ...netWoundCorrectionOf(status, sequence),
         consumablesUsed: totalsById(
             sequence.flatMap(({ consumablesUsed }) =>
                 consumablesUsed.map(({ itemId, quantity }) => ({
@@ -143,8 +143,9 @@ export function guidedBattleOf(
     fights: readonly MissionFightRecord[],
     characterHex: string,
     enemyXp: ReadonlyMap<string, number>,
+    status: WoundStatus,
 ): ParticipantEffects | null {
-    const battle = aggregateEffectsOf(fights, characterHex);
+    const battle = aggregateEffectsOf(fights, characterHex, status);
     if (!battle) return null;
     return {
         ...battle,
@@ -183,6 +184,18 @@ export function assertFightsComplete(
     if (!complete) throw GameRuleException.outcomeOverrideInvalid();
 }
 
+// nessuna rimozione = chiave assente (Phase 25 D-13)
+function removalsOf({
+    injuriesRemoved = [],
+}: Pick<ParticipantEffects, 'injuriesRemoved'>): Pick<
+    ParticipantOverrideInput,
+    'injuriesRemoved'
+> {
+    return injuriesRemoved.length === 0
+        ? {}
+        : { injuriesRemoved: [...injuriesRemoved] };
+}
+
 export function overrideInputOf(
     characterHex: string,
     effects: ParticipantEffects,
@@ -201,6 +214,7 @@ export function overrideInputOf(
         ...(effects.companionLifeAfter === undefined
             ? {}
             : { companionLifeAfter: effects.companionLifeAfter }),
+        ...removalsOf(effects),
     };
 }
 

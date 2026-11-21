@@ -154,7 +154,7 @@ export class GuidedCompletionService {
         return this.completion.completeWith({
             request,
             recoveryTimes: await this.loader.recoveryTimesOf(
-                this.spellsUsedBy(draft, characterHexes),
+                this.spellsUsedBy(draft, characters),
             ),
             petMaxXp: combat.petMaxXp,
             petCatalog: combat.pets,
@@ -232,6 +232,7 @@ export class GuidedCompletionService {
                 draft.fights,
                 characterHex,
                 catalogs.enemyXp,
+                snapshot.status,
             ),
             rewards: chosenRewardsOf(prize, catalogs.rewardCatalog),
         };
@@ -239,12 +240,16 @@ export class GuidedCompletionService {
 
     private spellsUsedBy(
         draft: MissionDraftRecord,
-        characterHexes: readonly string[],
+        characters: readonly ResolutionCharacter[],
     ): Types.ObjectId[] {
         return uniqueIds(
-            characterHexes.flatMap(
-                (hex) =>
-                    aggregateEffectsOf(draft.fights, hex)?.spellsUsed.map(
+            characters.flatMap(
+                ({ _id, status }) =>
+                    aggregateEffectsOf(
+                        draft.fights,
+                        hexOf(_id),
+                        status,
+                    )?.spellsUsed.map(
                         ({ spellId }) => new Types.ObjectId(spellId),
                     ) ?? [],
             ),

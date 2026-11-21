@@ -91,3 +91,39 @@ export function handInflictedOf(
             !simulatedAdded.includes(injury) || removed.includes(injury),
     );
 }
+
+function copiesOf(injuries: readonly InjuryType[], injury: InjuryType): number {
+    return injuries.filter((carried) => carried === injury).length;
+}
+
+// netto di più correzioni in sequenza (Phase 25 D-13): applicato allo stato iniziale ridà lo stato finale della piega, ferite e origine
+export function netWoundCorrectionOf(
+    status: WoundStatus,
+    sequence: readonly WoundEffects[],
+): WoundEffects {
+    const start = applyWoundCorrection(status, null);
+    const end = sequence.reduce(
+        (state, effects) => applyWoundCorrection(state, effects),
+        start,
+    );
+    // sparita, con un'altra origine, o tolta e riaggiunta sopra dei doppioni
+    const removed = knownTypesOf(start.injuries).filter(
+        (injury) =>
+            copiesOf(start.injuries, injury) !==
+                copiesOf(end.injuries, injury) ||
+            start.innkeeperInjuries.includes(injury) !==
+                end.innkeeperInjuries.includes(injury),
+    );
+    const added = without(
+        knownTypesOf(end.injuries),
+        without(start.injuries, removed),
+    );
+    const byHand = added.filter((injury) =>
+        end.innkeeperInjuries.includes(injury),
+    );
+    return {
+        injuriesAdded: added,
+        ...(removed.length === 0 ? {} : { injuriesRemoved: removed }),
+        ...(byHand.length === 0 ? {} : { innkeeperInjuries: byHand }),
+    };
+}
