@@ -71,3 +71,11 @@ export function applyWoundCorrection(
         removed: without(takenOff, fresh),
     };
 }
+
+// effetti raccontati dall'oste senza simulazione: ogni ferita aggiunta è di suo pugno (Phase 25 D-12); null resta null
+export function asInnkeeperHand(
+    effects: ParticipantEffects | null,
+): ParticipantEffects | null {
+    if (effects === null || effects.injuriesAdded.length === 0) return effects;
+    return { ...effects, innkeeperInjuries: [...effects.injuriesAdded] };
+}

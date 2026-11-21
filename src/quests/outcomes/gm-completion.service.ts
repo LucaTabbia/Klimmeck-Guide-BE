@@ -19,6 +19,7 @@ import {
     GmRequestReader,
 } from './gm-request.reader';
 import { overrideParticipantOf, validateOverrides } from './gm-overrides';
+import { asInnkeeperHand } from './injuries/innkeeper-injuries';
 import {
     type EnemyFacts,
     planParticipant,
@@ -129,8 +130,10 @@ export class GmCompletionService {
                     snapshots.map((snapshot) => [
                         snapshot._id.toHexString(),
                         {
-                            battle:
+                            // senza simulazione ogni ferita dell'override è di pugno dell'oste (Phase 25 D-12)
+                            battle: asInnkeeperHand(
                                 battles.get(snapshot._id.toHexString()) ?? null,
+                            ),
                             enemies: enemyFactsOf(catalog),
                             // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
                             victory: victoryKnowledgeOf(catalog),
