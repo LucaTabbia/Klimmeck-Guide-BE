@@ -384,30 +384,6 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(await storedDraft()).toEqual(before);
         });
 
-        it('refuses a correction that adds an injury the character already had (D-14)', async () => {
-            const { first, enemy } = await startedWorldMission();
-            await simulate(first, 0, enemy);
-            const before = await storedDraft();
-
-            await expect(
-                save(first, {
-                    fights: [
-                        fightOf(enemy, 1, [
-                            correctionOf(first, {
-                                injuries: [InjuryType.deepCut],
-                            }),
-                        ]),
-                    ],
-                }),
-            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
-            expect(await storedDraft()).toEqual(before);
-            const character = await world.models.characters
-                .findById(first.characterId)
-                .lean<{ status: { injuries: InjuryType[] } }>()
-                .exec();
-            expect(character!.status.injuries).toEqual([InjuryType.deepCut]);
-        });
-
         it('voids the following simulations when a fight is corrected (D-24)', async () => {
             const { first, enemy } = await startedWorldMission();
             await simulate(first, 0, enemy);
@@ -599,6 +575,153 @@ describe('MissionDraftSaveService (replSet)', () => {
             await expect(correcting(first, 1)).rejects.toMatchObject(
                 OUTCOME_OVERRIDE_INVALID,
             );
+            expect(await storedDraft()).toEqual(before);
+        });
+    });
+
+    describe('wound removals', () => {
+        const { deepCut } = InjuryType;
+        const UNSIMULATED = { verdict: null, outcomes: [] };
+
+        const correctFirst = (
+            subject: Quester,
+            enemy: Types.ObjectId,
+            correction: Omit<ParticipantOverrideInput, 'characterId'>,
+            laterFights: MissionFightInput[] = [],
+        ) =>
+            save(subject, {
+                fights: [
+                    fightOf(enemy, 1, [correctionOf(subject, correction)]),
+                    ...laterFights,
+                ],
+            });
+
+        const storedCorrection = async (subject: Quester) =>
+            outcomeOf((await storedDraft())!.fights[0], subject)!.corrected;
+
+        const storedRemovals = async (subject: Quester) =>
+            (await storedCorrection(subject))?.injuriesRemoved ?? [];
+
+        it('saves a correction that removes a wound carried before the fight (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            expect(await storedRemovals(first)).toEqual([deepCut]);
+        });
+
+        it('writes a correction that changes only the removals and resets the later fights (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, { hpAfter: 500 });
+            await simulate(first, 1, enemy);
+
+            const saved = await correctFirst(
+                first,
+                enemy,
+                { hpAfter: 500, injuriesRemoved: [deepCut] },
+                [fightOf(enemy)],
+            );
+
+            expect(await storedRemovals(first)).toEqual([deepCut]);
+            expect(saved.fights[1]).toMatchObject(UNSIMULATED);
+        });
+
+        it('keeps the simulated effects when the correction lists only removals (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            const simulation = await simulate(first, 0, enemy);
+            const simulated = outcomeOf(simulation.fights[0], first)!.simulated;
+
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            expect(await storedCorrection(first)).toEqual({
+                ...simulated,
+                injuriesRemoved: [deepCut],
+            });
+        });
+
+        it('accepts an explicit empty list of removals (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuriesRemoved: [],
+            });
+
+            expect((await storedCorrection(first))!.hpAfter).toBe(500);
+            expect(await storedRemovals(first)).toEqual([]);
+        });
+
+        it.each<[string, Omit<ParticipantOverrideInput, 'characterId'>]>([
+            ['an empty list', { hpAfter: 500, injuriesRemoved: [] }],
+            ['no removal field', { hpAfter: 500 }],
+        ])(
+            'undoes a saved removal when the correction comes back with %s (D-13)',
+            async (_label, withoutRemoval) => {
+                const { first, enemy } = await startedWorldMission();
+                await simulate(first, 0, enemy);
+                await correctFirst(first, enemy, {
+                    hpAfter: 500,
+                    injuriesRemoved: [deepCut],
+                });
+                await simulate(first, 1, enemy);
+
+                const saved = await correctFirst(first, enemy, withoutRemoval, [
+                    fightOf(enemy),
+                ]);
+
+                expect((await storedCorrection(first))!.hpAfter).toBe(500);
+                expect(await storedRemovals(first)).toEqual([]);
+                expect(saved.fights[1]).toMatchObject(UNSIMULATED);
+            },
+        );
+
+        it('accepts a wound removed and added again in the same correction (D-16)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, {
+                injuries: [deepCut],
+                injuriesRemoved: [deepCut],
+            });
+
+            expect(await storedCorrection(first)).toMatchObject({
+                injuriesAdded: [deepCut],
+                injuriesRemoved: [deepCut],
+            });
+        });
+
+        it('refuses a correction that adds again a wound still carried (D-16)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            const before = await storedDraft();
+
+            await expect(
+                correctFirst(first, enemy, { injuries: [deepCut] }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            expect(await storedDraft()).toEqual(before);
+            const character = await world.models.characters
+                .findById(first.characterId)
+                .lean<{ status: { injuries: InjuryType[] } }>()
+                .exec();
+            expect(character!.status.injuries).toEqual([deepCut]);
+        });
+
+        it('refuses the removal of a wound the character did not carry at the start of the fight (D-13)', async () => {
+            const { first, second, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            const before = await storedDraft();
+
+            await expect(
+                correctFirst(first, enemy, {
+                    injuriesRemoved: [InjuryType.fracturedRib],
+                }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            await expect(
+                correctFirst(second, enemy, { injuriesRemoved: [deepCut] }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
             expect(await storedDraft()).toEqual(before);
         });
     });

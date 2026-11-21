@@ -6,7 +6,7 @@ import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resol
 import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
 import {
-    assertAddsOnlyNewInjuries,
+    assertWoundCorrectionAllowed,
     effectsRecordOf,
     fightStartOf,
     participantEffectsOf,
@@ -317,21 +317,50 @@ describe('fightStartOf', () => {
     });
 });
 
-describe('assertAddsOnlyNewInjuries', () => {
-    it('refuses a correction that adds an injury the character already had (D-14)', () => {
+describe('assertWoundCorrectionAllowed', () => {
+    const { crushedRightHand, brokenLeftLeg } = InjuryType;
+
+    it('allows the removal of a wound carried before the fight (D-13)', () => {
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [],
+                injuriesRemoved: [crushedRightHand],
+            }),
+        ).not.toThrow();
+    });
+
+    it('refuses the removal of a wound not carried before the fight (D-13)', () => {
         expect(
             codeOf(() =>
-                assertAddsOnlyNewInjuries(
-                    [InjuryType.crushedRightHand],
-                    [InjuryType.crushedRightHand],
-                ),
+                assertWoundCorrectionAllowed([crushedRightHand], {
+                    injuriesAdded: [],
+                    injuriesRemoved: [brokenLeftLeg],
+                }),
+            ),
+        ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+    });
+
+    it('refuses a correction that adds again a wound still carried (D-16)', () => {
+        expect(
+            codeOf(() =>
+                assertWoundCorrectionAllowed([crushedRightHand], {
+                    injuriesAdded: [crushedRightHand],
+                }),
             ),
         ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
         expect(() =>
-            assertAddsOnlyNewInjuries(
-                [InjuryType.crushedRightHand],
-                [InjuryType.brokenLeftLeg],
-            ),
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [brokenLeftLeg],
+            }),
+        ).not.toThrow();
+    });
+
+    it('allows a wound removed and added again in the same correction (D-16)', () => {
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [crushedRightHand],
+                injuriesRemoved: [crushedRightHand],
+            }),
         ).not.toThrow();
     });
 });
@@ -363,5 +392,43 @@ describe('effects conversions', () => {
                 effectsRecordOf(firstFight),
             ),
         ).not.toHaveProperty('companionLifeAfter');
+    });
+
+    it('keeps the removals in the saved effects and back (D-13)', () => {
+        const corrected: ParticipantEffects = {
+            ...firstFight,
+            injuriesRemoved: [InjuryType.deepCut],
+        };
+
+        expect(effectsRecordOf(corrected).injuriesRemoved).toEqual([
+            InjuryType.deepCut,
+        ]);
+        expect(
+            participantEffectsOf(
+                HERO_ID.toHexString(),
+                effectsRecordOf(corrected),
+            ),
+        ).toEqual(corrected);
+    });
+
+    it('carries no removal key for effects without removals (D-13)', () => {
+        const { injuriesRemoved, ...recordOfAnOlderDraft } = effectsRecordOf({
+            ...firstFight,
+            injuriesRemoved: [],
+        });
+
+        expect(injuriesRemoved).toBeUndefined();
+        expect(effectsRecordOf(firstFight)).not.toHaveProperty(
+            'injuriesRemoved',
+        );
+        expect(
+            participantEffectsOf(HERO_ID.toHexString(), recordOfAnOlderDraft),
+        ).toEqual(firstFight);
+        expect(
+            participantEffectsOf(HERO_ID.toHexString(), {
+                ...recordOfAnOlderDraft,
+                injuriesRemoved: [],
+            }),
+        ).not.toHaveProperty('injuriesRemoved');
     });
 });

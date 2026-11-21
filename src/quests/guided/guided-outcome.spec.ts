@@ -303,4 +303,33 @@ describe('correctionOverSimulated', () => {
             ),
         ).not.toHaveProperty('companionLifeAfter');
     });
+
+    it('takes the removals from the correction over the simulated effects (D-13)', () => {
+        expect(
+            correctionOverSimulated(
+                { characterId: HERO, injuriesRemoved: [InjuryType.deepCut] },
+                simulated,
+            ),
+        ).toEqual({
+            ...simulatedInput,
+            injuriesRemoved: [InjuryType.deepCut],
+        });
+    });
+
+    it.each<[string, { injuriesRemoved?: InjuryType[] | null }]>([
+        ['omitted', {}],
+        ['null', { injuriesRemoved: null }],
+        ['an empty list', { injuriesRemoved: [] }],
+    ])(
+        'carries no removal when the correction omits them or sends an empty list: %s (D-13)',
+        (_label, removals) => {
+            const merged = correctionOverSimulated(
+                { characterId: HERO, ...removals },
+                { ...simulated, injuriesRemoved: [InjuryType.deepCut] },
+            );
+
+            expect(merged).toEqual(simulatedInput);
+            expect(merged).not.toHaveProperty('injuriesRemoved');
+        },
+    );
 });
