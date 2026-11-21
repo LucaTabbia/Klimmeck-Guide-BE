@@ -313,6 +313,31 @@ describe('QuestResolutionService.resolveStandard (individual) without an enemy (
             const [result] = await resultsOf(subject);
             expect(result.injuriesHealed).toEqual(['deepCut']);
         });
+
+        it('keeps an innkeeper wound through the cure of a won quest (D-11, D-14)', async () => {
+            const subject = await quester({
+                questOverrides: jobQuest({
+                    cure: {
+                        lifePointsShare: 0.5,
+                        canHeal: ['deepCut', 'infection'],
+                    },
+                }),
+                characterOverrides: {
+                    status: {
+                        injuries: ['deepCut', 'infection'],
+                        innkeeperInjuries: ['infection'],
+                    },
+                },
+            });
+
+            await service.resolveStandard(triggerOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.injuries).toEqual(['infection']);
+            expect(character.status.innkeeperInjuries).toEqual(['infection']);
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesHealed).toEqual(['deepCut']);
+        });
     });
 
     it('teaches the study spell when the level after the prize is enough', async () => {

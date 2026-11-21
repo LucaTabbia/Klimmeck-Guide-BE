@@ -215,6 +215,7 @@ describe('planParticipant', () => {
                 hpAfter: 1000,
                 maxLifePoints: 1200,
                 injuriesAdded: [],
+                injuriesRemoved: [],
                 injuriesHealed: [],
                 consumablesUsed: [],
                 spellsUsed: [],
@@ -2886,5 +2887,168 @@ describe('planParticipant', () => {
             expect(plan.result.loreUnlocked).toEqual([]);
             expect(Object.keys(plan.update)).toEqual(['$set']);
         });
+    });
+
+    describe('innkeeper wounds and corrections', () => {
+        const { deepCut, infection, sprain } = InjuryType;
+        const ORIGIN_KEY = 'status.innkeeperInjuries';
+
+        const curingWith = (canHeal: InjuryType[]): DrawnRewards =>
+            rewardsWith({ cure: { lifePointsShare: 0, canHeal } });
+
+        const carrying = (
+            injuries: InjuryType[],
+            innkeeperInjuries?: InjuryType[],
+        ): OutcomeCharacterSnapshot =>
+            snapshotWith({
+                status: {
+                    injuries,
+                    ...(innkeeperInjuries ? { innkeeperInjuries } : {}),
+                },
+            });
+
+        const gmPlan = (
+            overrides: Partial<ParticipantPlanInput>,
+        ): ParticipantPlan =>
+            planParticipant(
+                inputWith({ verdict: QuestOutcome.gmCompleted, ...overrides }),
+            );
+
+        it('leaves an innkeeper wound carried before the outcome to the cure of the prize (D-14)', () => {
+            const plan = gmPlan({
+                snapshot: carrying([infection], [infection]),
+                rewards: curingWith([infection]),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([infection]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+            expect(plan.update.$set).not.toHaveProperty([ORIGIN_KEY]);
+        });
+
+        it('leaves a wound inflicted by hand in this same outcome to the cure of the prize (D-14)', () => {
+            const plan = gmPlan({
+                rewards: curingWith([deepCut]),
+                battle: battleWith({
+                    injuriesAdded: [deepCut],
+                    innkeeperInjuries: [deepCut],
+                }),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([deepCut]);
+            expect(plan.update.$set[ORIGIN_KEY]).toEqual([deepCut]);
+            expect(plan.result.injuriesAdded).toEqual([deepCut]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+        });
+
+        it('still heals an ordinary wound added in the same outcome (D-14)', () => {
+            const plan = gmPlan({
+                rewards: curingWith([deepCut]),
+                battle: battleWith({ injuriesAdded: [deepCut] }),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([]);
+            expect(plan.update.$set).not.toHaveProperty([ORIGIN_KEY]);
+            expect(plan.result.injuriesAdded).toEqual([deepCut]);
+            expect(plan.result.injuriesHealed).toEqual([deepCut]);
+        });
+
+        it('heals the ordinary wounds beside an innkeeper one (D-14)', () => {
+            const plan = gmPlan({
+                snapshot: carrying([deepCut, infection, sprain], [infection]),
+                rewards: curingWith([deepCut, infection, sprain]),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([infection]);
+            expect(plan.result.injuriesHealed).toEqual([deepCut, sprain]);
+            expect(plan.update.$set).not.toHaveProperty([ORIGIN_KEY]);
+        });
+
+        it('removes a wound taken off by the innkeeper (D-13)', () => {
+            const plan = gmPlan({
+                snapshot: carrying([deepCut, sprain]),
+                battle: battleWith({ injuriesRemoved: [deepCut] }),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([sprain]);
+            expect(plan.result.injuriesRemoved).toEqual([deepCut]);
+            expect(plan.result.injuriesAdded).toEqual([]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+            expect(plan.update.$set).not.toHaveProperty([ORIGIN_KEY]);
+        });
+
+        it('drops a removed innkeeper wound from the origin list (D-13)', () => {
+            const plan = gmPlan({
+                snapshot: carrying([deepCut, sprain], [deepCut, sprain]),
+                battle: battleWith({ injuriesRemoved: [deepCut] }),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([sprain]);
+            expect(plan.update.$set[ORIGIN_KEY]).toEqual([sprain]);
+            expect(plan.result.injuriesRemoved).toEqual([deepCut]);
+        });
+
+        it('reports nothing for a wound removed and added again (D-16)', () => {
+            const plan = gmPlan({
+                snapshot: carrying([deepCut]),
+                rewards: curingWith([deepCut]),
+                battle: battleWith({
+                    injuriesRemoved: [deepCut],
+                    injuriesAdded: [deepCut],
+                    innkeeperInjuries: [deepCut],
+                }),
+            });
+
+            expect(plan.update.$set['status.injuries']).toEqual([deepCut]);
+            expect(plan.update.$set[ORIGIN_KEY]).toEqual([deepCut]);
+            expect(plan.result.injuriesAdded).toEqual([]);
+            expect(plan.result.injuriesRemoved).toEqual([]);
+            expect(plan.result.injuriesHealed).toEqual([]);
+        });
+
+        it.each<[string, Partial<ParticipantPlanInput>]>([
+            [
+                'an outcome without a fight',
+                {
+                    verdict: QuestOutcome.gmCompleted,
+                    snapshot: carrying([deepCut, sprain], [sprain]),
+                    rewards: curingWith([deepCut, sprain]),
+                },
+            ],
+            [
+                'an outcome with engine wounds only',
+                {
+                    verdict: QuestOutcome.gmCompleted,
+                    snapshot: carrying([sprain], [sprain]),
+                    battle: battleWith({ injuriesAdded: [deepCut, sprain] }),
+                },
+            ],
+            [
+                'a standard success',
+                {
+                    verdict: QuestOutcome.success,
+                    snapshot: carrying([sprain], [sprain, sprain, infection]),
+                    battle: battleWith({ injuriesAdded: [deepCut] }),
+                },
+            ],
+        ])(
+            'writes the origin list only when it changes: %s (D-16)',
+            (_label, overrides) => {
+                const plan = planParticipant(inputWith(overrides));
+
+                expect(Object.keys(plan.update.$set)).not.toContain(ORIGIN_KEY);
+            },
+        );
+
+        it.each<[string, Partial<ParticipantPlanInput>]>([
+            ['no fight', {}],
+            ['a fight', { battle: battleWith({ injuriesAdded: [deepCut] }) }],
+        ])(
+            'always fills the removed wounds on the result: %s (D-13)',
+            (_label, overrides) => {
+                const plan = planParticipant(inputWith(overrides));
+
+                expect(plan.result.injuriesRemoved).toEqual([]);
+            },
+        );
     });
 });
