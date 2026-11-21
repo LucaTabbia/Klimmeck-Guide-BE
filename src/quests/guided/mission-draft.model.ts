@@ -16,6 +16,8 @@ export enum MissionDraftStep {
     fights = 'fights',
     prizes = 'prizes',
     recap = 'recap',
+    // ultima pagina, dopo il riepilogo (Phase 25 D-05)
+    stories = 'stories',
 }
 
 export enum MissionFightVerdict {
@@ -294,6 +296,23 @@ export class MissionPrizeRecord {
 export const MissionPrizeRecordSchema =
     SchemaFactory.createForClass(MissionPrizeRecord);
 
+// aggiunta facoltativa al background di un partecipante (Phase 25 D-06): testo già ripulito, mai vuoto
+@Schema({ _id: false })
+export class MissionBackgroundAdditionRecord {
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Character.name,
+        required: true,
+    })
+    character: Types.ObjectId;
+
+    @Prop({ type: String, required: true })
+    text: string;
+}
+
+export const MissionBackgroundAdditionRecordSchema =
+    SchemaFactory.createForClass(MissionBackgroundAdditionRecord);
+
 @Schema({ collection: 'missiondrafts' })
 export class MissionDraft {
     @Prop({
@@ -328,6 +347,9 @@ export class MissionDraft {
 
     @Prop({ type: [MissionPrizeRecordSchema], default: [] })
     prizes: MissionPrizeRecord[];
+
+    @Prop({ type: [MissionBackgroundAdditionRecordSchema], default: [] })
+    backgroundAdditions: MissionBackgroundAdditionRecord[];
 
     @Prop({ type: MongooseSchema.Types.ObjectId, default: null })
     startedBy: Types.ObjectId | null;

@@ -182,6 +182,15 @@ export class MissionPrize {
     cure: QuestCure | null;
 }
 
+@ObjectType()
+export class MissionBackgroundAddition {
+    @Field(() => ID)
+    character: string;
+
+    @Field(() => String)
+    text: string;
+}
+
 @ObjectType('MissionDraft')
 export class MissionDraftView {
     @Field(() => ID)
@@ -207,6 +216,9 @@ export class MissionDraftView {
 
     @Field(() => [MissionPrize])
     prizes: MissionPrize[];
+
+    @Field(() => [MissionBackgroundAddition])
+    backgroundAdditions: MissionBackgroundAddition[];
 
     @Field(() => Date)
     startedAt: Date;

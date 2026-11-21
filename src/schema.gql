@@ -420,6 +420,16 @@ type Lore {
   type: String!
 }
 
+type MissionBackgroundAddition {
+  character: ID!
+  text: String!
+}
+
+input MissionBackgroundAdditionInput {
+  characterId: ID!
+  text: String!
+}
+
 type MissionCompanion {
   lifeBefore: Int!
   maxLifePoints: Int!
@@ -428,6 +438,7 @@ type MissionCompanion {
 }
 
 type MissionDraft {
+  backgroundAdditions: [MissionBackgroundAddition!]!
   fights: [MissionFight!]!
   id: ID!
   participants: [MissionParticipant!]!
@@ -444,6 +455,7 @@ enum MissionDraftStep {
   fights
   prizes
   recap
+  stories
   teleport
 }
 
@@ -973,6 +985,7 @@ enum RoleType {
 }
 
 input SaveMissionDraftInput {
+  backgroundAdditions: [MissionBackgroundAdditionInput!]
   fights: [MissionFightInput!]
   pendingQuestId: ID!
   place: ID

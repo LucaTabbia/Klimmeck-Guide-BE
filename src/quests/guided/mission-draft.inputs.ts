@@ -8,7 +8,9 @@ import {
     IsEnum,
     IsInt,
     IsOptional,
+    IsString,
     Max,
+    MaxLength,
     Min,
     ValidateNested,
 } from 'class-validator';
@@ -18,6 +20,7 @@ import {
     ParticipantOverrideInput,
 } from 'src/models/request/complete-pending-request.model';
 import { IsObjectIdHex } from 'src/validation/is-object-id-hex.decorator';
+import { BACKGROUND_ADDITION_MAX_FORM_LENGTH } from './background-additions';
 import { MAX_PRIZE_ITEM_QUANTITY } from './mission-draft-prefill';
 import { MissionDraftStep } from './mission-draft.model';
 
@@ -160,6 +163,19 @@ export class MissionPrizeInput {
     xp: number;
 }
 
+@InputType()
+export class MissionBackgroundAdditionInput {
+    @Field(() => ID)
+    @IsObjectIdHex()
+    characterId: string;
+
+    // forma sul filo: il tetto di dominio (1000 grafemi) risponde col suo codice (Phase 25 D-07); il testo vuoto è ammesso: nessun @IsNotEmpty né @MinLength (D-06)
+    @Field(() => String)
+    @IsString()
+    @MaxLength(BACKGROUND_ADDITION_MAX_FORM_LENGTH)
+    text: string;
+}
+
 // sezioni presenti sostituiscono quelle salvate, nessun ordine dei passi (D-18)
 @InputType()
 export class SaveMissionDraftInput {
@@ -192,4 +208,13 @@ export class SaveMissionDraftInput {
     @ValidateNested({ each: true })
     @Type(() => MissionPrizeInput)
     prizes?: MissionPrizeInput[] | null;
+
+    // sezione presente = sostituisce l'intera lista; testo vuoto = nessuna voce (Phase 25 D-06)
+    @Field(() => [MissionBackgroundAdditionInput], { nullable: true })
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(MAX_OVERRIDE_ENTRIES)
+    @ValidateNested({ each: true })
+    @Type(() => MissionBackgroundAdditionInput)
+    backgroundAdditions?: MissionBackgroundAdditionInput[] | null;
 }

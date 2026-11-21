@@ -7,6 +7,7 @@ import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { handInflictedOf } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
+    MissionBackgroundAdditionRecord,
     MissionCompanionRecord,
     MissionDraftParticipant,
     MissionDraftRecord,
@@ -20,6 +21,7 @@ import {
 } from './mission-draft.model';
 import { hexOf } from './ids';
 import {
+    MissionBackgroundAddition,
     MissionCompanion,
     MissionDraftView,
     MissionFight,
@@ -162,6 +164,12 @@ function prizeOf(prize: MissionPrizeRecord): MissionPrize {
     };
 }
 
+function backgroundAdditionOf(
+    addition: MissionBackgroundAdditionRecord,
+): MissionBackgroundAddition {
+    return { character: hexOf(addition.character), text: addition.text };
+}
+
 export function toMissionDraftWire(
     record: MissionDraftRecord,
     enemies: Bestiary,
@@ -175,6 +183,10 @@ export function toMissionDraftWire(
         participants: record.participants.map(participantOf),
         fights: record.fights.map((fight) => fightOf(fight, enemies)),
         prizes: record.prizes.map(prizeOf),
+        // una bozza aperta prima della sezione non ha il campo (Phase 25 D-05)
+        backgroundAdditions: (record.backgroundAdditions ?? []).map(
+            backgroundAdditionOf,
+        ),
         startedAt: record.startedAt,
         updatedAt: record.updatedAt,
     };
