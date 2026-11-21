@@ -104,6 +104,10 @@ export class MissionFightEffectsRecord {
     // vita del compagno dopo lo scontro (D-17); null = nessun compagno, anche sulle bozze aperte prima della fase (D-33)
     @Prop({ type: Number, default: null })
     companionLifeAfter?: number | null;
+
+    // ferite tolte dalla correzione dell'oste (Phase 25 D-13); sempre vuota sul simulato e sulle bozze di prima
+    @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
+    injuriesRemoved?: InjuryType[];
 }
 
 export const MissionFightEffectsRecordSchema = SchemaFactory.createForClass(

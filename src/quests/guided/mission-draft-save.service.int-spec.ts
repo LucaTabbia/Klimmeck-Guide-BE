@@ -317,6 +317,7 @@ describe('MissionDraftSaveService (replSet)', () => {
                 consumablesUsed: [{ item: potion, quantity: 3 }],
                 spellsUsed: [{ spell, usages: 5 }],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             });
             // A-08: i campi omessi valgono il simulato, non lo stato d'inizio scontro
             expect(outcomeOf(highest.fights[0], first)!.corrected).toEqual({
@@ -551,6 +552,7 @@ describe('MissionDraftSaveService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [],
                 companionLifeAfter: 2,
+                injuriesRemoved: [],
             });
         });
 

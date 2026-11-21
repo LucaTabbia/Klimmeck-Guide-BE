@@ -235,6 +235,7 @@ describe('MissionSimulationService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [{ spell, usages: 1 }],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             },
             corrected: null,
         });
@@ -251,6 +252,7 @@ describe('MissionSimulationService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             },
             corrected: null,
         });

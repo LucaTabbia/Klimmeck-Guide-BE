@@ -5,6 +5,7 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
+import type { WoundEffects } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
     type OverrideCompanion,
     overrideParticipantOf,
@@ -141,13 +142,27 @@ export function fightStartOf(
     };
 }
 
-// D-14: le ferite di prima della missione non si toccano; guarirle è il premio cure
-export function assertAddsOnlyNewInjuries(
+// una correzione toglie solo ferite presenti all'inizio dello scontro e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16)
+export function assertWoundCorrectionAllowed(
     injuriesBefore: readonly InjuryType[],
-    added: readonly InjuryType[],
+    effects: WoundEffects,
 ): void {
-    if (added.some((injury) => injuriesBefore.includes(injury)))
+    const removed = effects.injuriesRemoved ?? [];
+    if (removed.some((injury) => !injuriesBefore.includes(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
+    const stillCarried = injuriesBefore.filter(
+        (injury) => !removed.includes(injury),
+    );
+    if (effects.injuriesAdded.some((injury) => stillCarried.includes(injury)))
+        throw GameRuleException.outcomeOverrideInvalid();
+}
+
+// nessuna rimozione = chiave assente, anche sulle bozze di prima (Phase 25 D-13)
+function removalsOf(
+    injuriesRemoved: readonly InjuryType[] | null | undefined,
+): { injuriesRemoved?: InjuryType[] } {
+    const removed = injuriesRemoved ?? [];
+    return removed.length === 0 ? {} : { injuriesRemoved: [...removed] };
 }
 
 export function effectsRecordOf(
@@ -169,6 +184,7 @@ export function effectsRecordOf(
             }),
         ),
         companionLifeAfter: effects.companionLifeAfter ?? null,
+        ...removalsOf(effects.injuriesRemoved),
     };
 }
 
@@ -191,5 +207,6 @@ export function participantEffectsOf(
         ...(record.companionLifeAfter == null
             ? {}
             : { companionLifeAfter: record.companionLifeAfter }),
+        ...removalsOf(record.injuriesRemoved),
     };
 }

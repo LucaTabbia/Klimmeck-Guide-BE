@@ -1,4 +1,4 @@
-// D-18: sezioni presenti sostituiscono; D-24 e D-14 sullo stato all'inizio di ogni scontro
+// D-18: sezioni presenti sostituiscono; D-24 sullo stato all'inizio di ogni scontro; una correzione toglie solo ferite portate e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16)
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -33,7 +33,7 @@ import {
     resetFrom,
 } from './draft-invalidation';
 import {
-    assertAddsOnlyNewInjuries,
+    assertWoundCorrectionAllowed,
     effectsRecordOf,
     participantEffectsOf,
     stateBeforeFight,
@@ -380,10 +380,7 @@ export class MissionDraftSaveService {
         const corrected = fight.outcomes.map((outcome) => {
             const entry = effects.get(hexOf(outcome.character)) ?? null;
             if (!entry) return null;
-            assertAddsOnlyNewInjuries(
-                outcome.injuriesBefore,
-                entry.injuriesAdded,
-            );
+            assertWoundCorrectionAllowed(outcome.injuriesBefore, entry);
             return effectsRecordOf(entry);
         });
         if (sameCorrections(fight, corrected)) return fights;

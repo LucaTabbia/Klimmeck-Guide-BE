@@ -33,7 +33,7 @@ import type {
 import { victoryKnowledgeOf } from 'src/quests/outcomes/victory-knowledge';
 import { chosenRewardsOf } from './chosen-rewards';
 import {
-    assertAddsOnlyNewInjuries,
+    assertWoundCorrectionAllowed,
     fightStartOf,
     stateBeforeFight,
 } from './fight-state';
@@ -97,9 +97,9 @@ function assertSequenceAllowed(
             [overrideParticipantOf(overlay, petCatalog)],
         );
         if (corrected)
-            assertAddsOnlyNewInjuries(
+            assertWoundCorrectionAllowed(
                 fightStartOf(overlay, petCatalog).injuriesBefore,
-                effects.injuriesAdded,
+                effects,
             );
     });
 }

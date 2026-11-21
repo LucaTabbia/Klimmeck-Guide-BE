@@ -205,7 +205,7 @@ export function overrideInputOf(
     };
 }
 
-// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince
+// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince; le rimozioni sono solo quelle della correzione in arrivo (Phase 25 D-13)
 export function correctionOverSimulated(
     correction: ParticipantOverrideInput,
     simulated: ParticipantEffects,
@@ -213,6 +213,7 @@ export function correctionOverSimulated(
     const base = overrideInputOf(correction.characterId, simulated);
     const companionLifeAfter =
         correction.companionLifeAfter ?? base.companionLifeAfter;
+    const injuriesRemoved = correction.injuriesRemoved ?? [];
     return {
         characterId: correction.characterId,
         hpAfter: correction.hpAfter ?? base.hpAfter,
@@ -220,5 +221,6 @@ export function correctionOverSimulated(
         consumablesUsed: correction.consumablesUsed ?? base.consumablesUsed,
         spellsUsed: correction.spellsUsed ?? base.spellsUsed,
         ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
+        ...(injuriesRemoved.length === 0 ? {} : { injuriesRemoved }),
     };
 }
