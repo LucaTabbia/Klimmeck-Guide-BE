@@ -463,6 +463,8 @@ type MissionFightEffects {
   consumablesUsed: [MissionItemUsage!]!
   hpAfter: Int!
   injuriesAdded: [InjuryType!]!
+  injuriesRemoved: [InjuryType!]!
+  innkeeperInjuries: [InjuryType!]!
   spellsUsed: [MissionSpellUsage!]!
 }
 
@@ -483,6 +485,7 @@ type MissionFightOutcome {
   corrected: MissionFightEffects
   hpBefore: Int!
   injuriesBefore: [InjuryType!]!
+  innkeeperInjuriesBefore: [InjuryType!]!
   simulated: MissionFightEffects
   spellsAvailable: [MissionSpellUsage!]!
 }

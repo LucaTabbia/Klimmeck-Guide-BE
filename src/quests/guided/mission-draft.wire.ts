@@ -43,6 +43,14 @@ export class MissionFightEffects {
     @Field(() => [InjuryType])
     injuriesAdded: InjuryType[];
 
+    // ferite tolte dalla correzione dell'oste (Phase 25 D-13): sempre vuota sull'effetto simulato
+    @Field(() => [InjuryType])
+    injuriesRemoved: InjuryType[];
+
+    // sottoinsieme di injuriesAdded inflitto a mano dall'oste (Phase 25 D-12): sempre vuota sull'effetto simulato
+    @Field(() => [InjuryType])
+    innkeeperInjuries: InjuryType[];
+
     @Field(() => [MissionItemUsage])
     consumablesUsed: MissionItemUsage[];
 
@@ -89,6 +97,10 @@ export class MissionFightOutcome {
 
     @Field(() => [InjuryType])
     injuriesBefore: InjuryType[];
+
+    // ferite dell'oste all'inizio dello scontro (Phase 25 D-13): sottoinsieme di injuriesBefore
+    @Field(() => [InjuryType])
+    innkeeperInjuriesBefore: InjuryType[];
 
     @Field(() => [MissionItemUsage])
     consumablesAvailable: MissionItemUsage[];
