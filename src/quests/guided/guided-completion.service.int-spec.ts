@@ -831,6 +831,291 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(questEndPushes()).toHaveLength(2);
     });
 
+    describe('innkeeper wounds', () => {
+        const { blackEye, deepCut, frostbite, sprain } = InjuryType;
+
+        interface PlayedFight {
+            simulated: InjuryType[];
+            correction?: Omit<ParticipantOverrideInput, 'characterId'>;
+        }
+
+        // un solo iscritto con le ferite date; il blocco del suo rango ha una cura solo se ne guarisce qualcuna (la bozza nasce col premio del blocco)
+        async function woundedMission(
+            status: {
+                injuries: InjuryType[];
+                innkeeperInjuries?: InjuryType[];
+            },
+            canHeal: InjuryType[] = [],
+        ) {
+            const wolf = idOf(
+                await persistEnemy(world.models.enemies, {
+                    name: 'Lupo',
+                    xp: 50,
+                }),
+            );
+            const hero = await quester({
+                questOverrides: {
+                    ...gmQuest('worldMission'),
+                    prizes: {
+                        ...buildQuest().prizes,
+                        rankPrizes: [
+                            {
+                                title: 'rookie',
+                                xpPrize: 100,
+                                randomLoot: [],
+                                ...(canHeal.length === 0
+                                    ? {}
+                                    : {
+                                          cure: {
+                                              lifePointsShare: 0.5,
+                                              canHeal,
+                                          },
+                                      }),
+                            },
+                        ],
+                    },
+                },
+                characterOverrides: { status: { title: 'rookie', ...status } },
+            });
+            await drafts.start(hexOf(hero), null);
+            return { hero, wolf };
+        }
+
+        // ogni scontro simulato con le sue ferite e poi corretto dall'oste, uno dopo l'altro come nella bozza
+        async function play(
+            hero: Quester,
+            wolf: Types.ObjectId,
+            fights: readonly PlayedFight[],
+        ) {
+            for (const [index, { simulated, correction }] of fights.entries()) {
+                combat.willResolve(hero.characterId, {
+                    injuriesAdded: simulated,
+                });
+                await simulate(hero, index, [wolf, 1]);
+                if (!correction) continue;
+                await saver.save({
+                    pendingQuestId: hexOf(hero),
+                    fights: fights.slice(0, index + 1).map((played) => ({
+                        enemies: enemiesOf([wolf, 1]),
+                        ...(played.correction
+                            ? {
+                                  corrections: [
+                                      correctionOf(hero, played.correction),
+                                  ],
+                              }
+                            : {}),
+                    })),
+                });
+            }
+        }
+
+        const woundsOf = async (subject: Quester) => {
+            const { status } = await characterOf(subject);
+            return {
+                injuries: [...(status.injuries ?? [])].sort(),
+                innkeeperInjuries: [...(status.innkeeperInjuries ?? [])].sort(),
+            };
+        };
+
+        it('writes a hand-inflicted wound as an innkeeper wound (D-12)', async () => {
+            const { hero, wolf } = await woundedMission({ injuries: [] });
+            await play(hero, wolf, [
+                {
+                    simulated: [sprain],
+                    correction: { injuries: [sprain, frostbite] },
+                },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [frostbite, sprain],
+                innkeeperInjuries: [frostbite],
+            });
+            expect([...(await resultOf(hero)).injuriesAdded].sort()).toEqual([
+                frostbite,
+                sprain,
+            ]);
+        });
+
+        it('leaves a simulated wound kept as it is ordinary (D-12)', async () => {
+            const { hero, wolf } = await woundedMission({ injuries: [] });
+            await play(hero, wolf, [
+                { simulated: [sprain], correction: { hpAfter: 700 } },
+                { simulated: [blackEye] },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [blackEye, sprain],
+                innkeeperInjuries: [],
+            });
+        });
+
+        it('completes a draft with a wound removed and added again (D-16)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut],
+            });
+            await play(hero, wolf, [
+                {
+                    simulated: [],
+                    correction: {
+                        injuries: [deepCut],
+                        injuriesRemoved: [deepCut],
+                    },
+                },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+            expect(await resultOf(hero)).toMatchObject({
+                outcome: QuestOutcome.gmCompleted,
+                injuriesAdded: [],
+                injuriesRemoved: [],
+                injuriesHealed: [],
+            });
+        });
+
+        it('drops in the second fight a wound the first one added (D-13)', async () => {
+            const { hero, wolf } = await woundedMission({ injuries: [] });
+            await play(hero, wolf, [
+                { simulated: [sprain] },
+                { simulated: [], correction: { injuriesRemoved: [sprain] } },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [],
+                innkeeperInjuries: [],
+            });
+            expect(await resultOf(hero)).toMatchObject({
+                injuriesAdded: [],
+                injuriesRemoved: [],
+            });
+        });
+
+        it('adds back by hand in the second fight a wound removed in the first (D-13, D-16)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut],
+            });
+            await play(hero, wolf, [
+                { simulated: [], correction: { injuriesRemoved: [deepCut] } },
+                { simulated: [], correction: { injuries: [deepCut] } },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+        });
+
+        it('removes a wound carried before the mission (D-13)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut, sprain],
+            });
+            await play(hero, wolf, [
+                { simulated: [], correction: { injuriesRemoved: [deepCut] } },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [sprain],
+                innkeeperInjuries: [],
+            });
+            expect(await resultOf(hero)).toMatchObject({
+                injuriesAdded: [],
+                injuriesRemoved: [deepCut],
+                injuriesHealed: [],
+            });
+        });
+
+        it('removes an innkeeper wound carried before the mission (D-13)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [deepCut],
+            });
+            await play(hero, wolf, [
+                { simulated: [], correction: { injuriesRemoved: [deepCut] } },
+            ]);
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [sprain],
+                innkeeperInjuries: [],
+            });
+            expect((await resultOf(hero)).injuriesRemoved).toEqual([deepCut]);
+        });
+
+        it('keeps the innkeeper wounds out of the guided cure prize (D-14)', async () => {
+            const { hero, wolf } = await woundedMission(
+                { injuries: [deepCut, sprain], innkeeperInjuries: [deepCut] },
+                [deepCut, sprain, blackEye],
+            );
+            await play(hero, wolf, [
+                { simulated: [], correction: { injuries: [blackEye] } },
+            ]);
+            await saver.save({
+                pendingQuestId: hexOf(hero),
+                prizes: [prizeOf(hero, { cure: true })],
+            });
+
+            await service.complete(hexOf(hero));
+
+            expect(await woundsOf(hero)).toEqual({
+                injuries: [blackEye, deepCut],
+                innkeeperInjuries: [blackEye, deepCut],
+            });
+            expect((await resultOf(hero)).injuriesHealed).toEqual([sprain]);
+        });
+
+        it('refuses at completion the removal of a wound the character no longer carries (D-13)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut, sprain],
+            });
+            await play(hero, wolf, [
+                { simulated: [], correction: { injuriesRemoved: [deepCut] } },
+            ]);
+            await world.models.characters.collection.updateOne(
+                { _id: hero.characterId },
+                { $set: { 'status.injuries': [sprain] } },
+            );
+
+            await expectRefusedWithoutWriting(hero);
+        });
+
+        // uno scontro solo simulato non ha ferite di prima da rivalidare: la rimozione la ferma la sola rivalidazione dell'input
+        it('refuses at completion a removal stored on an uncorrected fight the character no longer carries (D-13)', async () => {
+            const { hero, wolf } = await woundedMission({
+                injuries: [deepCut, sprain],
+            });
+            await play(hero, wolf, [{ simulated: [] }]);
+            await world.harness.connection
+                .collection('missiondrafts')
+                .updateOne(
+                    {},
+                    {
+                        $set: {
+                            'fights.0.outcomes.$[seat].simulated.injuriesRemoved':
+                                [frostbite],
+                        },
+                    },
+                    { arrayFilters: [{ 'seat.character': hero.characterId }] },
+                );
+
+            await expectRefusedWithoutWriting(hero);
+        });
+    });
+
     describe('the companion at completion (Phase 23)', () => {
         const RECOVERY_MS = 3_600_000;
 
