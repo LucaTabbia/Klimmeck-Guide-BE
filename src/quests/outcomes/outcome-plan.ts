@@ -42,6 +42,10 @@ import {
 import type { ParticipantEffects } from './combat/combat-resolver';
 import { cureInjuries } from './injuries/cure-injuries';
 import { isInjuryType } from './injuries/injury-rules';
+import {
+    applyWoundCorrection,
+    innkeeperInjuriesOf,
+} from './injuries/innkeeper-injuries';
 import { cureOf, lifePointsAfterCure } from './injuries/quest-cure';
 import { isPositiveInteger } from './outcome-numbers';
 import { lifePointsWithin, progressionAfter } from './progression/level-table';
@@ -80,6 +84,8 @@ export interface OutcomeCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
+        // ferite che solo l'oste toglie (Phase 25 D-16): assente sui documenti di prima, si legge da innkeeperInjuriesOf
+        innkeeperInjuries?: InjuryType[] | null;
         // unica lista delle magie, in ordine di apprendimento (Phase 19 D-07)
         spellStates?: SpellStateEntry[];
         location?: unknown;
@@ -171,6 +177,8 @@ export interface QuestResultDraft extends DungeonTurnFields {
     spellResearchFailed?: boolean;
     // magia scoperta dal sorteggio e non ancora imparata (Phase 24 D-31): planParticipant lo scrive sempre
     spellFound?: Types.ObjectId | null;
+    // ferite tolte dalle correzioni dell'oste (Phase 25 D-13): planParticipant lo scrive sempre
+    injuriesRemoved?: InjuryType[];
 }
 
 export type PlanVerdict =
@@ -286,6 +294,16 @@ export function woundsAfter(
         (injury) => isInjuryType(injury) && !existing.includes(injury),
     );
     return { injuries: [...existing, ...fresh], added: fresh };
+}
+
+function sameWounds(
+    left: readonly InjuryType[],
+    right: readonly InjuryType[],
+): boolean {
+    return (
+        left.length === right.length &&
+        left.every((injury, index) => injury === right[index])
+    );
 }
 
 // consumi clampati al posseduto (T-09-23): un oggetto non posseduto si ignora, mai un'eccezione
@@ -463,11 +481,17 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
     // la cura è un premio della quest vinta, qualunque sia il tipo (Phase 18 D-07): dopo il combattimento e dopo la progressione (D-20);
     // viaggia col blocco tirato per il titolo, mai riletta dalla quest (D-05)
     const cure = won ? cureOf(rewards.cure) : null;
-    const fought = woundsAfter(
-        snapshot.status.injuries ?? [],
-        battle?.injuriesAdded ?? [],
+    // la cura dello stesso esito non tocca le ferite dell'oste, nemmeno quella appena inflitta (Phase 25 D-14)
+    const fought = applyWoundCorrection(snapshot.status, battle);
+    const cured = cureInjuries(
+        fought.injuries,
+        cure?.canHeal ?? [],
+        fought.innkeeperInjuries,
     );
-    const cured = cureInjuries(fought.injuries, cure?.canHeal ?? []);
+    const originChanged = !sameWounds(
+        fought.innkeeperInjuries,
+        innkeeperInjuriesOf(snapshot.status),
+    );
     const currentLifePoints = cure
         ? lifePointsAfterCure(
               progression.currentLifePoints,
@@ -588,6 +612,10 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
         'status.maxLifePoints': progression.maxLifePoints,
         'status.currentLifePoints': currentLifePoints,
         'status.injuries': cured.injuries,
+        // l'origine si scrive solo se cambia (Phase 25 D-16): gli esiti senza correzioni non toccano la chiave
+        ...(originChanged
+            ? { 'status.innkeeperInjuries': fought.innkeeperInjuries }
+            : {}),
         'assets.ownedItems': inventory.ownedItems,
         'assets.ownedEquipments': inventory.ownedEquipments,
         // la parte di apprendimento tiene occupata la corsia standard (Phase 24 D-26)
@@ -630,6 +658,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
             hpAfter: currentLifePoints,
             maxLifePoints: progression.maxLifePoints,
             injuriesAdded: fought.added,
+            injuriesRemoved: fought.removed,
             injuriesHealed: cured.healed,
             consumablesUsed: consumables,
             spellsUsed: spells.used,
