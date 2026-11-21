@@ -1,4 +1,4 @@
-// D-18: sezioni presenti sostituiscono; D-24 sullo stato all'inizio di ogni scontro; una correzione toglie solo ferite portate e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16)
+// D-18: sezioni presenti sostituiscono; D-24 sullo stato all'inizio di ogni scontro; una correzione toglie solo ferite portate e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16); le aggiunte ai background sostituiscono l'intera sezione, i testi vuoti cadono (Phase 25 D-06)
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -28,6 +28,10 @@ import {
 import { isNonNegativeInteger } from 'src/quests/outcomes/rewards/quest-rewards';
 import { prizeBlockFor } from 'src/quests/prizes/rank-prizes';
 import {
+    additionEntriesOf,
+    type BackgroundAdditionEntry,
+} from './background-additions';
+import {
     previousEffectsOf,
     reconcileFights,
     resetFrom,
@@ -46,6 +50,7 @@ import {
     MAX_MISSION_FIGHTS,
     MAX_PRIZE_AMOUNT,
     MAX_PRIZE_ITEMS,
+    type MissionBackgroundAdditionInput,
     type MissionFightInput,
     type MissionPrizeInput,
     type MissionPrizeItemInput,
@@ -271,6 +276,12 @@ export class MissionDraftSaveService {
             set.fights = await this.fightsOf(request, draft, input.fights);
         if (input.prizes != null)
             set.prizes = await this.prizesOf(request, draft, input.prizes);
+        if (input.backgroundAdditions != null)
+            set.backgroundAdditions = this.backgroundAdditionsOf(
+                request,
+                draft,
+                input.backgroundAdditions,
+            );
         return this.drafts.write(draft._id, set);
     }
 
@@ -327,6 +338,21 @@ export class MissionDraftSaveService {
             );
         }
         return mergedPrizes(draft.prizes, chosen);
+    }
+
+    // solo partecipanti della bozza (T-25-34); doppioni, tetto e testi vuoti sono delle regole pure (Phase 25 D-06, D-07)
+    private backgroundAdditionsOf(
+        request: GmRequest,
+        draft: MissionDraftRecord,
+        incoming: readonly MissionBackgroundAdditionInput[],
+    ): BackgroundAdditionEntry[] {
+        const characters = this.draftCharactersOf(request, draft);
+        return additionEntriesOf(
+            incoming.map(({ characterId, text }) => ({
+                character: participantIn(characters, characterId)._id,
+                text,
+            })),
+        );
     }
 
     private async assertEnemiesExist(
