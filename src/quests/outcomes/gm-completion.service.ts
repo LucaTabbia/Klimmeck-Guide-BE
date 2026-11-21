@@ -46,6 +46,8 @@ export interface GmSeatOutcome {
     enemies: EnemyFacts | null;
     victory: VictoryKnowledge | null;
     rewards: DrawnRewards;
+    // vero solo dal flusso guidato quando il background del posto riceve una voce (Phase 25 D-09)
+    backgroundEntryAdded?: boolean;
 }
 
 // cosa scrive il ciclo condiviso dei completamenti del GM (D-08, D-25): un esito per posto, calcolato sugli snapshot in sessione
@@ -227,6 +229,7 @@ export class GmCompletionService {
                         spellRecoveryTimes: plan.recoveryTimes,
                         petMaxXp: plan.petMaxXp,
                         petCatalog: plan.petCatalog,
+                        backgroundEntryAdded: outcome.backgroundEntryAdded,
                         now: plan.now,
                     });
                     await this.writer.writeParticipant(participant, session);
