@@ -28,12 +28,27 @@ export function additionTextOf(raw: unknown): string | null {
     return text;
 }
 
-// sezione della bozza dai testi grezzi: lo stesso personaggio due volte = OUTCOME_OVERRIDE_INVALID (prima di tutto); ogni testo passa da additionTextOf; le vuote cadono; ordine d'arrivo
-export function additionEntriesOf(
-    incoming: readonly BackgroundAdditionEntry[],
+// fusione per personaggio, come i premi: ogni voce inviata sostituisce l'aggiunta del suo personaggio, le altre restano; un testo vuoto cancella quella salvata; lo stesso personaggio due volte = OUTCOME_OVERRIDE_INVALID (prima di tutto); ogni testo inviato passa da additionTextOf
+export function mergedAdditions(
+    saved: readonly BackgroundAdditionEntry[],
+    sent: readonly BackgroundAdditionEntry[],
 ): BackgroundAdditionEntry[] {
-    assertOneEntryPerCharacter(incoming);
-    return presentOnly(incoming.map(cleanEntryOf));
+    assertOneEntryPerCharacter(sent);
+    const sentByCharacter = new Map(
+        sent.map((entry) => [hexOf(entry.character), cleanEntryOf(entry)]),
+    );
+    const savedKeys = new Set(saved.map(({ character }) => hexOf(character)));
+    return presentOnly([
+        ...saved.map(({ character, text }) => {
+            const key = hexOf(character);
+            return sentByCharacter.has(key)
+                ? (sentByCharacter.get(key) ?? null)
+                : { character, text };
+        }),
+        ...[...sentByCharacter]
+            .filter(([key]) => !savedKeys.has(key))
+            .map(([, entry]) => entry),
+    ]);
 }
 
 // aggiunta di un personaggio riletta dalla bozza e rivalidata; null = nessuna (anche su una bozza senza la sezione)

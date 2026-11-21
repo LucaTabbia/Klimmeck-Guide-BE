@@ -209,7 +209,7 @@ export class SaveMissionDraftInput {
     @Type(() => MissionPrizeInput)
     prizes?: MissionPrizeInput[] | null;
 
-    // sezione presente = sostituisce l'intera lista; testo vuoto = nessuna voce (Phase 25 D-06)
+    // ogni voce sostituisce l'aggiunta del suo personaggio, le altre restano; testo vuoto = cancella la sua; il tetto vale per chiamata (Phase 25 D-06)
     @Field(() => [MissionBackgroundAdditionInput], { nullable: true })
     @IsOptional()
     @IsArray()
