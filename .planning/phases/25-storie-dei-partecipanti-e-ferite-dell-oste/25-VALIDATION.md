@@ -1,7 +1,7 @@
 ---
 phase: 25
 slug: storie-dei-partecipanti-e-ferite-dell-oste
-status: planned
+status: executing
 nyquist_compliant: false
 wave_0_complete: false
 created: 2026-11-21
@@ -40,9 +40,9 @@ Ogni comando gira dalla radice del repo BE; a ogni task si aggiunge il controllo
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 25-01-01 | 01 | 1 | BE-WOUND-01 | T-25-02 | lettura tollerante dell'origine | unit | `npx jest src/quests/outcomes/injuries/innkeeper-injuries.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ | ⬜ pending |
-| 25-01-02 | 01 | 1 | BE-WOUND-01 | T-25-01, T-25-02, T-25-03 | origine servita, mai scrivibile da un input | int | `npx jest src/characters/characters-ownership.int-spec.ts src/characters/character-updated.subscription.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json && git diff --exit-code src/schema.gql && test "$(awk '/^type CharacterStatus \{/,/^\}/' src/schema.gql | grep -c '^  innkeeperInjuries: \[InjuryType!\]!$')" = 1 && test "$(grep -c 'innkeeperInjuries' src/schema.gql)" = 1` | ⬜ | ⬜ pending |
-| 25-01-03 | 01 | 1 | BE-WOUND-01 | — | N/A | docs | `grep -qF -- "- [x] 25-01-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 01 of 14" .planning/STATE.md && test -z "$(git status --short)"` | ⬜ | ⬜ pending |
+| 25-01-01 | 01 | 1 | BE-WOUND-01 | T-25-02 | lettura tollerante dell'origine | unit | `npx jest src/quests/outcomes/injuries/innkeeper-injuries.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ✅ | ✅ green |
+| 25-01-02 | 01 | 1 | BE-WOUND-01 | T-25-01, T-25-02, T-25-03 | origine servita, mai scrivibile da un input | int | `npx jest src/characters/characters-ownership.int-spec.ts src/characters/character-updated.subscription.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json && git diff --exit-code src/schema.gql && test "$(awk '/^type CharacterStatus \{/,/^\}/' src/schema.gql | grep -c '^  innkeeperInjuries: \[InjuryType!\]!$')" = 1 && test "$(grep -c 'innkeeperInjuries' src/schema.gql)" = 1` | ✅ | ✅ green |
+| 25-01-03 | 01 | 1 | BE-WOUND-01 | — | N/A | docs | `grep -qF -- "- [x] 25-01-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 01 of 14" .planning/STATE.md && test -z "$(git status --short)"` | ✅ | ✅ green |
 | 25-02-01 | 02 | 2 | BE-WOUND-02 | T-25-04 | la primitiva delle cure salta le ferite dell'oste | unit | `npx jest src/quests/outcomes/injuries/cure-injuries.spec.ts --selectProjects unit && npx tsc --noEmit -p tsconfig.json` | ⬜ | ⬜ pending |
 | 25-02-02 | 02 | 2 | BE-WOUND-02 | T-25-04, T-25-05, T-25-06 | pozione che non cura la ferita dell'oste; guardia di scrittura sull'origine | unit + int | `npx jest src/characters/items/item-use.plan.spec.ts --selectProjects unit && npx jest src/characters/items/use-item.int-spec.ts src/characters/items/item-use.service.int-spec.ts --selectProjects integration --runInBand && npx tsc --noEmit -p tsconfig.json && git diff --exit-code src/schema.gql` | ⬜ | ⬜ pending |
 | 25-02-03 | 02 | 2 | BE-WOUND-02 | — | N/A | docs | `grep -qF -- "- [x] 25-02-PLAN.md" .planning/ROADMAP.md && grep -q "Plan: 02 of 14" .planning/STATE.md && test -z "$(git status --short)"` | ⬜ | ⬜ pending |
