@@ -1,10 +1,11 @@
 # BACKEND-NOTES — Phase 25 Storie dei partecipanti e ferite dell'oste (handoff per la FE Phase 24 e per l'orchestratore)
 
-- **Fase BE:** 25-storie-dei-partecipanti-e-ferite-dell-oste (requisiti BE-WOUND-01..06 e BE-STORY-01..06; decisioni D-01..D-17 di `25-CONTEXT.md`, numerazione condivisa col CONTEXT della FE Phase 24, che è autorevole; nomi e ruling in `25-REPO-RULES.md`). **Companion:** FE Phase 24 «Participants' Stories and Innkeeper Wounds», ramo FE `feat/24-participants-stories-and-innkeeper-wounds`.
+- **Fase BE:** 25-storie-dei-partecipanti-e-ferite-dell-oste (requisiti BE-WOUND-01..06 e BE-STORY-01..06; decisioni D-01..D-19 di `25-CONTEXT.md`, numerazione condivisa col CONTEXT della FE Phase 24, che è autorevole; nomi e ruling in `25-REPO-RULES.md`). **Companion:** FE Phase 24 «Participants' Stories and Innkeeper Wounds», ramo FE `feat/24-participants-stories-and-innkeeper-wounds`.
 - **Data:** 2026-11-21. Scritto dopo il gate 25-13 (`25-13-SUMMARY.md`), sulla HEAD del ramo più i soli commit di documentazione.
 - **Branch:** `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`, da `develop`; base dei diff `e87339bb`. PR verso `develop` a cura dell'orchestratore (§7).
 - **Gate 25-13:** `npx tsc --noEmit` 0; unit 313 suite / 4 701 test; integration 163 suite / 2 692 test in sei blocchi `--runInBand` (`src/quests/outcomes` 17 / 290, `src/quests/guided` 5 / 155, resto di `src/quests` 25 / 484, `src/characters` 30 / 492, `src/travel` 13 / 277, resto 73 / 994); boot reale più matrice authz 2 suite / 238 test, SDL rigenerato identico al committato, **diciotto righe aggiunte e nessuna tolta** dalla base; coverage per cartella `src/quests/acceptance` 99,11 / 92,83 / 99,75 (soglia 97 / 91 / 98); lint mirato pulito su 60 file. **`npm run test:cov` completo: a cura dell'orchestratore.**
 - **Nessuna** variabile d'ambiente nuova, dipendenza nuova, handler GraphQL nuovo (`test/authz/expected-handlers.ts` senza diff), migratore o file di contenuto: ogni campo nuovo ha un valore neutro (lista vuota, `false`) sui documenti di oggi.
+- **Aggiornato dopo la review (2026-11-21, `25-REVIEW-FIX.md`):** le aggiunte ai background **si fondono per personaggio** (WR-01; §2g, Q1) e una ferita già portata riproposta **è ignorata** anche nel flusso guidato (D-19; §2d, Q4). SDL invariato.
 - **Fonte:** nomi, percorsi e titoli dei casi copiati da `src/schema.gql`, dal codice e dai SUMMARY 25-01..25-13. **Il codice vince su questo documento.**
 
 ---
@@ -13,7 +14,7 @@
 
 1. **SDL solo additivo:** diciotto righe aggiunte, nessuna tolta, nessun tipo cambiato, nessun handler nuovo (§1). La FE di oggi continua a funzionare contro il BE nuovo.
 2. **Nessuna query nuova per le storie:** l'oste legge il background di ogni partecipante con la `character(id)` di oggi, prima e senza bozza (§2f).
-3. **Bozza:** valore nuovo `MissionDraftStep.stories` e sezione `backgroundAdditions` su `MissionDraft` (servita) e su `SaveMissionDraftInput` (salvata, sostituita per intero) (§2g).
+3. **Bozza:** valore nuovo `MissionDraftStep.stories` e sezione `backgroundAdditions` su `MissionDraft` (servita) e su `SaveMissionDraftInput` (salvata, fusa per personaggio come i premi) (§2g).
 4. **`completeGuidedMission(pendingQuestId: ID!): [QuestResult!]!` invariata nella firma:** scrive le storie dalla bozza, nella stessa transazione del completamento (§2h).
 5. **`QuestResult.backgroundEntryAdded: Boolean!`:** vero sul foglio del partecipante il cui background ha ricevuto una pagina in quel completamento (§2e).
 6. **`CharacterStatus.innkeeperInjuries: [InjuryType!]!`:** le ferite dell'oste del personaggio, sottoinsieme per tipo di `injuries`; nessuna cura le tocca (§2a, §2b).
@@ -220,7 +221,7 @@ Una sola regola per tutte le vie di cura (`cureInjuries` col terzo argomento):
 - `outcomes[].injuries` = ferite aggiunte; **TUTTE dell'oste** (ogni ferita di un override del flusso semplice è inflitta a mano).
 - `outcomes[].injuriesRemoved` = ferite tolte, di qualunque origine; assente, `null` o `[]` = nessuna rimozione.
 - Stessa ferita in `injuriesRemoved` e in `injuries` = tolta e riaggiunta come ferita dell'oste (D-16).
-- Una ferita già portata, elencata in `injuries` e **non** tolta, è **ignorata in silenzio** e conserva la sua origine.
+- Una ferita già portata, elencata in `injuries` e **non** tolta, è **ignorata in silenzio** e conserva la sua origine (D-19: vale uguale nel flusso guidato).
 - Rimozione di una ferita che il personaggio non porta (o di un tipo ignoto) → `OUTCOME_OVERRIDE_INVALID`, prima di ogni scrittura.
 
 ### (d) Correzioni del flusso guidato e bozza (D-12, D-13, D-16; BE-WOUND-05, BE-WOUND-06)
@@ -228,7 +229,8 @@ Una sola regola per tutte le vie di cura (`cureInjuries` col terzo argomento):
 - `corrections[].injuries` resta «la lista completa delle ferite che lo scontro aggiunge dopo la correzione» (assente = quelle del simulato).
 - `corrections[].injuriesRemoved` toglie **solo** ferite di `injuriesBefore` di quello scontro; un'altra → `OUTCOME_OVERRIDE_INVALID`.
 - Assente, `null` e `[]` valgono «nessuna rimozione» e la lista vuota esplicita è **accettata**. La correzione è sempre l'effetto completo: rimandarla **senza** una rimozione già salvata **la annulla**.
-- Una ferita di `injuriesBefore` può stare in `injuries` solo se è anche in `injuriesRemoved`; altrimenti `OUTCOME_OVERRIDE_INVALID` (qui il guidato è più severo del flusso semplice).
+- **Ferita già portata riproposta (D-19):** una ferita di `injuriesBefore` elencata in `injuries` **senza** essere in `injuriesRemoved` — dalla correzione o dal simulato su cui la correzione si fonde — **non viene aggiunta e basta**: nessun rifiuto, nessun errore, nessun cambio di origine, come nel flusso semplice. La bozza salva e serve `corrected.injuriesAdded` **senza** quella ferita (la FE può rimandare il simulato com'è); per farne una ferita dell'oste va tolta e riaggiunta nella stessa correzione (D-16).
+- Lo stesso vale per la simulazione: una ferita proposta dal motore che il personaggio porta già all'inizio dello scontro non entra in `simulated.injuriesAdded`. Al completamento, se lo stato reale è cambiato dopo il salvataggio e una ferita salvata è ormai portata, viene ignorata: nessun doppione in `status.injuries`, non compare in `QuestResult.injuriesAdded`, l'origine resta quella di prima.
 - Ferite dell'oste di uno scontro corretto = aggiunte del corretto **meno** aggiunte del simulato, **più** le tolte-e-riaggiunte. Le ferite simulate lasciate come sono restano normali; uno scontro non corretto non ne ha.
 - Che cosa serve la bozza, per scontro e personaggio:
   - `MissionFightOutcome.innkeeperInjuriesBefore`: sottoinsieme di `injuriesBefore`, fotografato alla simulazione; comprende le ferite inflitte a mano in uno scontro precedente della stessa bozza.
@@ -257,8 +259,10 @@ Una sola regola per tutte le vie di cura (`cureInjuries` col terzo argomento):
 ### (g) Aggiunte nella bozza (D-05, D-06, D-07; BE-STORY-02, BE-STORY-03)
 
 - Passo `stories` (dopo `recap`): si salva come ogni altro passo.
-- Sezione `backgroundAdditions` **assente** (o `null`) = aggiunte salvate invariate; **presente** = sostituisce l'**INTERA** lista (anche con `[]`).
-- La FE manda una voce per partecipante, **testi vuoti compresi**: un testo vuoto o di soli spazi è **accettato, mai un errore**, e vuol dire «nessuna aggiunta per quel partecipante» (cade al salvataggio, cancella quella salvata, non viene mai scritta al completamento). Nessun `@IsNotEmpty` sul testo.
+- Sezione `backgroundAdditions` **assente** (o `null`) = aggiunte salvate invariate. **Presente = fusione per personaggio, come `prizes`:** ogni voce sostituisce **solo** l'aggiunta del suo personaggio; i partecipanti **non elencati conservano** la loro (una sezione `[]` non cambia nulla).
+- Un testo vuoto o di soli spazi è **accettato, mai un errore**, e vuol dire «nessuna aggiunta per quel partecipante»: **cancella l'aggiunta salvata di quel personaggio** (e solo quella), non viene mai scritta al completamento. Nessun `@IsNotEmpty` sul testo. Per cancellare un'aggiunta bisogna quindi mandare la voce col testo vuoto: ometterla non cancella.
+- La FE può continuare a mandare una voce per partecipante, testi vuoti compresi (stesso risultato di prima), oppure solo le voci cambiate. Il tetto di **50 voci vale per chiamata**: una missione con più partecipanti manda le aggiunte a blocchi, che non si cancellano fra loro.
+- Ordine delle voci servite: quelle già salvate restano al loro posto, quelle di un personaggio nuovo vanno in coda.
 - Il testo è salvato dopo `trim`; la bozza serve solo le voci non vuote, già ripulite.
 - Tetto: **1000 grafemi** dopo il `trim`, contati come il `maxLength` di Flutter (stessa regola del background della creazione, che resta a 500). Oltre → `BACKGROUND_ADDITION_TOO_LONG`.
 - Ordine dei rifiuti al salvataggio: personaggio fuori dalla bozza (`OUTCOME_NOT_PARTICIPANT`) → stesso personaggio due volte (`OUTCOME_OVERRIDE_INVALID`) → tetto (`BACKGROUND_ADDITION_TOO_LONG`). Un rifiuto non scrive nulla (nessuna scrittura parziale).
@@ -278,8 +282,8 @@ Una sola regola per tutte le vie di cura (`cureInjuries` col terzo argomento):
 | Codice | Operazione | Quando | `extensions` |
 |--------|------------|--------|--------------|
 | `BACKGROUND_ADDITION_TOO_LONG` (**nuovo**) | `saveMissionDraft`, `completeGuidedMission` | un'aggiunta oltre 1000 grafemi dopo il `trim` (al completamento: solo in difesa, su un testo salvato fuori regola) | solo `code` |
-| `BAD_USER_INPUT` | `saveMissionDraft` | errore di forma: testo oltre 8000 unità UTF-16, lista delle aggiunte oltre 50 voci, id malformato | forma di oggi |
-| `OUTCOME_OVERRIDE_INVALID` | `completePendingRequest`, `saveMissionDraft`, `completeGuidedMission` | rimozione di una ferita non portata; nel guidato, ferita di `injuriesBefore` riaggiunta senza toglierla; stesso personaggio due volte nelle aggiunte | solo `code` |
+| `BAD_USER_INPUT` | `saveMissionDraft` | errore di forma: testo oltre 8000 unità UTF-16, lista delle aggiunte oltre 50 voci **per chiamata**, id malformato | forma di oggi |
+| `OUTCOME_OVERRIDE_INVALID` | `completePendingRequest`, `saveMissionDraft`, `completeGuidedMission` | rimozione di una ferita non portata; stesso personaggio due volte nelle aggiunte (una ferita già portata riproposta **non** è più un rifiuto: D-19) | solo `code` |
 | `OUTCOME_NOT_PARTICIPANT` | `saveMissionDraft` | aggiunta per un personaggio fuori dalla bozza | solo `code` |
 | `QUEST_NO_EFFECT` | `acceptQuest` | invariato nella forma; ora ignora le ferite dell'oste | solo `code` |
 | `ITEM_NO_EFFECT` | `useItem` | invariato nella forma; ora ignora le ferite dell'oste | solo `code` |
@@ -443,7 +447,7 @@ mutation SaveMissionDraft($input: SaveMissionDraftInput!) {
 }
 ```
 
-Rimandare la stessa correzione con `"injuriesRemoved": []` (e `"injuries": ["sprain"]`) annulla la rimozione; con `"injuries": ["sprain", "deepCut"]` e senza la rimozione il salvataggio è rifiutato con `OUTCOME_OVERRIDE_INVALID`.
+Rimandare la stessa correzione con `"injuriesRemoved": []` (e `"injuries": ["sprain"]`) annulla la rimozione; con `"injuries": ["sprain", "deepCut"]` e senza la rimozione il salvataggio **passa** e `deepCut` è ignorata (D-19): `corrected.injuriesAdded` torna `["sprain"]`, `corrected.innkeeperInjuries` `[]`, la ferita resta una sola e normale.
 
 ### 4.5 `saveMissionDraft` con `step: stories` e `backgroundAdditions`
 
@@ -629,7 +633,7 @@ Risposte a N0–N12 della ricerca FE:
 
 - **N0** — confermato: nessuna query nuova; `character(id)` con `infos.background`, la più vecchia per prima (§2f, §4.1).
 - **N1** — `MissionDraft.backgroundAdditions: [MissionBackgroundAddition!]!` con `{ character: ID!, text: String! }` (§1).
-- **N2** — `SaveMissionDraftInput.backgroundAdditions: [MissionBackgroundAdditionInput!]` con `{ characterId: ID!, text: String! }`; sezione sostituita per intero, assente = invariata. **Differenza:** il testo vuoto SI manda ed è accettato (§2g).
+- **N2** — `SaveMissionDraftInput.backgroundAdditions: [MissionBackgroundAdditionInput!]` con `{ characterId: ID!, text: String! }`; sezione fusa per personaggio (ogni voce sostituisce solo la sua), assente = invariata. **Differenza:** il testo vuoto SI manda ed è accettato (§2g).
 - **N3** — il valore è `stories` (non `additions`).
 - **N4** — `BACKGROUND_ADDITION_TOO_LONG`, al salvataggio e in difesa al completamento; `completeGuidedMission(pendingQuestId)` invariata, scrive dalla bozza (§3, §2h).
 - **N5** — `QuestResult.backgroundEntryAdded: Boolean!` (§2e).
@@ -645,10 +649,10 @@ Risposte a N0–N12 della ricerca FE:
 
 Una risposta per ogni punto del §4 del `BACKEND-NOTES.md` della FE Phase 24, nell'ordine e con la numerazione di quel documento.
 
-- **Q1 — Aggiunte al salvataggio (W-7).** Confermato con una differenza di regola: la sezione presente **sostituisce l'intera lista**, non fonde per personaggio (la ricerca BE §Q4 proponeva la fusione; scelta vetabile, §7). Per la FE il risultato è lo stesso perché manda una voce per ogni partecipante: ogni voce sostituisce quella del suo personaggio e un testo vuoto dopo il `trim` la cancella. Attenzione: un partecipante **omesso** da una sezione presente perde l'aggiunta salvata. Un `text` vuoto è accettato sul filo (nessun `@IsNotEmpty`, nessuna lunghezza minima); mandare una voce per ogni partecipante a ogni salvataggio della sezione va bene. §2g, §4.5; `src/quests/guided/mission-draft-save.service.int-spec.ts` (`describe('background additions')`), `src/quests/guided/guided-mission.resolver.int-spec.ts` («accepts an empty text over the wire and clears the saved addition (D-06)»).
+- **Q1 — Aggiunte al salvataggio (W-7).** **Fusione per personaggio** (review WR-01, come `prizes`): la sezione assente lascia tutto com'è; in una sezione presente ogni voce sostituisce solo l'aggiunta del suo personaggio e un testo vuoto dopo il `trim` cancella quella (e solo quella) aggiunta salvata; un partecipante **omesso conserva** la sua. Per la FE che manda una voce per ogni partecipante, testi vuoti compresi, non cambia nulla; mandare solo le voci cambiate ora è lecito. Un `text` vuoto è accettato sul filo (nessun `@IsNotEmpty`, nessuna lunghezza minima). Il tetto di 50 voci è per chiamata: i blocchi non si cancellano fra loro. §2g, §4.5; `src/quests/guided/background-additions.spec.ts` (`describe('mergedAdditions')`), `src/quests/guided/mission-draft-save.service.int-spec.ts` (`describe('background additions')`: «replaces the addition of the listed character only (D-06)», «saves the additions sent in chunks without erasing the earlier ones (D-06)», «deletes only the saved addition of the character whose text comes back empty (D-06)», «leaves the additions untouched when the section comes empty (D-06)»), `src/quests/guided/guided-mission.resolver.int-spec.ts` («accepts an empty text over the wire and clears the saved addition (D-06)»).
 - **Q2 — `BACKGROUND_ADDITION_TOO_LONG` (W-9).** In tutti e due: al salvataggio (il caso normale) e al completamento (difesa: il testo salvato è rivalidato; l'intero completamento è rifiutato e nulla viene scritto). `extensions` porta il solo `code`. §3, §4.6; `src/quests/guided/background-additions.spec.ts`, `src/quests/guided/guided-completion.service.int-spec.ts` («refuses at completion an addition over the limit…»).
 - **Q3 — Valore del passo (W-8).** Il nome sullo SDL è `stories`, definitivo. §1.
-- **Q4 — Ferita simulata che il personaggio porta già.** **No al salvataggio, sì al completamento senza correzione.** Una correzione che elenca in `injuries` una ferita di `injuriesBefore` senza metterla in `injuriesRemoved` è rifiutata con `OUTCOME_OVERRIDE_INVALID` anche quando quella ferita viene dal simulato; uno scontro NON corretto col simulato in quello stato passa al completamento e la ferita resta una sola, normale. È ciò che pinna il caso «passes through a simulated injury the character already owns (D-14)» (`src/quests/guided/guided-completion.service.int-spec.ts`: il salvataggio della correzione è rifiutato, il completamento passa). **In pratica oggi non succede:** la simulazione sceglie la ferita nuova solo fra i tipi che il personaggio non porta all'inizio dello scontro, quindi `simulated.injuriesAdded` e `injuriesBefore` sono disgiunte. Se la FE vuole essere robusta a un motore futuro deve togliere dalla correzione le ferite di `injuriesBefore` non rimosse; lato BE il punto resta aperto in §7.
+- **Q4 — Ferita simulata che il personaggio porta già.** **Sì, sempre: è ignorata (D-19).** Decisione dell'utente del 2026-11-21: «Il motore di combattimento non è definitivo, non mi interessa se il simulatore ripropone la stessa ferita. Se lo fa allora non viene aggiunta e basta». Una ferita già portata e riproposta — dalla simulazione o da una correzione che non la toglie prima — non viene aggiunta: nessun rifiuto (`OUTCOME_OVERRIDE_INVALID` non esce più per questo), nessun errore, nessun cambio di origine, al salvataggio come al completamento. La simulazione non la registra in `simulated.injuriesAdded`, il salvataggio la lascia fuori da `corrected.injuriesAdded`, il completamento non la duplica in `status.injuries` e non la elenca in `QuestResult.injuriesAdded`. La FE può rimandare il simulato com'è senza filtrare nulla. Togli-e-riaggiungi nella stessa correzione resta il modo per farne una ferita dell'oste (D-16). §2d, §4.4; `src/quests/outcomes/injuries/innkeeper-injuries.spec.ts` (`describe('withoutCarriedAgain')`), `src/quests/guided/mission-simulation.service.int-spec.ts` («does not record a simulated wound the character already carries (D-19)»), `src/quests/guided/mission-draft-save.service.int-spec.ts` («does not add a wound still carried that a correction proposes again (D-19)»), `src/quests/guided/guided-completion.service.int-spec.ts` (i tre casi «(D-19)»).
 - **Q5 — `characterUpdated` su un cambio d'origine (W-13).** Confermato e provato sul filo: l'evento esce con `status.injuries` identica e `status.innkeeperInjuries` aggiornata. §2a, §4.2; `src/characters/character-updated.subscription.int-spec.ts` («publishes the character after a completion that only flips the origin of a wound (D-15, D-16)»).
 - **Q6 — `quests` per il viewer.** Confermato: `Quest.noEffect` di una heal segue l'origine (vero se le sole ferite curabili sono dell'oste e la vita è al tetto) ed è calcolato a ogni lettura sul personaggio del viewer, quindi la rilettura dopo il cambio di `innkeeperInjuries` dà il valore nuovo. §2b, §4.8; `src/quests/quests.resolver.int-spec.ts` («marks a heal quest as without effect when only innkeeper wounds match (D-14)»).
 - **Q7 — `injuriesRemoved` assente su una correzione (W-2).** Chiave assente (e `null`) = **«nessuna rimozione»**, non «rimozioni invariate». La lista vuota esplicita è accettata e vuol dire la stessa cosa. Poiché la correzione è sempre l'effetto completo, rimandarla senza una rimozione già salvata la annulla (e azzera gli scontri successivi): la funzione della FE non va cambiata. §2d, §4.4; `src/quests/guided/mission-draft-save.service.int-spec.ts` (`describe('wound removals')`, «accepts an explicit empty list»).
@@ -690,7 +694,7 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Flusso guidato: dell'oste = corretto meno simulato più le tolte-e-riaggiunte; la simulata lasciata com'è resta normale (D-12) — `src/quests/guided/draft-invalidation.spec.ts`, `src/quests/guided/guided-completion.service.int-spec.ts` («leaves a simulated wound kept as it is ordinary (D-12)»).
 
 **BE-WOUND-06 — origine e rimozioni fra gli scontri**
-- Predicato a due liste e stato fra gli scontri: rimozione fuori da `injuriesBefore` e riaggiunta senza togliere rifiutate; lo scontro successivo parte dallo stato lasciato (D-13, D-16) — `src/quests/guided/fight-state.spec.ts`, `src/quests/guided/mission-draft-save.service.int-spec.ts`.
+- Predicato a due liste e stato fra gli scontri: rimozione fuori da `injuriesBefore` rifiutata, ferita ancora portata riproposta ignorata (non salvata, non aggiunta); lo scontro successivo parte dallo stato lasciato (D-13, D-16, D-19) — `src/quests/guided/fight-state.spec.ts`, `src/quests/guided/mission-draft-save.service.int-spec.ts`.
 - Bozza servita: `innkeeperInjuriesBefore`, `corrected.injuriesRemoved`, `corrected.innkeeperInjuries`, liste vuote su `simulated` e sulle bozze di prima (D-12, D-13, D-16) — `src/quests/guided/mission-draft.mapper.spec.ts`, `src/quests/guided/guided-mission.resolver.int-spec.ts`.
 - Completamento: netto della piega in ordine, rimozioni alla rivalidazione, cura scelta che salta le ferite dell'oste (D-12, D-13, D-14) — `src/quests/guided/guided-outcome.spec.ts`, `src/quests/guided/guided-completion.service.int-spec.ts` (`describe('innkeeper wounds')`).
 - Flusso intero sul filo: ferita tolta, ferita inflitta a mano, passo `stories`, completamento, personaggio riletto dal proprietario (D-05, D-09, D-12, D-13) — `src/quests/guided/guided-mission.resolver.int-spec.ts`.
@@ -700,7 +704,7 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 
 **BE-STORY-02 — aggiunte nella bozza**
 - Forma dell'input: testo vuoto accettato, tetto di forma, sezione annullabile, voci annidate validate (D-06, D-07) — `src/quests/guided/mission-draft.inputs.spec.ts`.
-- Salvataggio: passo `stories`, sezione sostituita per intero, vuote lasciate cadere, estraneo e doppione rifiutati, nessuna scrittura parziale (D-05, D-06) — `src/quests/guided/mission-draft-save.service.int-spec.ts`.
+- Salvataggio: passo `stories`, sezione fusa per personaggio (blocchi che non si cancellano, testo vuoto che cancella solo la propria), vuote lasciate cadere, estraneo e doppione rifiutati, nessuna scrittura parziale (D-05, D-06) — `src/quests/guided/mission-draft-save.service.int-spec.ts`.
 - Sul filo: aggiunte servite ripulite, testo vuoto che cancella la salvata (D-06) — `src/quests/guided/guided-mission.resolver.int-spec.ts`.
 
 **BE-STORY-03 — tetto di 1000 grafemi**
@@ -759,15 +763,15 @@ Diagnosi a DB: `characters.status.injuries`, `characters.status.innkeeperInjurie
 
 ### Decisioni di disegno vetabili
 
-- **Sezione delle aggiunte sostituita per intero** (la ricerca proponeva la fusione per personaggio): scelta la sostituzione perché la FE manda la sezione intera, testi vuoti compresi, e un campo svuotato deve cancellare l'aggiunta salvata.
-- **Riaggiunta senza togliere:** ignorata in silenzio nel flusso semplice, rifiutata (`OUTCOME_OVERRIDE_INVALID`) nel guidato, com'era prima della fase.
+- **Sezione delle aggiunte fusa per personaggio** (review WR-01, ruling dell'orchestratore; prima era sostituita per intero): come i premi; un campo svuotato cancella l'aggiunta salvata perché la FE manda la voce col testo vuoto.
+- **Riaggiunta senza togliere:** ignorata in silenzio nei due flussi (D-19, decisione dell'utente; non più vetabile). Prima della review il guidato la rifiutava.
 - **`QuestResult.injuriesRemoved` sempre valorizzato** (lista vuota), campo distinto da `injuriesHealed`.
 - **Testi delle aggiunte nel log di audit** di `saveMissionDraft` (fino a 1000 caratteri per partecipante, nessun segreto).
 - **Un togli-e-riaggiungi non lascia traccia sul foglio:** solo l'origine sul personaggio cambia.
 
 ### Punti aperti
 
-- **Q4 (ferita simulata già portata):** la regola del guidato rifiuta la correzione che la rimanda invariata. Oggi il caso non si produce (la simulazione non sceglie ferite già portate); se un motore futuro lo producesse, la FE che rimanda il simulato com'è riceverebbe `OUTCOME_OVERRIDE_INVALID`. Decidere allora se filtrare lato BE o lato FE. Nessun lavoro in questa fase.
+- **Q4 (ferita simulata già portata): chiuso da D-19.** Ignorata lato BE nei due flussi; nessun filtro richiesto alla FE.
 - Un `status.injuries` con doppioni (dato legacy) viene ripulito dal completamento solo per le ferite toccate da una correzione; un esito senza correzioni non ripulisce un `status.innkeeperInjuries` sporco.
 
 ### Deviazioni dai piani e casi verdi al primo colpo
