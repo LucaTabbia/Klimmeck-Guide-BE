@@ -1,9 +1,9 @@
 ---
 phase: 25
 slug: storie-dei-partecipanti-e-ferite-dell-oste
-status: executing
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-21
 ---
 
@@ -87,10 +87,10 @@ Ogni comando gira dalla radice del repo BE; a ogni task si aggiunge il controllo
 
 Nessun framework da installare; mancano solo le spec e gli appoggi nuovi, ognuno creato (RED) dal task che lo usa (RESEARCH «Validation Architecture»):
 
-- [ ] `src/quests/outcomes/injuries/innkeeper-injuries.spec.ts` — lettura dell'origine, correzione pura, ferite di pugno dell'oste, netto di una sequenza (BE-WOUND-01, -04, -05, -06; task 25-01-01, 25-04-01, 25-06-02, 25-07-02, 25-09-01)
-- [ ] `src/quests/guided/background-additions.spec.ts` — regole pure delle aggiunte (BE-STORY-02, -03; task 25-10-02)
-- [ ] Pin SDL di `test/app.int-spec.ts` aggiornati PRIMA dei decoratori (RED) nei task 25-01-02, 25-05-01, 25-06-01, 25-08-01, 25-11-01, 25-12-01
-- [ ] Semine «legacy» col driver nativo nei casi che le usano: personaggio senza `status.innkeeperInjuries` (25-01-02), foglio senza `injuriesRemoved` / `backgroundEntryAdded` (25-05-01, 25-12-01), personaggio senza `infos.background` (25-12-02), bozza senza le sezioni nuove (25-08-01, 25-11-01)
+- [x] `src/quests/outcomes/injuries/innkeeper-injuries.spec.ts` — lettura dell'origine, correzione pura, ferite di pugno dell'oste, netto di una sequenza (BE-WOUND-01, -04, -05, -06; task 25-01-01, 25-04-01, 25-06-02, 25-07-02, 25-09-01)
+- [x] `src/quests/guided/background-additions.spec.ts` — regole pure delle aggiunte (BE-STORY-02, -03; task 25-10-02)
+- [x] Pin SDL di `test/app.int-spec.ts` aggiornati PRIMA dei decoratori (RED) nei task 25-01-02, 25-05-01, 25-06-01, 25-08-01, 25-11-01, 25-12-01
+- [x] Semine «legacy» col driver nativo nei casi che le usano: personaggio senza `status.innkeeperInjuries` (25-01-02), foglio senza `injuriesRemoved` / `backgroundEntryAdded` (25-05-01, 25-12-01), personaggio senza `infos.background` (25-12-02), bozza senza le sezioni nuove (25-08-01, 25-11-01)
 
 Spec esistenti che vanno RED per scelta e si riscrivono nel piano che cambia il comportamento: i due casi «refuses a correction that adds an injury the character already had (D-14)» della Phase 22 (`fight-state.spec.ts`, `mission-draft-save.service.int-spec.ts`: piano 25-07); i casi di `aggregateEffectsOf` e `guidedBattleOf` che ricevono lo stato (piano 25-09); i casi che confrontano l'intero filtro della pozione (piano 25-02), l'intero foglio (piani 25-04 e 25-12), `FightStart` o il record dell'esito (piano 25-07) e i letterali di `OverrideParticipant` e `HealSubject` (piani 25-06 e 25-03). Le vie automatiche non cambiano di una virgola: `unrewarded-plan.spec.ts`, `src/travel/ambush/*`, `quest-combat.int-spec.ts`, `crime-guard-conclusion.int-spec.ts` restano verdi senza modifiche.
 
@@ -110,11 +110,11 @@ Stato delle verifiche manuali: **da eseguire** (a cura dell'orchestratore dopo l
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 180s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 180s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-21

@@ -104,21 +104,21 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 
 ### Innkeeper Wounds (BE-WOUND) — Phase 25, aggiunta 2026-11-21
 
-- [ ] **BE-WOUND-01**: Il personaggio conserva e serve l'origine delle ferite: `status.innkeeperInjuries` a DB e `CharacterStatus.innkeeperInjuries: [InjuryType!]!` sul filo, sottoinsieme per tipo di `injuries`, additivo e senza migrazione (campo assente = nessuna ferita dell'oste); una sola funzione di lettura tollerante; nessun input lo scrive; `characterUpdated` esce anche quando cambia solo l'origine (D-15, D-16) → FE WOUND-02
-- [ ] **BE-WOUND-02**: Nessuna cura tocca una ferita dell'oste né la elenca in `injuriesHealed`: la regola vive in `cureInjuries` e vale per la quest heal e ogni premio `cure`, la cura del blocco del titolo, il premio guidato `cure` e la pozione dal Diario, compresa la ferita inflitta nello stesso esito (D-11, D-14) → FE WOUND-02
-- [ ] **BE-WOUND-03**: I controlli «senza effetto» ignorano le ferite dell'oste: `acceptQuest` rifiuta con `QUEST_NO_EFFECT`, `Quest.noEffect` è vero e la pozione risponde `ITEM_NO_EFFECT` quando la cura troverebbe solo ferite dell'oste; un solo predicato per rifiuto e campo (D-14) → FE WOUND-02
-- [ ] **BE-WOUND-04**: Le correzioni tolgono qualunque ferita presente, dell'oste o normale, nei due flussi: `ParticipantOverrideInput.injuriesRemoved` additivo, rimozione di una ferita non portata rifiutata con `OUTCOME_OVERRIDE_INVALID`, `QuestResult.injuriesRemoved: [InjuryType!]!` con le ferite tolte dall'oste (mai fra le guarite); `completePendingRequest` è estesa, non rimossa (D-13) → FE WOUND-01
-- [ ] **BE-WOUND-05**: La ferita aggiunta a mano è dell'oste: tutte quelle dell'override nel flusso semplice, corretto meno simulato nel flusso guidato; una ferita tolta e riaggiunta nella stessa correzione diventa dell'oste; una ferita già portata e non tolta non si aggiunge di nuovo e conserva l'origine (D-12, D-16) → FE WOUND-01
-- [ ] **BE-WOUND-06**: Nel flusso guidato origine e rimozioni scorrono fra gli scontri con una piega in ordine (mai un'unione), la bozza salva le rimozioni e serve all'oste `MissionFightOutcome.innkeeperInjuriesBefore`, `MissionFightEffects.injuriesRemoved` e `MissionFightEffects.innkeeperInjuries`; chiuse le tre trappole della ricerca (correzione di sole rimozioni scartata, rimozioni perse alla rivalidazione del completamento, unione delle ferite fra scontri) (D-13) → FE WOUND-01
+- [x] **BE-WOUND-01**: Il personaggio conserva e serve l'origine delle ferite: `status.innkeeperInjuries` a DB e `CharacterStatus.innkeeperInjuries: [InjuryType!]!` sul filo, sottoinsieme per tipo di `injuries`, additivo e senza migrazione (campo assente = nessuna ferita dell'oste); una sola funzione di lettura tollerante; nessun input lo scrive; `characterUpdated` esce anche quando cambia solo l'origine (D-15, D-16) → FE WOUND-02
+- [x] **BE-WOUND-02**: Nessuna cura tocca una ferita dell'oste né la elenca in `injuriesHealed`: la regola vive in `cureInjuries` e vale per la quest heal e ogni premio `cure`, la cura del blocco del titolo, il premio guidato `cure` e la pozione dal Diario, compresa la ferita inflitta nello stesso esito (D-11, D-14) → FE WOUND-02
+- [x] **BE-WOUND-03**: I controlli «senza effetto» ignorano le ferite dell'oste: `acceptQuest` rifiuta con `QUEST_NO_EFFECT`, `Quest.noEffect` è vero e la pozione risponde `ITEM_NO_EFFECT` quando la cura troverebbe solo ferite dell'oste; un solo predicato per rifiuto e campo (D-14) → FE WOUND-02
+- [x] **BE-WOUND-04**: Le correzioni tolgono qualunque ferita presente, dell'oste o normale, nei due flussi: `ParticipantOverrideInput.injuriesRemoved` additivo, rimozione di una ferita non portata rifiutata con `OUTCOME_OVERRIDE_INVALID`, `QuestResult.injuriesRemoved: [InjuryType!]!` con le ferite tolte dall'oste (mai fra le guarite); `completePendingRequest` è estesa, non rimossa (D-13) → FE WOUND-01
+- [x] **BE-WOUND-05**: La ferita aggiunta a mano è dell'oste: tutte quelle dell'override nel flusso semplice, corretto meno simulato nel flusso guidato; una ferita tolta e riaggiunta nella stessa correzione diventa dell'oste; una ferita già portata e non tolta non si aggiunge di nuovo e conserva l'origine (D-12, D-16) → FE WOUND-01
+- [x] **BE-WOUND-06**: Nel flusso guidato origine e rimozioni scorrono fra gli scontri con una piega in ordine (mai un'unione), la bozza salva le rimozioni e serve all'oste `MissionFightOutcome.innkeeperInjuriesBefore`, `MissionFightEffects.injuriesRemoved` e `MissionFightEffects.innkeeperInjuries`; chiuse le tre trappole della ricerca (correzione di sole rimozioni scartata, rimozioni perse alla rivalidazione del completamento, unione delle ferite fra scontri) (D-13) → FE WOUND-01
 
 ### Participants' Stories (BE-STORY) — Phase 25, aggiunta 2026-11-21
 
-- [ ] **BE-STORY-01**: L'oste legge il background di ogni partecipante prima di avviare la missione e senza bozza, con la `character(id)` di oggi (nessuna query nuova); un giocatore che chiede il personaggio di un altro è rifiutato; contratto pinnato da un caso d'integrazione (D-01, D-02) → FE STORY-01
-- [ ] **BE-STORY-02**: Aggiunte per partecipante nella bozza del flusso guidato: sezione `backgroundAdditions` (un testo facoltativo per partecipante, sezione presente = sostituisce la lista, testo vuoto = nessuna voce) e passo `stories` dopo `recap`, salvati e riserviti come il resto (D-05, D-06) → FE STORY-02
-- [ ] **BE-STORY-03**: Un'aggiunta è al massimo di 1000 grafemi con la stessa regola di conteggio del background della creazione (che resta a 500): predicato condiviso, tetto di forma sul filo a 8000 unità UTF-16, codice proprio `BACKGROUND_ADDITION_TOO_LONG` al salvataggio e al completamento (D-07) → FE STORY-02
-- [ ] **BE-STORY-04**: Al completamento guidato ogni aggiunta non vuota diventa una voce nuova in coda a `infos.background` nella stessa transazione del completamento; le voci esistenti non si toccano; solo `story` e `worldMission`, mai dal completamento semplice (D-05, D-08, D-10) → FE STORY-03
-- [ ] **BE-STORY-05**: `QuestResult.backgroundEntryAdded: Boolean!` dice se il background del partecipante ha ricevuto una voce in quel completamento; falso su ogni altro foglio; nessuna push dedicata (D-09) → FE STORY-03
-- [ ] **BE-STORY-06**: SDL solo additivo (diciotto righe, nessun handler nuovo) rigenerato dal boot reale di test, gate della fase (tsc, suite unit e integration) e handoff `BACKEND-NOTES.md` per la FE Phase 24 con SDL verbatim, semantica ed esempi di ogni campo, input e codice nuovo
+- [x] **BE-STORY-01**: L'oste legge il background di ogni partecipante prima di avviare la missione e senza bozza, con la `character(id)` di oggi (nessuna query nuova); un giocatore che chiede il personaggio di un altro è rifiutato; contratto pinnato da un caso d'integrazione (D-01, D-02) → FE STORY-01
+- [x] **BE-STORY-02**: Aggiunte per partecipante nella bozza del flusso guidato: sezione `backgroundAdditions` (un testo facoltativo per partecipante, sezione presente = sostituisce la lista, testo vuoto = nessuna voce) e passo `stories` dopo `recap`, salvati e riserviti come il resto (D-05, D-06) → FE STORY-02
+- [x] **BE-STORY-03**: Un'aggiunta è al massimo di 1000 grafemi con la stessa regola di conteggio del background della creazione (che resta a 500): predicato condiviso, tetto di forma sul filo a 8000 unità UTF-16, codice proprio `BACKGROUND_ADDITION_TOO_LONG` al salvataggio e al completamento (D-07) → FE STORY-02
+- [x] **BE-STORY-04**: Al completamento guidato ogni aggiunta non vuota diventa una voce nuova in coda a `infos.background` nella stessa transazione del completamento; le voci esistenti non si toccano; solo `story` e `worldMission`, mai dal completamento semplice (D-05, D-08, D-10) → FE STORY-03
+- [x] **BE-STORY-05**: `QuestResult.backgroundEntryAdded: Boolean!` dice se il background del partecipante ha ricevuto una voce in quel completamento; falso su ogni altro foglio; nessuna push dedicata (D-09) → FE STORY-03
+- [x] **BE-STORY-06**: SDL solo additivo (diciotto righe, nessun handler nuovo) rigenerato dal boot reale di test, gate della fase (tsc, suite unit e integration) e handoff `BACKEND-NOTES.md` per la FE Phase 24 con SDL verbatim, semantica ed esempi di ogni campo, input e codice nuovo
 
 ## Future Requirements
 
@@ -218,18 +218,18 @@ Rinviati oltre la v1.1. Tracciati ma non nella roadmap corrente.
 | BE-ORIGIN-16 | Phase 24 | Complete |
 | BE-ORIGIN-17 | Phase 24 | Complete |
 | BE-ORIGIN-18 | Phase 24 | Complete |
-| BE-WOUND-01 | Phase 25 | Pending |
-| BE-WOUND-02 | Phase 25 | Pending |
-| BE-WOUND-03 | Phase 25 | Pending |
-| BE-WOUND-04 | Phase 25 | Pending |
-| BE-WOUND-05 | Phase 25 | Pending |
-| BE-WOUND-06 | Phase 25 | Pending |
-| BE-STORY-01 | Phase 25 | Pending |
-| BE-STORY-02 | Phase 25 | Pending |
-| BE-STORY-03 | Phase 25 | Pending |
-| BE-STORY-04 | Phase 25 | Pending |
-| BE-STORY-05 | Phase 25 | Pending |
-| BE-STORY-06 | Phase 25 | Pending |
+| BE-WOUND-01 | Phase 25 | Complete |
+| BE-WOUND-02 | Phase 25 | Complete |
+| BE-WOUND-03 | Phase 25 | Complete |
+| BE-WOUND-04 | Phase 25 | Complete |
+| BE-WOUND-05 | Phase 25 | Complete |
+| BE-WOUND-06 | Phase 25 | Complete |
+| BE-STORY-01 | Phase 25 | Complete |
+| BE-STORY-02 | Phase 25 | Complete |
+| BE-STORY-03 | Phase 25 | Complete |
+| BE-STORY-04 | Phase 25 | Complete |
+| BE-STORY-05 | Phase 25 | Complete |
+| BE-STORY-06 | Phase 25 | Complete |
 
 **Coverage:** 85 / 85 requisiti v1.1 mappati (9 BE-HEAL → Phase 18, 12 BE-MODEL → Phase 19, 5 BE-FOODP → Phase 20, 6 BE-RANKP → Phase 21, 9 BE-GMFLOW → Phase 22, 14 BE-PET → Phase 23, 18 BE-ORIGIN → Phase 24, 6 BE-WOUND e 6 BE-STORY → Phase 25). Nessun orfano, nessun duplicato.
 

@@ -315,6 +315,7 @@ Plans:
 **Decisioni dopo la ricerca (2026-11-21, ruling dell'orchestratore in `25-REPO-RULES.md`)**: origine come seconda lista `status.innkeeperInjuries`; `ParticipantOverrideInput.injuriesRemoved`; nessuna query nuova per i background; sezione `backgroundAdditions` e passo `stories`; `QuestResult.injuriesRemoved` e `QuestResult.backgroundEntryAdded`; la D-14 della Phase 22 è superata e `completePendingRequest` si estende; nessun migratore.
 **Unblocks (FE)**: FE Phase 24 (piani gated solo sul merge per le selezioni).
 **Branch**: `feat/25-storie-dei-partecipanti-e-ferite-dell-oste` da `develop`.
+**Stato (2026-11-21)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §7, da eseguire) a cura dell'orchestratore
 **Plans**: 14 plans
 
 Plans:
