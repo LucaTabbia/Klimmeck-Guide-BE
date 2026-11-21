@@ -21,8 +21,8 @@ Fuori ambito: modifica o cancellazione delle voci di background esistenti, malus
 ### Aggiunte ai background
 - **D-05 (utente):** le aggiunte si scrivono nell'ultimo passo, dopo il riepilogo; vivono nella bozza (salvate e riservite come il resto) e la chiusura le scrive nella **stessa transazione** del completamento.
 - **D-06 (utente, verbatim):** «Le aggiunte sono per partecipante, non una sola per tutti»: una per partecipante, facoltativa; vuota = nessuna scrittura.
-- **D-07 (utente):** al massimo 1000 caratteri per aggiunta, stessa regola di conteggio del background della creazione (che resta a 400); validazione sul BE, codice d'errore proprio.
-- **D-08:** l'aggiunta diventa una voce nuova in coda a `infos.background`; le voci esistenti non si toccano.
+- **D-07 (utente):** al massimo 1000 caratteri per aggiunta, stessa regola di conteggio del background della creazione (che resta ai suoi 500 grafemi; «400» nel discuss era un refuso dell'orchestratore); validazione sul BE, codice d'errore proprio.
+- **D-08:** l'aggiunta diventa una voce nuova in coda a `infos.background`; le voci esistenti non si toccano. A DB `infos.background` è già una lista per tutti i personaggi (migrazione dell'orchestratore del 2026-11-18 con la PR #47; i nuovi nascono con la lista): l'assunzione A1 della ricerca è sciolta, basta un'aggiunta in coda.
 - **D-09 (utente):** il `QuestResult` del partecipante dice se il suo background ha ricevuto un'aggiunta (nome del campo nel plan): il FE ne ricava la riga del foglio del risultato. Nessuna push dedicata.
 - **D-10:** solo flusso guidato (`story`, `worldMission`).
 
