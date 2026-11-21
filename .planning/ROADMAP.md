@@ -52,6 +52,7 @@ Ordine seguito: numerico, con le inserite subito dopo la fase madre; ogni contra
 - [x] **Phase 22: Completamento guidato delle missioni** - L'oste completa story/worldMission con un flusso guidato: teleport (città e POI interni) → uno o più scontri con nemici da una lista filtrata per tipo di POI e fascia del titolo (leggendari per le worldMission, «mostra tutti») → simulazione a secco col `CombatResolver` → correzioni → premi dal blocco del titolo con aggiunte dal catalogo filtrato e rivalidate → completamento in una transazione, sempre `gmCompleted`; bozza salvata nel BE, invisibile ai giocatori, che restano bloccati con l'avviso «Missione in corso» fino al risultato; lo stesso blocco vale per ogni missione dall'inizio effettivo all'esito _(aggiunta 2026-11-12 nel discuss della FE Phase 21)_
 - [ ] **Phase 23: Sconfitta, riposo e recupero dei compagni** - Il compagno equipaggiato che scende a 0 di vita in uno scontro viene tolto a fine scontro e torna usabile solo a vita piena, dopo un'attesa proporzionata a rarità e potere; il compagno ferito si può mettere a riposo (recupera vita in proporzione al tempo di riposo) o curare con le pozioni (stessa regola e stessa attesa delle pozioni del personaggio) _(aggiunta 2026-11-14, ↔ FE Phase 22)_
 - [ ] **Phase 24: Origini delle magie, quest void e shamanic** - Ogni magia porta una macroclasse sopra uso ed energia (origin → use → energy; origini `void`, `arcane`, `shamanic`); revisione di tutte le magie a DB con l'origine assegnata dalla descrizione e magie nuove dove mancano; il tipo di quest `magic` rinominato `arcane` e due tipi nuovi, `shamanic` e `void`, identici fra loro, ciascuno insegna una magia dell'origine con lo stesso nome (prima la `magic` le insegnava tutte); la prima magia imparata di un'origine sblocca la lore dell'origine; `void` solo a Necrorian, dove nessuna quest nasce con rango minimo sotto mage; `shamanic` nelle due capitali nuove (`aarakocraCapital`, `dragonbornCapital`, taglia `capital`), da mage in su; tipi di città nuovi (`aarakocraCapital`, `dragonbornCapital`, `dragonbornVillage`); le magie si imparano da un livello minimo e non più da un xp minimo _(aggiunta 2026-11-15, ↔ FE Phase 23)_
+- [ ] **Phase 25: Storie dei partecipanti e ferite dell'oste** - Il completamento guidato serve all'oste i background dei partecipanti prima dell'avvio e, alla chiusura, scrive nella stessa transazione un'aggiunta facoltativa per partecipante (fino a 1000 caratteri) in coda al background, segnalata sul risultato; le ferite che l'oste aggiunge a mano nelle correzioni portano la loro origine: nessuna cura (quest heal, pozioni, premi) le tocca, solo l'oste le toglie dalle correzioni di ogni risoluzione _(aggiunta 2026-11-21, ↔ FE Phase 24)_
 
 **Ordine di esecuzione:** 18 → 19 → 20. Ogni contratto consumato dalla FE arriva su `develop` prima dei piani gated della fase FE gemella. Requisiti: [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -299,6 +300,13 @@ Plans:
 **Stato (2026-11-15)**: 12/12 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, boot reale col migratore e sua rimozione, contenuto a DB e UAT su device (BACKEND-NOTES.md §4, §5, §7, da eseguire) a cura dell'orchestratore
 **Stato (2026-11-16)**: 18/18 piani eseguiti; ricerca e apprendimento (D-26..D-31) nel ramo, gate 24-18 verde; tempi a DB, test:cov, riavvio, brief della FE e UAT (BACKEND-NOTES.md §8) a cura dell'orchestratore
 
+### Phase 25: Storie dei partecipanti e ferite dell'oste
+**Goal**: L'oste legge le storie dei partecipanti prima di risolvere una story/worldMission e alla fine aggiunge a ciascuna; le ferite che infligge di suo pugno sfuggono a ogni cura tranne la sua. Parole dell'utente (2026-11-21): «Come primo step serve una schermata dove ogni partecipante ha una propria dropdown, al cui interno si trova il suo background […] Infine serve un ultimo step (alla fine di tutto), dove io possa fare un aggiunta al background di ogni partecipante […] Le ferite applicate dall'innkeeper sono rimuovibili solo dall'innkeeper, non sono influenzabili da quest heal, pozioni o premi».
+**Depends on**: Phase 22 (completamento guidato), Phase 18 (cure e pozioni), Phase 10 (correzioni dell'oste)
+**Scope**: decisioni D-01..D-17 di `25-CONTEXT.md` (discuss interattivo del 2026-11-21, congiunto con la FE Phase 24, il cui CONTEXT è autorevole).
+**Requirements**: TBD (nel plan)
+**Plans**: TBD
+
 ## Backend ↔ Frontend alignment (v1.1)
 
 | Vincolo FE | Fase BE che lo soddisfa | Nota |
@@ -346,6 +354,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
+| 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 0/TBD | Not started | - |
 
 ---
 

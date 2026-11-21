@@ -5,7 +5,7 @@ milestone_name: Cura e modelli
 status: executing
 stopped_at: "Completato 23-01-PLAN.md"
 last_updated: "2026-11-14T17:38:39.269Z"
-last_activity: 2026-11-14 -- Phase 23 planning complete
+last_activity: 2026-11-21 -- Phase 25: contesto raccolto (discuss interattivo, congiunto con la FE Phase 24) — ready to plan
 progress:
   total_phases: 6
   completed_phases: 5
@@ -29,7 +29,7 @@ Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; pre
 Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
 Plan: 18 of 18
 Status: executing — Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore.
-Last activity: 2026-11-16 -- piani 24-16, 24-17 e 24-18 eseguiti: push di fine ricerca, filo, gate verde (unit 310 / 4 495, integration 162 / 2 586) e handoff §8
+Last activity: 2026-11-21 -- Phase 25: contesto raccolto (discuss interattivo, congiunto con la FE Phase 24) — ready to plan
 Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
