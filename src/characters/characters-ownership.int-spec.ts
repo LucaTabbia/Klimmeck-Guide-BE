@@ -454,6 +454,54 @@ describe('Character ownership on mutations and queries (wire)', () => {
         });
     });
 
+    describe('participant stories', () => {
+        const CHARACTER_STORY =
+            'query($id: String!) { character(id: $id) { infos { name background } status { title } } }';
+        const STORY = ['Nata sotto la luna.', 'Cresciuta in una taverna.'];
+
+        function story(bearer: string): Promise<request.Response> {
+            return graphqlRequest(
+                harness.app,
+                CHARACTER_STORY,
+                { id: aliceCharId },
+                bearer,
+            );
+        }
+
+        beforeEach(async () => {
+            await characters.collection.updateOne(
+                { _id: new Types.ObjectId(aliceCharId) },
+                { $set: { 'infos.background': STORY } },
+            );
+        });
+
+        it("lets the innkeeper read the background of another player's character (D-02)", async () => {
+            const response = await story(oste.bearer);
+
+            expect(response.body).toEqual({
+                data: {
+                    character: {
+                        infos: {
+                            name: alice.character?.infos.name,
+                            background: STORY,
+                        },
+                        status: { title: 'mage' },
+                    },
+                },
+            });
+        });
+
+        it("refuses a player reading the background of another player's character (D-02)", async () => {
+            const response = await story(bruno.bearer);
+
+            expect(firstErrorOf(response)?.extensions).toEqual({
+                code: 'FORBIDDEN',
+            });
+            expect(firstErrorOf(response)?.message).toBe(FORBIDDEN_MESSAGE);
+            expect(bodyOf(response).data ?? null).toBeNull();
+        });
+    });
+
     it('queues the spell recovery when the innkeeper uses a spell on behalf of the owner', async () => {
         const useSpell = OPERATIONS.find(({ name }) => name === 'useSpell')!;
 
