@@ -440,14 +440,12 @@ describe('assertWoundCorrectionAllowed', () => {
         ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
     });
 
-    it('refuses a correction that adds again a wound still carried (D-16)', () => {
-        expect(
-            codeOf(() =>
-                assertWoundCorrectionAllowed([crushedRightHand], {
-                    injuriesAdded: [crushedRightHand],
-                }),
-            ),
-        ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+    it('does not refuse a correction that proposes again a wound still carried (D-19)', () => {
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [crushedRightHand],
+            }),
+        ).not.toThrow();
         expect(() =>
             assertWoundCorrectionAllowed([crushedRightHand], {
                 injuriesAdded: [brokenLeftLeg],

@@ -6,6 +6,7 @@ import {
     handInflictedOf,
     innkeeperInjuriesOf,
     netWoundCorrectionOf,
+    withoutCarriedAgain,
     type CorrectedWounds,
     type WoundEffects,
     type WoundStatus,
@@ -608,5 +609,48 @@ describe('netWoundCorrectionOf', () => {
         expect(sequence).toEqual([
             { injuriesAdded: [sprain], injuriesRemoved: [deepCut] },
         ]);
+    });
+});
+
+describe('withoutCarriedAgain', () => {
+    it('does not add a wound the character already carries (D-19)', () => {
+        expect(
+            withoutCarriedAgain([deepCut, sprain], {
+                injuriesAdded: [deepCut, infection],
+            }),
+        ).toEqual({ injuriesAdded: [infection] });
+    });
+
+    it('keeps a carried wound removed and added again in the same correction (D-16, D-19)', () => {
+        const effects: WoundEffects = {
+            injuriesAdded: [deepCut, sprain],
+            injuriesRemoved: [deepCut],
+        };
+
+        expect(withoutCarriedAgain([deepCut, sprain], effects)).toEqual({
+            injuriesAdded: [deepCut],
+            injuriesRemoved: [deepCut],
+        });
+    });
+
+    it('leaves effects that propose no carried wound as they are (D-19)', () => {
+        const effects: ParticipantEffects = {
+            characterId: 'hero',
+            hpAfter: 5,
+            injuriesAdded: [infection],
+            consumablesUsed: [],
+            spellsUsed: [],
+        };
+
+        expect(withoutCarriedAgain([deepCut], effects)).toEqual(effects);
+        expect(withoutCarriedAgain([], effects)).toEqual(effects);
+    });
+
+    it('does not mutate the effects it reads (D-19)', () => {
+        const effects: WoundEffects = { injuriesAdded: [deepCut, infection] };
+
+        withoutCarriedAgain([deepCut], effects);
+
+        expect(effects).toEqual({ injuriesAdded: [deepCut, infection] });
     });
 });

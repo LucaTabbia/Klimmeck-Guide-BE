@@ -670,34 +670,52 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(questEndPushes()).toHaveLength(0);
     });
 
-    it('passes through a simulated injury the character already owns (D-14)', async () => {
+    const expectDeepCutNotAddedAgain = async (subject: Quester) => {
+        const { status } = await characterOf(subject);
+        expect(status.injuries).toEqual([InjuryType.deepCut]);
+        expect(status.innkeeperInjuries ?? []).toEqual([]);
+        const result = await resultOf(subject);
+        expect(result.outcome).toBe(QuestOutcome.gmCompleted);
+        expect(result.injuriesAdded).toEqual([]);
+    };
+
+    it('does not add a simulated wound the character already carries (D-19)', async () => {
         const { first, wolf } = await guidedWorldMission();
         combat.willResolve(first.characterId, {
             injuriesAdded: [InjuryType.deepCut],
         });
         await simulate(first, 0, [wolf, 1]);
-        await expect(
-            saver.save({
-                pendingQuestId: hexOf(first),
-                fights: [
-                    {
-                        enemies: enemiesOf([wolf, 1]),
-                        corrections: [
-                            correctionOf(first, {
-                                injuries: [InjuryType.deepCut],
-                            }),
-                        ],
-                    },
-                ],
-            }),
-        ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
 
         await service.complete(hexOf(first));
 
-        expect((await characterOf(first)).status.injuries).toEqual([
-            InjuryType.deepCut,
-        ]);
-        expect((await resultOf(first)).outcome).toBe(QuestOutcome.gmCompleted);
+        await expectDeepCutNotAddedAgain(first);
+    });
+
+    it('does not add a carried wound a saved correction proposes again (D-19)', async () => {
+        const { first, wolf } = await guidedWorldMission();
+        combat.willResolve(first.characterId, {
+            injuriesAdded: [InjuryType.deepCut],
+        });
+        await simulate(first, 0, [wolf, 1]);
+        await saver.save({
+            pendingQuestId: hexOf(first),
+            fights: [
+                {
+                    enemies: enemiesOf([wolf, 1]),
+                    corrections: [
+                        correctionOf(first, {
+                            hpAfter: 700,
+                            injuries: [InjuryType.deepCut],
+                        }),
+                    ],
+                },
+            ],
+        });
+
+        await service.complete(hexOf(first));
+
+        await expectDeepCutNotAddedAgain(first);
+        expect((await characterOf(first)).status.currentLifePoints).toBe(700);
     });
 
     // una correzione valida al salvataggio può non esserlo più al completamento: la si scrive diretta nella bozza
@@ -735,7 +753,7 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(questEndPushes()).toHaveLength(0);
     }
 
-    it('refuses a corrected effect that adds an injury owned before the fight (D-14, D-31)', async () => {
+    it('ignores at completion a corrected wound the character carries by then (D-19)', async () => {
         const { first, wolf } = await guidedWorldMission();
         await simulate(first, 0, [wolf, 1]);
         await persistCorrection(0, first, {
@@ -743,7 +761,9 @@ describe('GuidedCompletionService (replSet)', () => {
             injuriesAdded: [InjuryType.deepCut],
         });
 
-        await expectRefusedWithoutWriting(first);
+        await service.complete(hexOf(first));
+
+        await expectDeepCutNotAddedAgain(first);
     });
 
     it('refuses a corrected consumable usage over what the previous fight leaves (D-06, D-24)', async () => {

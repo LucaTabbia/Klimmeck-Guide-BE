@@ -695,20 +695,35 @@ describe('MissionDraftSaveService (replSet)', () => {
             });
         });
 
-        it('refuses a correction that adds again a wound still carried (D-16)', async () => {
+        it('does not add a wound still carried that a correction proposes again (D-19)', async () => {
             const { first, enemy } = await startedWorldMission();
             await simulate(first, 0, enemy);
-            const before = await storedDraft();
 
-            await expect(
-                correctFirst(first, enemy, { injuries: [deepCut] }),
-            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
-            expect(await storedDraft()).toEqual(before);
-            const character = await world.models.characters
-                .findById(first.characterId)
-                .lean<{ status: { injuries: InjuryType[] } }>()
-                .exec();
-            expect(character!.status.injuries).toEqual([deepCut]);
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuries: [deepCut, InjuryType.fracturedRib],
+            });
+
+            expect(await storedCorrection(first)).toMatchObject({
+                hpAfter: 500,
+                injuriesAdded: [InjuryType.fracturedRib],
+            });
+            expect(await storedRemovals(first)).toEqual([]);
+        });
+
+        it('starts the next fight with a carried wound proposed again still ordinary and single (D-19)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuries: [deepCut],
+            });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([deepCut]);
+            expect(start.innkeeperInjuriesBefore).toEqual([]);
         });
 
         it('refuses the removal of a wound the character did not carry at the start of the fight (D-13)', async () => {
