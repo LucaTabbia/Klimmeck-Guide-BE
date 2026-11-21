@@ -39,6 +39,7 @@ const participants: OverrideParticipant[] = [
         ownedLoot: new Map([[POTION, 2]]),
         activeSpells: new Map([[S1, 2]]),
         companion: { lifeBefore: 60, maxLifePoints: 100 },
+        injuries: [],
     },
     {
         characterId: B_ID,
@@ -47,6 +48,7 @@ const participants: OverrideParticipant[] = [
         ownedLoot: new Map(),
         activeSpells: new Map(),
         companion: null,
+        injuries: [],
     },
 ];
 
@@ -265,6 +267,102 @@ describe('validateOverrides', () => {
             overrideOf({ injuries: ['scratch' as unknown as InjuryType] }),
         ]);
     });
+
+    describe('the wounds a correction removes', () => {
+        const wounded: OverrideParticipant[] = [
+            {
+                ...participants[0],
+                injuries: [InjuryType.deepCut, InjuryType.fracturedRib],
+            },
+        ];
+        const effectsWith = (fields: Partial<ParticipantOverrideInput>) =>
+            validateOverrides([overrideOf(fields)], wounded).get(A);
+        const codeWith = (fields: Partial<ParticipantOverrideInput>) =>
+            codeOf(() => effectsWith(fields));
+
+        it('carries the wounds the correction removes (D-13)', () => {
+            expect(
+                effectsWith({ injuriesRemoved: [InjuryType.deepCut] }),
+            ).toEqual({
+                characterId: A,
+                hpAfter: 600,
+                injuriesAdded: [],
+                injuriesRemoved: [InjuryType.deepCut],
+                consumablesUsed: [],
+                spellsUsed: [],
+            });
+        });
+
+        it('reads a duplicated removal once (D-13)', () => {
+            expect(
+                effectsWith({
+                    injuriesRemoved: [
+                        InjuryType.fracturedRib,
+                        InjuryType.fracturedRib,
+                    ],
+                })?.injuriesRemoved,
+            ).toEqual([InjuryType.fracturedRib]);
+        });
+
+        it('refuses the removal of a wound the participant does not carry (D-13)', () => {
+            expect(codeWith({ injuriesRemoved: [InjuryType.blackEye] })).toBe(
+                GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            );
+        });
+
+        it('refuses an unknown wound type among the removals (D-13)', () => {
+            const legacy = 'scratch' as unknown as InjuryType;
+            const carryingLegacy: OverrideParticipant[] = [
+                { ...wounded[0], injuries: [InjuryType.deepCut, legacy] },
+            ];
+
+            expect(
+                codeOf(() =>
+                    validateOverrides(
+                        [overrideOf({ injuriesRemoved: [legacy] })],
+                        carryingLegacy,
+                    ),
+                ),
+            ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+        });
+
+        it('accepts a wound removed and added again in the same correction (D-16)', () => {
+            const effects = effectsWith({
+                injuriesRemoved: [InjuryType.deepCut],
+                injuries: [InjuryType.deepCut],
+            });
+
+            expect(effects?.injuriesRemoved).toEqual([InjuryType.deepCut]);
+            expect(effects?.injuriesAdded).toEqual([InjuryType.deepCut]);
+        });
+
+        it.each([
+            ['omitted', {}],
+            ['null', { injuriesRemoved: null }],
+            ['an empty list', { injuriesRemoved: [] }],
+        ])(
+            'carries no removal key without removals (D-13): %s',
+            (_label, fields) => {
+                expect(effectsWith(fields)).not.toHaveProperty(
+                    'injuriesRemoved',
+                );
+            },
+        );
+
+        it('counts the removals in the override cap (D-13)', () => {
+            const removals = (count: number) =>
+                Array.from({ length: count }, () => InjuryType.deepCut);
+
+            expect(
+                codeWith({ injuriesRemoved: removals(MAX_OVERRIDE_ENTRIES) }),
+            ).toBeUndefined();
+            expect(
+                codeWith({
+                    injuriesRemoved: removals(MAX_OVERRIDE_ENTRIES + 1),
+                }),
+            ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+        });
+    });
 });
 
 describe('overrideParticipantOf', () => {
@@ -314,6 +412,36 @@ describe('overrideParticipantOf', () => {
         expect(participant.maxLifePoints).toBe(1000);
         expect([...participant.ownedLoot.entries()]).toEqual([[POTION, 2]]);
         expect([...participant.activeSpells.entries()]).toEqual([[S1, 2]]);
+    });
+
+    it('reads the wounds of the participant from the snapshot (D-13)', () => {
+        const participant = overrideParticipantOf(
+            {
+                _id: A_ID,
+                status: {
+                    xp: 0,
+                    title: TitleType.rookie,
+                    injuries: [
+                        InjuryType.deepCut,
+                        'scratch',
+                        InjuryType.deepCut,
+                        InjuryType.fracturedRib,
+                    ] as InjuryType[],
+                },
+            },
+            NO_PETS,
+        );
+
+        expect(participant.injuries).toEqual([
+            InjuryType.deepCut,
+            InjuryType.fracturedRib,
+        ]);
+        expect(
+            overrideParticipantOf(
+                { _id: B_ID, status: { title: TitleType.rookie } },
+                NO_PETS,
+            ).injuries,
+        ).toEqual([]);
     });
 
     const knowingSnapshot = () => ({

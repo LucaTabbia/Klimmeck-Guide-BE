@@ -1049,7 +1049,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(
             schema.match(/input ParticipantOverrideInput \{[^}]*\}/)?.[0],
         ).toBe(
-            'input ParticipantOverrideInput {\n  characterId: ID!\n  companionLifeAfter: Int\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
+            'input ParticipantOverrideInput {\n  characterId: ID!\n  companionLifeAfter: Int\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  injuriesRemoved: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
         );
         expect(schema.match(/input SpellUsageInput \{[^}]*\}/)?.[0]).toBe(
             'input SpellUsageInput {\n  spell: ID!\n  usages: Int!\n}',
