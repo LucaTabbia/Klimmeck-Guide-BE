@@ -13,6 +13,7 @@ import {
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
+import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import {
     createPlayer,
     type TestPlayer,
@@ -35,6 +36,7 @@ import {
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { GuidedMissionModule } from './guided-mission.module';
 import { MissionDraft } from './mission-draft.model';
+import { MissionSimulationChance } from './mission-simulation.chance';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 const START =
@@ -75,6 +77,15 @@ describe('GuidedMissionResolver (wire)', () => {
             clock: new FixedClock(NOW),
             chance: new SequenceChance(),
             imports: [GuidedMissionModule],
+            // con la query character: il filo rilegge il personaggio servito al giocatore dopo il completamento (Phase 25 D-09)
+            createApp: createCharactersTestApp,
+            // simulazione senza eventi casuali: le ferite simulate non cambiano da un giro all'altro
+            overrides: [
+                {
+                    token: MissionSimulationChance,
+                    useValue: new SequenceChance(),
+                },
+            ],
         });
         const connection = world.harness.connection;
         audits =
@@ -1473,6 +1484,148 @@ describe('GuidedMissionResolver (wire)', () => {
                     ({ character }) => character === String(first.characterId),
                 )!.hpAfter,
             ).toBe(1);
+            const read = await send(READ, hexOf(first), oste.bearer);
+            expect(
+                read.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['NOT_FOUND']);
+        });
+
+        it('completes a guided mission with wound corrections and a story page over the wire (D-05, D-09, D-12, D-13)', async () => {
+            const SIMULATED_WOUNDS =
+                'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { fights { outcomes { character simulated { injuriesAdded } } } } }';
+            const COMPLETE_SHEET =
+                'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { character injuriesAdded injuriesRemoved injuriesHealed backgroundEntryAdded } }';
+            const SERVED_CHARACTER =
+                'query Character($id: String!) { character(id: $id) { status { injuries innkeeperInjuries } infos { background } } }';
+            const { deepCut, fracturedRib } = InjuryType;
+            const page = 'Ha salvato il mugnaio.';
+            const [first, second] = await worldMissionPair();
+            const firstHex = String(first.characterId);
+            const { background } = first.player.character!.infos;
+            await world.models.characters.updateOne(
+                { _id: first.characterId },
+                {
+                    $set: {
+                        'status.injuries': [deepCut],
+                        'status.currentLifePoints': 1000,
+                        'status.maxLifePoints': 1000,
+                    },
+                },
+            );
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemies = [
+                {
+                    enemy: String(
+                        (await world.models.enemies.create(buildEnemy()))._id,
+                    ),
+                    quantity: 1,
+                },
+            ];
+            const simulated = await graphqlRequest(
+                world.harness.app,
+                SIMULATED_WOUNDS,
+                {
+                    input: {
+                        pendingQuestId: hexOf(first),
+                        fightIndex: 0,
+                        enemies,
+                    },
+                },
+                oste.bearer,
+            );
+            expect(simulated.body.errors).toBeUndefined();
+            const simulatedWounds: InjuryType[] =
+                simulated.body.data.simulateMissionFight.fights[0].outcomes.find(
+                    ({ character }: { character: string }) =>
+                        character === firstHex,
+                ).simulated.injuriesAdded;
+            expect(simulatedWounds).not.toContain(fracturedRib);
+
+            const corrected = await sendInput(
+                SAVE_DRAFT,
+                {
+                    pendingQuestId: hexOf(first),
+                    fights: [
+                        {
+                            enemies,
+                            corrections: [
+                                {
+                                    characterId: firstHex,
+                                    injuriesRemoved: [deepCut],
+                                    injuries: [
+                                        ...simulatedWounds,
+                                        fracturedRib,
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                    prizes: [
+                        {
+                            characterId: firstHex,
+                            coins: { gold: 0, silver: 0, copper: 0 },
+                            cure: false,
+                            items: [],
+                            xp: 0,
+                        },
+                    ],
+                },
+                oste.bearer,
+            );
+            expect(corrected.errors).toBeUndefined();
+            const storied = await sendInput(
+                SAVE_DRAFT,
+                {
+                    pendingQuestId: hexOf(first),
+                    step: 'stories',
+                    backgroundAdditions: [
+                        { characterId: firstHex, text: `  ${page}  ` },
+                        { characterId: String(second.characterId), text: '' },
+                    ],
+                },
+                oste.bearer,
+            );
+            expect(storied.errors).toBeUndefined();
+
+            const completed = await graphqlRequest(
+                world.harness.app,
+                COMPLETE_SHEET,
+                { pendingQuestId: hexOf(second) },
+                oste.bearer,
+            );
+
+            expect(completed.body.errors).toBeUndefined();
+            const sheets: {
+                character: string;
+                injuriesAdded: InjuryType[];
+                injuriesRemoved: InjuryType[];
+                injuriesHealed: InjuryType[];
+                backgroundEntryAdded: boolean;
+            }[] = completed.body.data.completeGuidedMission;
+            const sheet = sheets.find(
+                ({ character }) => character === firstHex,
+            )!;
+            expect(sheet.injuriesRemoved).toContain(deepCut);
+            expect(sheet.injuriesAdded).toContain(fracturedRib);
+            expect(sheet.injuriesHealed).not.toContain(deepCut);
+            expect(sheet.backgroundEntryAdded).toBe(true);
+            expect(
+                sheets.find(({ character }) => character !== firstHex)!
+                    .backgroundEntryAdded,
+            ).toBe(false);
+            const served = await graphqlRequest(
+                world.harness.app,
+                SERVED_CHARACTER,
+                { id: firstHex },
+                first.player.bearer,
+            );
+            expect(served.body.errors).toBeUndefined();
+            const { status, infos } = served.body.data.character;
+            expect(status.injuries).not.toContain(deepCut);
+            expect(status.injuries).toContain(fracturedRib);
+            expect(status.innkeeperInjuries).toEqual([fracturedRib]);
+            expect(infos.background).toEqual([...background, page]);
             const read = await send(READ, hexOf(first), oste.bearer);
             expect(
                 read.errors?.map(({ extensions }) => extensions.code),
