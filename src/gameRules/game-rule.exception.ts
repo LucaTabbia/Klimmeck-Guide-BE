@@ -347,4 +347,12 @@ export class GameRuleException extends BadRequestException {
             `Nome del compagno non valido: da ${CHARACTER_NAME_MIN_LENGTH} a ${CHARACTER_NAME_MAX_LENGTH} caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera`,
         );
     }
+
+    // aggiunta dell'oste al background oltre i 1000 caratteri (Phase 25 D-07)
+    static backgroundAdditionTooLong(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.BACKGROUND_ADDITION_TOO_LONG,
+            "L'aggiunta alla storia può contenere al massimo 1000 caratteri",
+        );
+    }
 }
