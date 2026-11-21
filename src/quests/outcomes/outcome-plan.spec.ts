@@ -245,6 +245,7 @@ describe('planParticipant', () => {
                 companion: null,
                 spellResearchFailed: false,
                 spellFound: null,
+                backgroundEntryAdded: false,
             });
         });
     });
@@ -3050,5 +3051,43 @@ describe('planParticipant', () => {
                 expect(plan.result.injuriesRemoved).toEqual([]);
             },
         );
+    });
+
+    describe('the background entry of a guided completion', () => {
+        const gmPlan = (
+            overrides: Partial<ParticipantPlanInput>,
+        ): ParticipantPlan =>
+            planParticipant(
+                inputWith({ verdict: QuestOutcome.gmCompleted, ...overrides }),
+            );
+
+        it('marks the result when the background got an entry (D-09)', () => {
+            const plan = gmPlan({ backgroundEntryAdded: true });
+
+            expect(plan.result.backgroundEntryAdded).toBe(true);
+        });
+
+        it.each([
+            ['an input without the flag', {}],
+            ['a false flag', { backgroundEntryAdded: false }],
+        ] as [string, Partial<ParticipantPlanInput>][])(
+            'marks no background entry by default (D-09, D-10): %s',
+            (_case, overrides) => {
+                const plan = gmPlan(overrides);
+
+                expect(plan.result.backgroundEntryAdded).toBe(false);
+            },
+        );
+
+        it('never touches the background in the character update (D-08)', () => {
+            const plan = gmPlan({ backgroundEntryAdded: true });
+
+            const infoKeys = Object.keys(plan.update.$set).filter((key) =>
+                key.startsWith('infos'),
+            );
+
+            expect(infoKeys).toEqual([]);
+            expect(Object.keys(plan.update)).toEqual(['$set']);
+        });
     });
 });

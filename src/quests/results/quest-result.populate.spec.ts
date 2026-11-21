@@ -168,6 +168,15 @@ describe('unpopulatedResultOf', () => {
 
         expect(result.injuriesRemoved).toEqual([]);
     });
+    it('carries the background entry flag on the unpopulated result (D-09)', () => {
+        const marked = unpopulatedResultOf(
+            draftWith({ backgroundEntryAdded: true }),
+        );
+        const unmarked = unpopulatedResultOf(draftWith());
+
+        expect(marked.backgroundEntryAdded).toBe(true);
+        expect(unmarked.backgroundEntryAdded).toBe(false);
+    });
     it('answers no unlocked lore without populate (D-09)', () => {
         const result = unpopulatedResultOf(draftWith());
 
