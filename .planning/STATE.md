@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-08-PLAN.md"
-last_updated: "2026-11-21T18:00:00.000Z"
-last_activity: 2026-11-21 -- Phase 25 piano 08 completato (bozza sul filo: rimozioni e origine delle ferite servite all'oste)
+stopped_at: "Completato 25-09-PLAN.md"
+last_updated: "2026-11-21T19:00:00.000Z"
+last_activity: 2026-11-21 -- Phase 25 piano 09 completato (completamento guidato: ferite, rimozioni e origine dalla piega in ordine sugli scontri)
 progress:
   total_phases: 6
   completed_phases: 5
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 08 of 14
-Status: executing — Phase 25 in esecuzione (8/14): la bozza guidata serve all'oste le ferite tolte e la loro origine (`MissionFightOutcome.innkeeperInjuriesBefore`, `MissionFightEffects.injuriesRemoved` e `innkeeperInjuries`, quest'ultima derivata con `handInflictedOf`); l'aggregato del completamento unisce ancora le ferite (piano 09).
-Last activity: 2026-11-21 -- Phase 25 piano 08 completato (bozza sul filo: rimozioni e origine delle ferite servite all'oste)
+Plan: 09 of 14
+Status: executing — Phase 25 in esecuzione (9/14): il completamento guidato scrive ferite, rimozioni e origine dal netto della piega in ordine sugli scontri (`netWoundCorrectionOf`), `overrideInputOf` porta le rimozioni alla rivalidazione; le tre trappole delle ferite sono chiuse. Restano le storie dei partecipanti (piani 10-12), il gate (13) e il handoff (14).
+Last activity: 2026-11-21 -- Phase 25 piano 09 completato (completamento guidato: ferite, rimozioni e origine dalla piega in ordine sugli scontri)
 Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
