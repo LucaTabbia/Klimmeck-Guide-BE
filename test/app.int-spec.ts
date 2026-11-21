@@ -96,9 +96,11 @@ const SLOT_TYPE_BLOCK =
 // SDL della bozza guidata (RESEARCH §Q9 + D-17): blocchi verbatim
 const MISSION_DRAFT_BLOCKS: Record<string, string> = {
     'type MissionDraft':
-        'type MissionDraft {\n  fights: [MissionFight!]!\n  id: ID!\n  participants: [MissionParticipant!]!\n  place: ID\n  prizes: [MissionPrize!]!\n  quest: ID!\n  questType: String!\n  startedAt: DateTime!\n  step: MissionDraftStep!\n  updatedAt: DateTime!\n}',
+        'type MissionDraft {\n  backgroundAdditions: [MissionBackgroundAddition!]!\n  fights: [MissionFight!]!\n  id: ID!\n  participants: [MissionParticipant!]!\n  place: ID\n  prizes: [MissionPrize!]!\n  quest: ID!\n  questType: String!\n  startedAt: DateTime!\n  step: MissionDraftStep!\n  updatedAt: DateTime!\n}',
     'enum MissionDraftStep':
-        'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  teleport\n}',
+        'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  stories\n  teleport\n}',
+    'type MissionBackgroundAddition':
+        'type MissionBackgroundAddition {\n  character: ID!\n  text: String!\n}',
     'type MissionFight':
         'type MissionFight {\n  enemies: [MissionFightEnemy!]!\n  outcomes: [MissionFightOutcome!]!\n  verdict: MissionFightVerdict\n}',
     'type MissionCompanion':
@@ -1010,8 +1012,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
                 'input MissionPrizeInput {\n  characterId: ID!\n  coins: CoinsInput!\n  cure: Boolean!\n  items: [MissionPrizeItemInput!]!\n  pet: ID\n  spell: ID\n  xp: Int!\n}',
             MissionPrizeItemInput:
                 'input MissionPrizeItemInput {\n  item: ID!\n  quantity: Int!\n}',
+            MissionBackgroundAdditionInput:
+                'input MissionBackgroundAdditionInput {\n  characterId: ID!\n  text: String!\n}',
             SaveMissionDraftInput:
-                'input SaveMissionDraftInput {\n  fights: [MissionFightInput!]\n  pendingQuestId: ID!\n  place: ID\n  prizes: [MissionPrizeInput!]\n  step: MissionDraftStep\n}',
+                'input SaveMissionDraftInput {\n  backgroundAdditions: [MissionBackgroundAdditionInput!]\n  fights: [MissionFightInput!]\n  pendingQuestId: ID!\n  place: ID\n  prizes: [MissionPrizeInput!]\n  step: MissionDraftStep\n}',
         };
 
         for (const [name, block] of Object.entries(inputs)) {

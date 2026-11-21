@@ -93,6 +93,7 @@ function draftWith(fights: MissionFightRecord[]): MissionDraftRecord {
                 cure: { lifePointsShare: 0.5, canHeal: [InjuryType.blackEye] },
             },
         ],
+        backgroundAdditions: [],
         startedBy: null,
         startedAt: STARTED_AT,
         updatedAt: UPDATED_AT,
@@ -218,6 +219,7 @@ describe('toMissionDraftWire', () => {
                     },
                 },
             ],
+            backgroundAdditions: [],
             startedAt: STARTED_AT,
             updatedAt: UPDATED_AT,
         });
@@ -360,6 +362,34 @@ describe('toMissionDraftWire', () => {
         expect(outcome.innkeeperInjuriesBefore).toEqual([]);
         expect(outcome.corrected!.injuriesRemoved).toEqual([]);
         expect(outcome.corrected!.innkeeperInjuries).toEqual([]);
+    });
+
+    it('serves the background additions of the draft (D-05)', () => {
+        const draft: MissionDraftRecord = {
+            ...draftWith([]),
+            backgroundAdditions: [
+                { character: HERO_ID, text: 'Ha salvato il mugnaio.' },
+            ],
+        };
+
+        expect(toMissionDraftWire(draft, BESTIARY).backgroundAdditions).toEqual(
+            [
+                {
+                    character: HERO_ID.toHexString(),
+                    text: 'Ha salvato il mugnaio.',
+                },
+            ],
+        );
+    });
+
+    it('serves no addition for a draft opened before the section (D-05)', () => {
+        const legacy: Partial<MissionDraftRecord> = draftWith([]);
+        delete legacy.backgroundAdditions;
+
+        expect(
+            toMissionDraftWire(legacy as MissionDraftRecord, BESTIARY)
+                .backgroundAdditions,
+        ).toEqual([]);
     });
 
     it('serves the prize items without their item type (D-17)', () => {
