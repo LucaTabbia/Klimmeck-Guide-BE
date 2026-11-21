@@ -81,7 +81,7 @@ const chosenRefsOf = (prize: MissionPrizeRecord): ChosenPrizeRefs => ({
     spell: prize.spell && hexOf(prize.spell),
 });
 
-// D-07, D-14: ogni scontro rivalidato sullo stato lasciato dai precedenti; le ferite di prima solo sugli effetti corretti (ruling W5)
+// D-07, D-14: ogni scontro rivalidato sullo stato lasciato dai precedenti; le rimozioni solo sugli effetti corretti (ruling W5); una ferita già portata riproposta è ignorata dalla piega (Phase 25 D-19)
 function assertSequenceAllowed(
     snapshot: ResolutionCharacter,
     sequence: readonly EffectiveFight[],

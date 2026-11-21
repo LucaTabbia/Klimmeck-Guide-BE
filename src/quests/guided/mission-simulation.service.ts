@@ -13,6 +13,7 @@ import {
     type GmRequest,
     GmRequestReader,
 } from 'src/quests/outcomes/gm-request.reader';
+import { withoutCarriedAgain } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { QuestEnemyRef } from 'src/quests/outcomes/quest-enemies';
 import {
@@ -67,10 +68,15 @@ function outcomeOf(
     effects: ParticipantEffects | undefined,
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): MissionFightOutcomeRecord {
+    const start = fightStartOf(state, petCatalog);
     return {
         character: state._id,
-        ...fightStartOf(state, petCatalog),
-        simulated: effects ? effectsRecordOf(effects) : null,
+        ...start,
+        simulated: effects
+            ? effectsRecordOf(
+                  withoutCarriedAgain(start.injuriesBefore, effects),
+              )
+            : null,
         corrected: null,
     };
 }

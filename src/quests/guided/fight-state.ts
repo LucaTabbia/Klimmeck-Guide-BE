@@ -146,18 +146,13 @@ export function fightStartOf(
     };
 }
 
-// una correzione toglie solo ferite presenti all'inizio dello scontro e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16)
+// una correzione toglie solo ferite presenti all'inizio dello scontro (Phase 25 D-13); una ferita ancora portata e riproposta non è un errore: non viene aggiunta (D-19)
 export function assertWoundCorrectionAllowed(
     injuriesBefore: readonly InjuryType[],
     effects: WoundEffects,
 ): void {
     const removed = effects.injuriesRemoved ?? [];
     if (removed.some((injury) => !injuriesBefore.includes(injury)))
-        throw GameRuleException.outcomeOverrideInvalid();
-    const stillCarried = injuriesBefore.filter(
-        (injury) => !removed.includes(injury),
-    );
-    if (effects.injuriesAdded.some((injury) => stillCarried.includes(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
 }
 

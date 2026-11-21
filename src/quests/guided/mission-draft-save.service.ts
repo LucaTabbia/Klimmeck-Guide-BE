@@ -1,4 +1,4 @@
-// D-18: sezioni presenti sostituiscono; D-24 sullo stato all'inizio di ogni scontro; una correzione toglie solo ferite portate e non riaggiunge una ferita ancora portata (Phase 25 D-13, D-16); le aggiunte ai background si fondono per personaggio come i premi, un testo vuoto cancella quella salvata (Phase 25 D-06)
+// D-18: sezioni presenti sostituiscono; D-24 sullo stato all'inizio di ogni scontro; una correzione toglie solo ferite portate (Phase 25 D-13) e una ferita ancora portata riproposta non viene aggiunta (D-19); le aggiunte ai background si fondono per personaggio come i premi, un testo vuoto cancella quella salvata (Phase 25 D-06)
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -11,6 +11,7 @@ import {
 } from 'src/models/point-of-interest.model';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { withoutCarriedAgain } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import { cureOf } from 'src/quests/outcomes/injuries/quest-cure';
 import {
     overrideParticipantOf,
@@ -408,7 +409,9 @@ export class MissionDraftSaveService {
             const entry = effects.get(hexOf(outcome.character)) ?? null;
             if (!entry) return null;
             assertWoundCorrectionAllowed(outcome.injuriesBefore, entry);
-            return effectsRecordOf(entry);
+            return effectsRecordOf(
+                withoutCarriedAgain(outcome.injuriesBefore, entry),
+            );
         });
         if (sameCorrections(fight, corrected)) return fights;
         const updated = [...fights];

@@ -72,6 +72,18 @@ export function applyWoundCorrection(
     };
 }
 
+// una ferita già portata e riproposta senza toglierla prima non viene aggiunta: nessun rifiuto, nessun cambio di origine (Phase 25 D-19)
+export function withoutCarriedAgain<Effects extends WoundEffects>(
+    carried: readonly InjuryType[],
+    effects: Effects,
+): Effects {
+    const stillCarried = without(carried, effects.injuriesRemoved ?? []);
+    return {
+        ...effects,
+        injuriesAdded: without(effects.injuriesAdded, stillCarried),
+    };
+}
+
 // effetti raccontati dall'oste senza simulazione: ogni ferita aggiunta è di suo pugno (Phase 25 D-12); null resta null
 export function asInnkeeperHand(
     effects: ParticipantEffects | null,
