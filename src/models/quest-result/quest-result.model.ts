@@ -200,6 +200,11 @@ export class QuestResult {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuriesHealed: InjuryType[];
 
+    // ferite tolte dalle correzioni dell'oste in questo esito (Phase 25 D-13): mai fra le guarite; vuota sui fogli precedenti
+    @Field(() => [InjuryType])
+    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
+    injuriesRemoved: InjuryType[];
+
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('consumablesUsed')], default: [] })
     consumablesUsed: AssetQuantity[];
