@@ -228,7 +228,7 @@ describe('GmCompletionService.complete (replSet)', () => {
         ]);
     });
 
-    it('applies the cure on top of the game master override (D-07)', async () => {
+    it('applies the life cure on top of the game master override and leaves its wound (D-07, Phase 25 D-14)', async () => {
         const subject = await storyQuester({
             questOverrides: gmQuest('story', {
                 xpPrize: 400,
@@ -249,14 +249,14 @@ describe('GmCompletionService.complete (replSet)', () => {
         const character = await characterOf(subject);
         expect(character.status.maxLifePoints).toBe(1200);
         expect(character.status.currentLifePoints).toBe(1200);
-        expect(character.status.injuries).toEqual([]);
+        expect(character.status.injuries).toEqual([InjuryType.deepCut]);
         const [result] = await resultsOf(subject);
         expect(result).toMatchObject({
             hpBefore: 1000,
             hpAfter: 1200,
             injuriesAdded: [InjuryType.deepCut],
         });
-        expect(result.injuriesHealed).toEqual([InjuryType.deepCut]);
+        expect(result.injuriesHealed).toEqual([]);
     });
 
     it('closes a world mission for every registered character with one result each (D-04, D-06)', async () => {
@@ -978,6 +978,194 @@ describe('GmCompletionService.complete (replSet)', () => {
             expect(acceptances).toBe(1);
             expect(await rawDocuments()).toEqual(afterAcceptance);
             expect(world.push.sent).toHaveLength(0);
+        });
+    });
+
+    describe('innkeeper wounds', () => {
+        const { deepCut, sprain } = InjuryType;
+        const CURING_BOTH = {
+            xpPrize: 400,
+            cure: { lifePointsShare: 0, canHeal: [deepCut, sprain] },
+        };
+
+        const woundedQuester = (
+            status: {
+                injuries: InjuryType[];
+                innkeeperInjuries?: InjuryType[];
+            },
+            prizes: Record<string, unknown> = { xpPrize: 400 },
+        ) =>
+            storyQuester({
+                questOverrides: gmQuest('story', prizes),
+                characterOverrides: { status },
+            });
+
+        const correcting = (
+            subject: Quester,
+            wounds: {
+                injuries?: InjuryType[];
+                injuriesRemoved?: InjuryType[];
+            },
+        ) =>
+            service.complete(
+                inputOf(subject, [
+                    { characterId: String(subject.characterId), ...wounds },
+                ]),
+            );
+
+        const woundsOf = async (subject: Quester) => {
+            const raw = await world.models.characters.collection.findOne({
+                _id: subject.characterId,
+            });
+            return {
+                injuries: raw?.status.injuries,
+                innkeeperInjuries: raw?.status.innkeeperInjuries,
+            };
+        };
+
+        it('writes a wound of the override as an innkeeper wound (D-12)', async () => {
+            const subject = await woundedQuester({ injuries: [] });
+
+            await correcting(subject, { injuries: [deepCut] });
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesAdded).toEqual([deepCut]);
+            expect(result.injuriesRemoved).toEqual([]);
+        });
+
+        it('removes an ordinary wound listed among the removals (D-13)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut, sprain],
+            });
+
+            await correcting(subject, { injuriesRemoved: [deepCut] });
+
+            expect((await woundsOf(subject)).injuries).toEqual([sprain]);
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesRemoved).toEqual([deepCut]);
+            expect(result.injuriesHealed).toEqual([]);
+            expect(result.injuriesAdded).toEqual([]);
+        });
+
+        it('removes an innkeeper wound listed among the removals (D-13)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [sprain],
+            });
+
+            await correcting(subject, { injuriesRemoved: [sprain] });
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesRemoved).toEqual([sprain]);
+        });
+
+        it('refuses the removal of a wound the character does not carry (D-13)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+
+            await expect(
+                correcting(subject, { injuriesRemoved: [sprain] }),
+            ).rejects.toMatchObject({
+                code: GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID,
+            });
+
+            await expectUntouched([subject], QuestLane.story);
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+        });
+
+        it('turns an ordinary wound into an innkeeper wound when removed and added again (D-16)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut, sprain],
+            });
+
+            await correcting(subject, {
+                injuriesRemoved: [deepCut],
+                injuries: [deepCut],
+            });
+
+            const wounds = await woundsOf(subject);
+            expect([...wounds.injuries].sort()).toEqual([deepCut, sprain]);
+            expect(wounds.innkeeperInjuries).toEqual([deepCut]);
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesAdded).toEqual([]);
+            expect(result.injuriesRemoved).toEqual([]);
+        });
+
+        it('keeps the origin of a wound already carried and listed again without removing it (D-16)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [sprain],
+            });
+
+            await correcting(subject, { injuries: [deepCut] });
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [sprain],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesAdded).toEqual([]);
+        });
+
+        it('keeps a wound inflicted by the innkeeper out of the cure of the title block (D-14)', async () => {
+            const subject = await woundedQuester({ injuries: [] }, CURING_BOTH);
+
+            await correcting(subject, { injuries: [deepCut] });
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut],
+                innkeeperInjuries: [deepCut],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesAdded).toEqual([deepCut]);
+            expect(result.injuriesHealed).toEqual([]);
+        });
+
+        it('still heals an ordinary wound with the cure of the title block (D-14)', async () => {
+            const subject = await woundedQuester(
+                { injuries: [deepCut] },
+                CURING_BOTH,
+            );
+
+            await correcting(subject, { injuries: [sprain] });
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [sprain],
+                innkeeperInjuries: [sprain],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesHealed).toEqual([deepCut]);
+            expect(result.injuriesAdded).toEqual([sprain]);
+        });
+
+        it('leaves the origin untouched without overrides (D-12)', async () => {
+            const subject = await woundedQuester({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [sprain],
+            });
+
+            await service.complete(inputOf(subject));
+
+            expect(await woundsOf(subject)).toEqual({
+                injuries: [deepCut, sprain],
+                innkeeperInjuries: [sprain],
+            });
+            const [result] = await resultsOf(subject);
+            expect(result.injuriesAdded).toEqual([]);
+            expect(result.injuriesRemoved).toEqual([]);
         });
     });
 

@@ -9,6 +9,7 @@ import {
 } from 'src/authz/audit/admin-audit-log.model';
 import { SPELL_RECOVERY_QUEUE } from 'src/characters/spells/spell-recovery-queue';
 import { PUSH_CONFIG } from 'src/config/push-config';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { MAX_OVERRIDE_ENTRIES } from 'src/models/request/complete-pending-request.model';
 import { PushTransport } from 'src/push/transport/push-transport';
@@ -17,10 +18,10 @@ import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-res
 import { PendingRequestsModule } from 'src/quests/pending-requests/pending-requests.module';
 import {
     type AuthTestApp,
-    createAuthTestApp,
     graphqlRequest,
 } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
+import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import {
     createPlayer,
     type TestPlayer,
@@ -59,7 +60,8 @@ describe('completePendingRequest (wire)', () => {
     let seq = 0;
 
     beforeAll(async () => {
-        harness = await createAuthTestApp({
+        // con la query character: il filo rilegge l'origine delle ferite dopo il completamento (Phase 25 D-12)
+        harness = await createCharactersTestApp({
             clock: new FixedClock(NOW),
             imports: [PendingRequestsModule],
             overrides: [
@@ -215,6 +217,66 @@ describe('completePendingRequest (wire)', () => {
         ).toBeNull();
         const [record] = await audits.find().lean().exec();
         expect(record).toMatchObject({ outcome: AUDIT_OUTCOME_OK });
+    });
+
+    it('removes and inflicts wounds over the wire (D-12, D-13)', async () => {
+        seq += 1;
+        const subject = await persistQuester(harness, {
+            twitchId: `tw-complete-${seq}`,
+            lane: QuestLane.story,
+            questOverrides: {
+                infos: { ...buildQuest().infos, type: 'story', title: 'Il re' },
+                prizes: { ...buildQuest().prizes, xpPrize: 400 },
+            },
+            characterOverrides: {
+                status: {
+                    xp: 0,
+                    currentLifePoints: 1000,
+                    maxLifePoints: 1000,
+                    injuries: [InjuryType.deepCut],
+                },
+            },
+        });
+        const oste = await playerWithRole(RoleType.innkeeper);
+        const characterId = String(subject.characterId);
+
+        const completed = await graphqlRequest(
+            harness.app,
+            'mutation Complete($input: CompletePendingRequestInput!) { completePendingRequest(input: $input) { injuriesAdded injuriesRemoved injuriesHealed } }',
+            {
+                input: {
+                    pendingQuestId: String(subject.pendingQuest._id),
+                    outcomes: [
+                        {
+                            characterId,
+                            injuriesRemoved: ['deepCut'],
+                            injuries: ['sprain'],
+                        },
+                    ],
+                },
+            },
+            oste.bearer,
+        );
+        const read = await graphqlRequest(
+            harness.app,
+            'query Character($id: String!) { character(id: $id) { status { injuries innkeeperInjuries } } }',
+            { id: characterId },
+            oste.bearer,
+        );
+
+        expect(completed.body.errors).toBeUndefined();
+        expect(completed.body.data.completePendingRequest).toEqual([
+            {
+                injuriesAdded: ['sprain'],
+                injuriesRemoved: ['deepCut'],
+                injuriesHealed: [],
+            },
+        ]);
+        expect(read.body.errors).toBeUndefined();
+        expect(read.body.data.character.status).toEqual({
+            injuries: ['sprain'],
+            innkeeperInjuries: ['sprain'],
+        });
     });
 
     it('rejects an invalid override with its code and audits it', async () => {

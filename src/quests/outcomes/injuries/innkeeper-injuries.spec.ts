@@ -1,6 +1,8 @@
 import { InjuryType } from 'src/models/enums/injury-type.enum';
+import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import {
     applyWoundCorrection,
+    asInnkeeperHand,
     innkeeperInjuriesOf,
     type CorrectedWounds,
     type WoundEffects,
@@ -362,5 +364,44 @@ describe('applyWoundCorrection', () => {
         expect(status.innkeeperInjuries).toEqual([sprain]);
         expect(effects.injuriesAdded).toEqual([infection]);
         expect(effects.injuriesRemoved).toEqual([deepCut]);
+    });
+});
+
+describe('asInnkeeperHand', () => {
+    const effectsOf = (
+        fields: Partial<ParticipantEffects> = {},
+    ): ParticipantEffects => ({
+        characterId: '64b0000000000000000000a1',
+        hpAfter: 300,
+        injuriesAdded: [],
+        consumablesUsed: [],
+        spellsUsed: [],
+        ...fields,
+    });
+
+    it("marks every added wound as the innkeeper's (D-12)", () => {
+        const effects = effectsOf({
+            injuriesAdded: [deepCut, sprain],
+            injuriesRemoved: [infection],
+        });
+
+        expect(asInnkeeperHand(effects)).toEqual({
+            ...effects,
+            innkeeperInjuries: [deepCut, sprain],
+        });
+        expect(effects).not.toHaveProperty('innkeeperInjuries');
+    });
+
+    it('leaves effects without added wounds untouched (D-12)', () => {
+        const effects = effectsOf({ injuriesRemoved: [infection] });
+
+        const marked = asInnkeeperHand(effects);
+
+        expect(marked).toBe(effects);
+        expect(marked).not.toHaveProperty('innkeeperInjuries');
+    });
+
+    it('keeps a missing fight missing (D-12)', () => {
+        expect(asInnkeeperHand(null)).toBeNull();
     });
 });
