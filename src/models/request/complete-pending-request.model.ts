@@ -68,6 +68,14 @@ export class ParticipantOverrideInput {
     @IsEnum(InjuryType, { each: true })
     injuries?: InjuryType[] | null;
 
+    // ferite che la correzione toglie al partecipante, dell'oste o normali (Phase 25 D-13); una ferita anche in injuries viene tolta e riaggiunta come ferita dell'oste (D-16)
+    @Field(() => [InjuryType], { nullable: true })
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(MAX_OVERRIDE_ENTRIES)
+    @IsEnum(InjuryType, { each: true })
+    injuriesRemoved?: InjuryType[] | null;
+
     @Field(() => [ItemUsageInput], { nullable: true })
     @IsOptional()
     @IsArray()

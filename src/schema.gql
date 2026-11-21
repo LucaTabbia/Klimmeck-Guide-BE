@@ -602,6 +602,7 @@ input ParticipantOverrideInput {
   consumablesUsed: [ItemUsageInput!]
   hpAfter: Int
   injuries: [InjuryType!]
+  injuriesRemoved: [InjuryType!]
   spellsUsed: [SpellUsageInput!]
 }
 

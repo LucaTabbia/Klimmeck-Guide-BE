@@ -30,6 +30,8 @@ export interface OverrideParticipant {
     activeSpells: ReadonlyMap<string, number>;
     // compagno equipaggiato a inizio scontro: massimo del suo livello (D-17, D-38)
     companion: OverrideCompanion | null;
+    // ferite all'inizio dello scontro: le sole che una correzione può togliere (Phase 25 D-13)
+    injuries: readonly InjuryType[];
 }
 
 export interface OverrideCompanion {
@@ -45,6 +47,7 @@ const withinCap = (list: readonly unknown[] | null | undefined): boolean =>
 
 const overrideWithinCap = (override: ParticipantOverrideInput): boolean =>
     withinCap(override.injuries) &&
+    withinCap(override.injuriesRemoved) &&
     withinCap(override.consumablesUsed) &&
     withinCap(override.spellsUsed);
 
@@ -99,6 +102,9 @@ export function overrideParticipantOf(
         ownedLoot,
         activeSpells,
         companion: overrideCompanionOf(snapshot, petCatalog),
+        injuries: [...new Set(snapshot.status.injuries ?? [])].filter(
+            isInjuryType,
+        ),
     };
 }
 
@@ -141,6 +147,20 @@ function injuriesOf(override: ParticipantOverrideInput): InjuryType[] {
     if (injuries.some((injury) => !isInjuryType(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
     return injuries;
+}
+
+// si toglie solo una ferita portata a inizio scontro; nessuna rimozione = chiave assente (Phase 25 D-13)
+function injuriesRemovedOf(
+    override: ParticipantOverrideInput,
+    participant: OverrideParticipant,
+): Pick<ParticipantEffects, 'injuriesRemoved'> {
+    const injuriesRemoved = [...new Set(override.injuriesRemoved ?? [])];
+    if (injuriesRemoved.length === 0) return {};
+    const removable = (injury: InjuryType): boolean =>
+        isInjuryType(injury) && participant.injuries.includes(injury);
+    if (!injuriesRemoved.every(removable))
+        throw GameRuleException.outcomeOverrideInvalid();
+    return { injuriesRemoved };
 }
 
 // totale per id entro il disponibile: una voce ripetuta si somma, mai oltre lo snapshot (T-09-73)
@@ -196,6 +216,7 @@ function effectsOf(
         ),
         spellsUsed: spellsOf(override.spellsUsed ?? [], participant),
         ...companionLifeAfterOf(override, participant),
+        ...injuriesRemovedOf(override, participant),
     };
 }
 
