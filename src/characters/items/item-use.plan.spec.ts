@@ -255,6 +255,7 @@ describe('planItemUse — a potion that can be drunk', () => {
             'status.awaitingAid': null,
             'status.currentLifePoints': 400,
             'status.injuries': [InjuryType.deepCut, InjuryType.infection],
+            'status.innkeeperInjuries': null,
             'status.potionRecoveryUntil': null,
             $and: [
                 {
@@ -320,6 +321,61 @@ describe('planItemUse — a potion that can be drunk', () => {
         } as unknown as SnapshotOverrides;
 
         expect(planWith(travelling).outcome).toEqual(planWith().outcome);
+    });
+
+    it('leaves an innkeeper wound after the drink (D-14)', () => {
+        const { update, outcome } = planWith(
+            { status: { innkeeperInjuries: [InjuryType.infection] } },
+            { canHeal: ['deepCut', 'infection'] },
+        );
+
+        expect(update.$set['status.injuries']).toEqual([InjuryType.infection]);
+        expect(outcome.injuriesHealed).toEqual([InjuryType.deepCut]);
+    });
+
+    it("still drinks for the life points when the only wound is the innkeeper's (D-14)", () => {
+        const { update, outcome } = planWith(
+            {
+                status: {
+                    injuries: [InjuryType.deepCut],
+                    innkeeperInjuries: [InjuryType.deepCut],
+                },
+            },
+            { canHeal: ['deepCut'] },
+        );
+
+        expect(outcome.hpAfter).toBe(700);
+        expect(outcome.injuriesHealed).toEqual([]);
+        expect(update.$set['status.injuries']).toEqual([InjuryType.deepCut]);
+    });
+
+    it.each<[string, unknown[] | undefined, unknown]>([
+        ['a missing field', undefined, null],
+        ['a list', [InjuryType.infection], [InjuryType.infection]],
+    ])(
+        'guards the write on the innkeeper wounds as read: %s (D-16)',
+        (_case, innkeeperInjuries, pinned) => {
+            expect(
+                planWith({ status: { innkeeperInjuries } }).filter[
+                    'status.innkeeperInjuries'
+                ],
+            ).toEqual(pinned);
+        },
+    );
+
+    it('never writes the origin of a wound (D-16)', () => {
+        const { update } = planWith(
+            { status: { innkeeperInjuries: [InjuryType.infection] } },
+            { canHeal: ['deepCut', 'infection'] },
+        );
+
+        expect(Object.keys(update.$set).sort()).toEqual([
+            'assets.ownedItems',
+            'status.currentLifePoints',
+            'status.injuries',
+            'status.potionRecoveryUntil',
+        ]);
+        expect(update).not.toHaveProperty('$unset');
     });
 });
 
@@ -520,6 +576,21 @@ describe('planItemUse — refusals', () => {
                 },
             }).outcome.hpAfter,
         ).toBe(1000);
+    });
+
+    it('refuses a potion that would heal only innkeeper wounds at full life (D-14)', () => {
+        expect(
+            refusalOf(
+                {
+                    status: {
+                        currentLifePoints: 1000,
+                        injuries: [InjuryType.deepCut],
+                        innkeeperInjuries: [InjuryType.deepCut],
+                    },
+                },
+                { canHeal: ['deepCut'] },
+            ),
+        ).toEqual({ code: 'ITEM_NO_EFFECT' });
     });
 });
 

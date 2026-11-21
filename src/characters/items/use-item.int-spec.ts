@@ -55,6 +55,7 @@ interface RawCharacter {
     status: {
         currentLifePoints: number;
         injuries: string[];
+        innkeeperInjuries?: string[];
         potionRecoveryUntil?: Date | null;
         unlockedLore?: unknown[];
     };
@@ -319,6 +320,52 @@ describe('useItem (wire)', () => {
 
         expect(codeOf(body)).toBe('ITEM_NO_EFFECT');
         expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('keeps an innkeeper wound through a potion (D-11, D-14)', async () => {
+        const { potion } = await potionWith({
+            canHeal: ['deepCut', 'infection'],
+        });
+        const player = await playerWith({
+            twitchId: 'twitch-drink-innkeeper-wound',
+            status: { innkeeperInjuries: ['deepCut'] },
+            ownedItems: [stackOf(potion._id)],
+        });
+
+        const body = await drink(player, potion.id);
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.useItem).toMatchObject({
+            hpAfter: 700,
+            injuriesHealed: ['infection'],
+            quantityLeft: 1,
+        });
+        const after = await rawCharacter(player);
+        expect(after.status.injuries).toEqual(['deepCut']);
+        expect(after.status.innkeeperInjuries).toEqual(['deepCut']);
+    });
+
+    it('refuses with ITEM_NO_EFFECT a potion that matches only an innkeeper wound (D-14)', async () => {
+        const { potion } = await potionWith();
+        const player = await playerWith({
+            twitchId: 'twitch-drink-only-innkeeper-wound',
+            status: {
+                currentLifePoints: 1000,
+                injuries: ['deepCut'],
+                innkeeperInjuries: ['deepCut'],
+            },
+            ownedItems: [stackOf(potion._id)],
+        });
+        const before = await rawCharacter(player);
+
+        const body = await drink(player, potion.id);
+
+        expect(codeOf(body)).toBe('ITEM_NO_EFFECT');
+        expect(body.data).toBeNull();
+        const after = await rawCharacter(player);
+        expect(stackQuantity(after, potion._id)).toBe(2);
+        expect(after.status.potionRecoveryUntil ?? null).toBeNull();
+        expect(after).toEqual(before);
     });
 
     it('refuses a character awaiting aid (D-17)', async () => {
