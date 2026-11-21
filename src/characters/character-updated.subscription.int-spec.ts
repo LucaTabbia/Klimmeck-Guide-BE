@@ -5,6 +5,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { Pet } from 'src/models/pet.model';
@@ -84,6 +85,15 @@ const CHARACTER_LORE_UPDATED =
 
 type LoreUpdatedResult = {
     characterUpdated: { status: { unlockedLore: string[] } };
+};
+
+const CHARACTER_WOUNDS_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { injuries innkeeperInjuries } } }';
+
+type WoundsUpdatedResult = {
+    characterUpdated: {
+        status: { injuries: InjuryType[]; innkeeperInjuries: InjuryType[] };
+    };
 };
 
 const CHARACTER_SLOTS_UPDATED =
@@ -767,6 +777,50 @@ describe('characterUpdated subscription (wire)', () => {
                 data: {
                     characterUpdated: {
                         status: { unlockedLore: [loreId.toHexString()] },
+                    },
+                },
+            },
+        });
+    });
+
+    it('publishes the character when only the origin of a wound changes (D-15)', async () => {
+        const { deepCut } = InjuryType;
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            { $set: { 'status.injuries': [deepCut] } },
+        );
+        const subscription = openSubscription<WoundsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_WOUNDS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        status: { injuries: [deepCut], innkeeperInjuries: [] },
+                    },
+                },
+            },
+        });
+
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            { $set: { 'status.innkeeperInjuries': [deepCut] } },
+        );
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        status: {
+                            injuries: [deepCut],
+                            innkeeperInjuries: [deepCut],
+                        },
                     },
                 },
             },
