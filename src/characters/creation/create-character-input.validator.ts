@@ -3,15 +3,12 @@ import {
     isValidCharacterName,
     normalizeCharacterName,
 } from 'src/characters/creation/character-name';
-import { countGraphemes } from 'src/characters/creation/grapheme-count';
+import { exceedsGraphemeLimit } from 'src/characters/creation/grapheme-count';
 import { NormalizedCharacterInput } from 'src/characters/creation/normalized-character-input';
 import { isAgeAllowedForRace } from 'src/characters/creation/race-traits';
 import { CreateCharacterInput } from 'src/models/request/create-character-request.model';
 
 export const BACKGROUND_MAX_GRAPHEMES = 500;
-// un grafema legittimo (sequenza emoji ZWJ) vale ~8-11 unità UTF-16: il tetto ferma i cluster
-// di segni combinanti che contano un solo grafema qualunque sia la loro dimensione
-export const BACKGROUND_MAX_CODE_UNITS = BACKGROUND_MAX_GRAPHEMES * 8;
 export const IMAGE_PATH_MAX_LENGTH = 2048;
 const SECURE_PROTOCOL = 'https:';
 
@@ -40,10 +37,7 @@ export function validateCreateCharacterInput(
 
 function normalizeBackground(raw: string | null | undefined): string {
     const background = (raw ?? '').trim();
-    if (
-        background.length > BACKGROUND_MAX_CODE_UNITS ||
-        countGraphemes(background) > BACKGROUND_MAX_GRAPHEMES
-    ) {
+    if (exceedsGraphemeLimit(background, BACKGROUND_MAX_GRAPHEMES)) {
         throw CharacterCreationException.backgroundTooLong();
     }
     return background;
