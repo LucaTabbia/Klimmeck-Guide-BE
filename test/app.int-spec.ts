@@ -104,11 +104,11 @@ const MISSION_DRAFT_BLOCKS: Record<string, string> = {
     'type MissionCompanion':
         'type MissionCompanion {\n  lifeBefore: Int!\n  maxLifePoints: Int!\n  name: String!\n  pet: ID!\n}',
     'type MissionFightEffects':
-        'type MissionFightEffects {\n  companionLifeAfter: Int\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
+        'type MissionFightEffects {\n  companionLifeAfter: Int\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  injuriesRemoved: [InjuryType!]!\n  innkeeperInjuries: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
     'type MissionFightEnemy':
         'type MissionFightEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
     'type MissionFightOutcome':
-        'type MissionFightOutcome {\n  character: ID!\n  companion: MissionCompanion\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
+        'type MissionFightOutcome {\n  character: ID!\n  companion: MissionCompanion\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  innkeeperInjuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
     'enum MissionFightVerdict':
         'enum MissionFightVerdict {\n  failure\n  success\n}',
     'type MissionItemUsage':

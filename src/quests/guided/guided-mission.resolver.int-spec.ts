@@ -4,6 +4,7 @@ import {
     AdminAuditLogSchema,
     AUDIT_OUTCOME_OK,
 } from 'src/authz/audit/admin-audit-log.model';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     PointOfInterest,
@@ -989,10 +990,27 @@ describe('GuidedMissionResolver (wire)', () => {
             errors?: { message: string; extensions: Record<string, unknown> }[];
         }
 
-        async function simulatedPair() {
-            const [first, second] = await worldMissionPair();
-            const oste = await innkeeper();
-            await send(START, hexOf(first), oste.bearer);
+        interface WoundsBody {
+            data?: {
+                saveMissionDraft?: {
+                    fights: {
+                        outcomes: {
+                            character: string;
+                            injuriesBefore: string[];
+                            innkeeperInjuriesBefore: string[];
+                            simulated: Record<string, string[]> | null;
+                            corrected: Record<string, string[]> | null;
+                        }[];
+                    }[];
+                } | null;
+            } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        async function simulateFirst(
+            first: Quester,
+            oste: TestPlayer,
+        ): Promise<string> {
             const enemy = String(
                 (await world.models.enemies.create(buildEnemy()))._id,
             );
@@ -1008,6 +1026,14 @@ describe('GuidedMissionResolver (wire)', () => {
                 },
                 oste.bearer,
             );
+            return enemy;
+        }
+
+        async function simulatedPair() {
+            const [first, second] = await worldMissionPair();
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = await simulateFirst(first, oste);
             return { first, second, oste, enemy };
         }
 
@@ -1064,6 +1090,67 @@ describe('GuidedMissionResolver (wire)', () => {
             expect(
                 draft.prizes.find(({ character }) => character === firstHex),
             ).toEqual({ character: firstHex, xp: 1234 });
+        });
+
+        it('serves the removals and the origin of the wounds over the wire (D-12, D-13)', async () => {
+            const WOUNDS =
+                'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { fights { outcomes { character injuriesBefore innkeeperInjuriesBefore simulated { injuriesRemoved innkeeperInjuries } corrected { injuriesAdded injuriesRemoved innkeeperInjuries } } } } }';
+            const { deepCut, fracturedRib } = InjuryType;
+            const [first] = await worldMissionPair();
+            await world.models.characters.updateOne(
+                { _id: first.characterId },
+                {
+                    $set: {
+                        'status.injuries': [deepCut],
+                        'status.innkeeperInjuries': [deepCut],
+                    },
+                },
+            );
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = await simulateFirst(first, oste);
+            const firstHex = String(first.characterId);
+
+            const response = await graphqlRequest(
+                world.harness.app,
+                WOUNDS,
+                {
+                    input: {
+                        pendingQuestId: hexOf(first),
+                        fights: [
+                            {
+                                enemies: [{ enemy, quantity: 1 }],
+                                corrections: [
+                                    {
+                                        characterId: firstHex,
+                                        injuries: [fracturedRib],
+                                        injuriesRemoved: [deepCut],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                oste.bearer,
+            );
+
+            const body = response.body as WoundsBody;
+            expect(body.errors).toBeUndefined();
+            expect(
+                body.data!.saveMissionDraft!.fights[0].outcomes.find(
+                    ({ character }) => character === firstHex,
+                ),
+            ).toEqual({
+                character: firstHex,
+                injuriesBefore: [deepCut],
+                innkeeperInjuriesBefore: [deepCut],
+                simulated: { injuriesRemoved: [], innkeeperInjuries: [] },
+                corrected: {
+                    injuriesAdded: [fracturedRib],
+                    injuriesRemoved: [deepCut],
+                    innkeeperInjuries: [fracturedRib],
+                },
+            });
         });
 
         it('refuses an adventurer (D-10)', async () => {
