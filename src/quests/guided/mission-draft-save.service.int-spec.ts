@@ -726,6 +726,37 @@ describe('MissionDraftSaveService (replSet)', () => {
             ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
             expect(await storedDraft()).toEqual(before);
         });
+
+        it('starts the second fight with the wound the innkeeper inflicted in the first (D-12)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, {
+                injuries: [InjuryType.fracturedRib],
+            });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([
+                deepCut,
+                InjuryType.fracturedRib,
+            ]);
+            expect(start.innkeeperInjuriesBefore).toEqual([
+                InjuryType.fracturedRib,
+            ]);
+        });
+
+        it('starts the second fight without the wound removed in the first (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([]);
+            expect(start.innkeeperInjuriesBefore).toEqual([]);
+        });
     });
 
     describe('prizes', () => {

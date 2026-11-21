@@ -3,6 +3,7 @@ import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resol
 import {
     applyWoundCorrection,
     asInnkeeperHand,
+    handInflictedOf,
     innkeeperInjuriesOf,
     type CorrectedWounds,
     type WoundEffects,
@@ -403,5 +404,40 @@ describe('asInnkeeperHand', () => {
 
     it('keeps a missing fight missing (D-12)', () => {
         expect(asInnkeeperHand(null)).toBeNull();
+    });
+});
+
+describe('handInflictedOf', () => {
+    it('takes the wounds the correction adds beyond the simulation (D-12)', () => {
+        expect(
+            handInflictedOf({ injuriesAdded: [sprain, deepCut] }, [sprain]),
+        ).toEqual([deepCut]);
+    });
+
+    it('leaves a simulated wound kept by the correction ordinary (D-12)', () => {
+        expect(handInflictedOf({ injuriesAdded: [sprain] }, [sprain])).toEqual(
+            [],
+        );
+    });
+
+    it('takes a wound removed and added again even when the simulation added it too (D-16)', () => {
+        expect(
+            handInflictedOf(
+                {
+                    injuriesAdded: [sprain, sprain, infection],
+                    injuriesRemoved: [sprain],
+                },
+                [sprain, infection],
+            ),
+        ).toEqual([sprain]);
+    });
+
+    it('takes nothing from a correction that adds no wound (D-12)', () => {
+        expect(
+            handInflictedOf(
+                { injuriesAdded: [], injuriesRemoved: [frostbite] },
+                [sprain],
+            ),
+        ).toEqual([]);
     });
 });

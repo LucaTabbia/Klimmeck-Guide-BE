@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { InjuryType } from 'src/models/enums/injury-type.enum';
 import {
     effectiveEffectsOf,
+    effectiveParticipantEffectsOf,
     previousEffectsOf,
     reconcileFights,
     resetFrom,
@@ -108,6 +109,7 @@ describe('previousEffectsOf', () => {
                     { itemId: POTION_ID.toHexString(), quantity: 1 },
                 ],
                 spellsUsed: [],
+                innkeeperInjuries: [InjuryType.blackEye],
             },
             {
                 characterId: hero,
@@ -117,6 +119,80 @@ describe('previousEffectsOf', () => {
                 spellsUsed: [],
             },
         ]);
+    });
+});
+
+describe('effectiveParticipantEffectsOf', () => {
+    const { blackEye, deepCut, sprain } = InjuryType;
+    const hero = HERO_ID.toHexString();
+    const woundsOf = (
+        hpAfter: number,
+        wounds: Partial<MissionFightEffectsRecord>,
+    ): MissionFightEffectsRecord => ({ ...effects(hpAfter), ...wounds });
+
+    it('marks the hand-inflicted wounds of a corrected fight (D-12)', () => {
+        const corrected = outcomeOf(
+            HERO_ID,
+            woundsOf(900, { injuriesAdded: [sprain, deepCut] }),
+            woundsOf(800, {
+                injuriesAdded: [sprain, blackEye, deepCut],
+                injuriesRemoved: [deepCut],
+            }),
+        );
+
+        expect(effectiveParticipantEffectsOf(hero, corrected)).toEqual({
+            characterId: hero,
+            hpAfter: 800,
+            injuriesAdded: [sprain, blackEye, deepCut],
+            injuriesRemoved: [deepCut],
+            consumablesUsed: [],
+            spellsUsed: [],
+            innkeeperInjuries: [blackEye, deepCut],
+        });
+    });
+
+    it('marks nothing on a fight left as simulated (D-12)', () => {
+        const simulated = effectiveParticipantEffectsOf(
+            hero,
+            outcomeOf(HERO_ID, woundsOf(900, { injuriesAdded: [sprain] })),
+        );
+        const keptAsSimulated = effectiveParticipantEffectsOf(
+            hero,
+            outcomeOf(
+                HERO_ID,
+                woundsOf(900, { injuriesAdded: [sprain] }),
+                woundsOf(700, { injuriesAdded: [sprain] }),
+            ),
+        );
+
+        expect(simulated).toEqual({
+            characterId: hero,
+            hpAfter: 900,
+            injuriesAdded: [sprain],
+            consumablesUsed: [],
+            spellsUsed: [],
+        });
+        expect(simulated).not.toHaveProperty('innkeeperInjuries');
+        expect(keptAsSimulated).not.toHaveProperty('innkeeperInjuries');
+    });
+
+    it('carries the marks into the effects of the previous fights (D-12)', () => {
+        expect(
+            previousEffectsOf(threeFights(), 2, hero).map(
+                ({ innkeeperInjuries }) => innkeeperInjuries,
+            ),
+        ).toEqual([[blackEye], undefined]);
+        expect(
+            previousEffectsOf(threeFights(), 2, MATE_ID.toHexString()).some(
+                (fight) => 'innkeeperInjuries' in fight,
+            ),
+        ).toBe(false);
+    });
+
+    it('answers no effect for an unsimulated fight', () => {
+        expect(
+            effectiveParticipantEffectsOf(hero, outcomeOf(HERO_ID, null)),
+        ).toBeNull();
     });
 });
 

@@ -215,6 +215,20 @@ describe('guided outcome', () => {
         ).toEqual([false, false]);
     });
 
+    it('carries the origin of the wounds along the effective sequence (D-12)', () => {
+        const sequence = effectiveSequenceOf(twoFights(), HERO);
+
+        expect(sequence[0].effects.innkeeperInjuries).toEqual([
+            InjuryType.blackEye,
+        ]);
+        expect(sequence[1].effects).not.toHaveProperty('innkeeperInjuries');
+        expect(
+            effectiveSequenceOf(twoFights(), MATE).some(
+                ({ effects }) => 'innkeeperInjuries' in effects,
+            ),
+        ).toBe(false);
+    });
+
     it('turns effects back into an override input (D-06)', () => {
         const [first] = effectiveSequenceOf(twoFights(), HERO);
 

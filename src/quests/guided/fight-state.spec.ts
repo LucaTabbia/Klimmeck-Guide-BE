@@ -123,6 +123,7 @@ describe('stateBeforeFight', () => {
                 ...snapshot.status,
                 currentLifePoints: 600,
                 injuries: [InjuryType.crushedRightHand],
+                innkeeperInjuries: [],
                 spellStates: [
                     {
                         spell: ACTIVE_SPELL_ID,
@@ -227,6 +228,7 @@ describe('fightStartOf', () => {
         expect(fightStartOf(state, PET_CATALOG)).toEqual({
             hpBefore: 600,
             injuriesBefore: [InjuryType.crushedRightHand],
+            innkeeperInjuriesBefore: [],
             consumablesAvailable: [
                 { item: HERB_ID, quantity: 1 },
                 { item: POTION_ID, quantity: 2 },
@@ -314,6 +316,104 @@ describe('fightStartOf', () => {
             lifeBefore: 102,
             maxLifePoints: 102,
         });
+    });
+});
+
+describe('wounds across the fights (Phase 25)', () => {
+    const { deepCut, crushedRightHand, brokenLeftLeg } = InjuryType;
+
+    const woundedSnapshot = (
+        wounds: Partial<ResolutionCharacter['status']>,
+    ): ResolutionCharacter => {
+        const snapshot = heroSnapshot();
+        return { ...snapshot, status: { ...snapshot.status, ...wounds } };
+    };
+
+    const fightWith = (
+        wounds: Partial<ParticipantEffects>,
+    ): ParticipantEffects => ({
+        characterId: HERO_ID.toHexString(),
+        hpAfter: 700,
+        injuriesAdded: [],
+        consumablesUsed: [],
+        spellsUsed: [],
+        ...wounds,
+    });
+
+    const startAfter = (
+        snapshot: ResolutionCharacter,
+        previous: ParticipantEffects[],
+    ) => fightStartOf(stateBeforeFight(snapshot, previous, NO_PETS), NO_PETS);
+
+    it('starts the next fight without a wound removed in the previous one (D-13)', () => {
+        const start = startAfter(
+            woundedSnapshot({
+                injuries: [deepCut, brokenLeftLeg],
+                innkeeperInjuries: [deepCut],
+            }),
+            [fightWith({ injuriesRemoved: [deepCut] })],
+        );
+
+        expect(start.injuriesBefore).toEqual([brokenLeftLeg]);
+        expect(start.innkeeperInjuriesBefore).toEqual([]);
+    });
+
+    it("starts the next fight counting a hand-inflicted wound among the innkeeper's (D-12)", () => {
+        const start = startAfter(woundedSnapshot({ injuries: [deepCut] }), [
+            fightWith({
+                injuriesAdded: [crushedRightHand],
+                innkeeperInjuries: [crushedRightHand],
+            }),
+            fightWith({}),
+        ]);
+
+        expect(start.injuriesBefore).toEqual([deepCut, crushedRightHand]);
+        expect(start.innkeeperInjuriesBefore).toEqual([crushedRightHand]);
+    });
+
+    it('starts the next fight with a simulated wound as an ordinary one (D-12)', () => {
+        const start = startAfter(heroSnapshot(), [firstFight]);
+
+        expect(start.injuriesBefore).toEqual([crushedRightHand]);
+        expect(start.innkeeperInjuriesBefore).toEqual([]);
+    });
+
+    it('reads the innkeeper wounds at the start of the first fight from the character (D-13)', () => {
+        expect(
+            startAfter(
+                woundedSnapshot({
+                    injuries: [deepCut, brokenLeftLeg],
+                    innkeeperInjuries: [brokenLeftLeg],
+                }),
+                [],
+            ).innkeeperInjuriesBefore,
+        ).toEqual([brokenLeftLeg]);
+        expect(
+            startAfter(woundedSnapshot({ injuries: [deepCut] }), [])
+                .innkeeperInjuriesBefore,
+        ).toEqual([]);
+    });
+
+    it('does not mutate the snapshot it overlays', () => {
+        const snapshot = woundedSnapshot({
+            injuries: [deepCut],
+            innkeeperInjuries: [deepCut],
+        });
+        const copy = structuredClone(snapshot);
+
+        stateBeforeFight(
+            snapshot,
+            [
+                fightWith({
+                    injuriesAdded: [deepCut, crushedRightHand],
+                    injuriesRemoved: [deepCut],
+                    innkeeperInjuries: [crushedRightHand],
+                }),
+            ],
+            NO_PETS,
+        );
+
+        expect(snapshot).toEqual(copy);
     });
 });
 
