@@ -2,11 +2,11 @@ import { Types } from 'mongoose';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import {
-    additionEntriesOf,
     additionFor,
     additionTextOf,
     BACKGROUND_ADDITION_MAX_FORM_LENGTH,
     BACKGROUND_ADDITION_MAX_GRAPHEMES,
+    mergedAdditions,
 } from 'src/quests/guided/background-additions';
 
 const HERO = new Types.ObjectId('64b000000000000000000001');
@@ -59,14 +59,17 @@ describe('additionTextOf', () => {
     });
 });
 
-describe('additionEntriesOf', () => {
+describe('mergedAdditions', () => {
     it('keeps one entry per character with a non-empty text (D-06)', () => {
         expect(
-            additionEntriesOf([
-                { character: MAGE, text: '  Ha letto il grimorio. ' },
-                { character: HERO, text: '   ' },
-                { character: THIEF, text: 'Ha aperto la cripta.' },
-            ]),
+            mergedAdditions(
+                [],
+                [
+                    { character: MAGE, text: '  Ha letto il grimorio. ' },
+                    { character: HERO, text: '   ' },
+                    { character: THIEF, text: 'Ha aperto la cripta.' },
+                ],
+            ),
         ).toEqual([
             { character: MAGE, text: 'Ha letto il grimorio.' },
             { character: THIEF, text: 'Ha aperto la cripta.' },
@@ -75,23 +78,88 @@ describe('additionEntriesOf', () => {
 
     it('accepts a section where every text is empty (D-06)', () => {
         expect(
-            additionEntriesOf([
-                { character: HERO, text: '' },
-                { character: MAGE, text: '  \n ' },
-            ]),
+            mergedAdditions(
+                [],
+                [
+                    { character: HERO, text: '' },
+                    { character: MAGE, text: '  \n ' },
+                ],
+            ),
         ).toEqual([]);
+    });
+
+    it('replaces only the addition of the character sent and keeps the others (D-06)', () => {
+        expect(
+            mergedAdditions(
+                [
+                    { character: HERO, text: 'Ha vinto.' },
+                    { character: MAGE, text: 'Ha letto il grimorio.' },
+                ],
+                [
+                    {
+                        character: new Types.ObjectId(MAGE.toHexString()),
+                        text: ' Ha bruciato il grimorio. ',
+                    },
+                ],
+            ),
+        ).toEqual([
+            { character: HERO, text: 'Ha vinto.' },
+            { character: MAGE, text: 'Ha bruciato il grimorio.' },
+        ]);
+    });
+
+    it('appends the addition of a character without a saved one (D-06)', () => {
+        expect(
+            mergedAdditions(
+                [{ character: HERO, text: 'Ha vinto.' }],
+                [{ character: THIEF, text: 'Ha aperto la cripta.' }],
+            ),
+        ).toEqual([
+            { character: HERO, text: 'Ha vinto.' },
+            { character: THIEF, text: 'Ha aperto la cripta.' },
+        ]);
+    });
+
+    it.each([
+        ['empty', ''],
+        ['blank', '  \n\t '],
+    ])(
+        'deletes only the saved addition of a character whose text comes back %s (D-06)',
+        (_name, text) => {
+            expect(
+                mergedAdditions(
+                    [
+                        { character: HERO, text: 'Ha vinto.' },
+                        { character: MAGE, text: 'Ha letto il grimorio.' },
+                    ],
+                    [{ character: HERO, text }],
+                ),
+            ).toEqual([{ character: MAGE, text: 'Ha letto il grimorio.' }]);
+        },
+    );
+
+    it('leaves the saved additions untouched when nothing is sent (D-06)', () => {
+        const saved = [
+            { character: HERO, text: 'Ha vinto.' },
+            { character: MAGE, text: 'Ha letto il grimorio.' },
+        ];
+
+        expect(mergedAdditions(saved, [])).toEqual(saved);
     });
 
     it('refuses the same character twice in one section (D-06)', () => {
         expect(
             codeOf(() =>
-                additionEntriesOf([
-                    { character: HERO, text: 'Ha vinto.' },
-                    {
-                        character: new Types.ObjectId(HERO.toHexString()),
-                        text: '',
-                    },
-                ]),
+                mergedAdditions(
+                    [],
+                    [
+                        { character: HERO, text: 'Ha vinto.' },
+                        {
+                            character: new Types.ObjectId(HERO.toHexString()),
+                            text: '',
+                        },
+                    ],
+                ),
             ),
         ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
     });
@@ -99,10 +167,13 @@ describe('additionEntriesOf', () => {
     it('refuses the same character twice before reading the texts (D-06)', () => {
         expect(
             codeOf(() =>
-                additionEntriesOf([
-                    { character: HERO, text: OVER_THE_LIMIT },
-                    { character: HERO, text: 'Ha vinto.' },
-                ]),
+                mergedAdditions(
+                    [],
+                    [
+                        { character: HERO, text: OVER_THE_LIMIT },
+                        { character: HERO, text: 'Ha vinto.' },
+                    ],
+                ),
             ),
         ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
     });
@@ -110,10 +181,13 @@ describe('additionEntriesOf', () => {
     it('refuses a section with a text over the limit (D-07)', () => {
         expect(
             codeOf(() =>
-                additionEntriesOf([
-                    { character: HERO, text: 'Ha vinto.' },
-                    { character: MAGE, text: OVER_THE_LIMIT },
-                ]),
+                mergedAdditions(
+                    [{ character: HERO, text: 'Ha vinto.' }],
+                    [
+                        { character: HERO, text: 'Ha vinto ancora.' },
+                        { character: MAGE, text: OVER_THE_LIMIT },
+                    ],
+                ),
             ),
         ).toBe(GameRuleErrorCode.BACKGROUND_ADDITION_TOO_LONG);
     });

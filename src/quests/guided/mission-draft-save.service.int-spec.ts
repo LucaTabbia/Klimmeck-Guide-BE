@@ -1181,7 +1181,7 @@ describe('MissionDraftSaveService (replSet)', () => {
             expect(await storedAdditions()).toEqual(expected);
         });
 
-        it('replaces the whole section when it is sent again (D-06)', async () => {
+        it('replaces the addition of the listed character only (D-06)', async () => {
             const { first, second } = await startedWorldMission();
             await save(first, {
                 backgroundAdditions: [
@@ -1194,7 +1194,53 @@ describe('MissionDraftSaveService (replSet)', () => {
                 backgroundAdditions: [additionOf(second, MILLER)],
             });
 
-            expect(await storedAdditions()).toEqual([entryOf(second, MILLER)]);
+            expect(await storedAdditions()).toEqual([
+                entryOf(first, MILLER),
+                entryOf(second, MILLER),
+            ]);
+        });
+
+        it('saves the additions sent in chunks without erasing the earlier ones (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+            await save(first, {
+                backgroundAdditions: [additionOf(second, BRIDGE)],
+            });
+
+            expect(await storedAdditions()).toEqual([
+                entryOf(first, MILLER),
+                entryOf(second, BRIDGE),
+            ]);
+        });
+
+        it('deletes only the saved addition of the character whose text comes back empty (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, '  ')],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('leaves the additions untouched when the section comes empty (D-06)', async () => {
+            const { first } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, { backgroundAdditions: [] });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
         });
 
         it('leaves the additions untouched when the section is absent (D-05)', async () => {
