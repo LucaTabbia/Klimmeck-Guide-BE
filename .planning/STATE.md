@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-10-PLAN.md"
+stopped_at: "Completato 25-11-PLAN.md"
 last_updated: "2026-11-21T19:00:00.000Z"
 last_activity: 2026-11-21 -- Phase 25 piano 09 completato (completamento guidato: ferite, rimozioni e origine dalla piega in ordine sugli scontri)
 progress:
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 10 of 14
-Status: executing — Phase 25 in esecuzione (10/14): le fondamenta delle storie sono posate (regola di conteggio condivisa `exceedsGraphemeLimit`, codice `BACKGROUND_ADDITION_TOO_LONG`, regole pure in `background-additions.ts`, contratto di lettura dei background pinnato). Restano le aggiunte nella bozza (11), la scrittura al completamento (12), il gate (13) e il handoff (14).
-Last activity: 2026-11-21 -- Phase 25 piano 10 completato (storie: lettura pinnata, regola di conteggio, codice d'errore, regole pure delle aggiunte)
+Plan: 11 of 14
+Status: executing — Phase 25 in esecuzione (11/14): le aggiunte ai background vivono nella bozza (passo `stories`, sezione `backgroundAdditions` su schema, input e filo; il salvataggio sostituisce l'intera sezione, i testi vuoti cadono, tetto a 1000 grafemi col codice proprio). Restano la scrittura al completamento (12), il gate (13) e il handoff (14).
+Last activity: 2026-11-21 -- Phase 25 piano 11 completato (aggiunte ai background nella bozza e passo `stories`)
 Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
 
 ## Current Milestone
