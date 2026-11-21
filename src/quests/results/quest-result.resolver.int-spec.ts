@@ -40,6 +40,8 @@ const QUEST_RESULT_COMPANION =
     'query QuestResult($id: String!) { questResult(id: $id) { id xpGained petXpGained } }';
 const QUEST_RESULT_HEALED =
     'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
+const QUEST_RESULT_REMOVED =
+    'query QuestResult($id: String!) { questResult(id: $id) { id injuriesHealed injuriesRemoved } }';
 const QUEST_RESULT_ENEMY_SPELLS =
     'query QuestResult($id: String!) { questResult(id: $id) { id enemies { quantity enemy { id spells { id name } } } } }';
 const QUEST_RESULT_TURNS =
@@ -567,6 +569,54 @@ describe('questResult(id) (wire)', () => {
                     injuriesHealed: [],
                 },
             },
+        });
+    });
+
+    it('serves the wounds removed by the innkeeper (D-13)', async () => {
+        const result = await persistAliceResult({
+            injuriesHealed: [],
+            injuriesRemoved: ['deepCut'],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_REMOVED,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    injuriesHealed: [],
+                    injuriesRemoved: ['deepCut'],
+                },
+            },
+        });
+    });
+
+    it('serves no removed wound for a result written before the field (D-13)', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const raw = buildQuestResult({
+            character: alice.character?._id,
+            user: alice.user._id,
+        }) as Record<string, unknown>;
+        delete raw.injuriesRemoved;
+        const { insertedId } = await results.collection.insertOne(raw);
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_REMOVED,
+            { id: String(insertedId) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult).toEqual({
+            id: String(insertedId),
+            injuriesHealed: [],
+            injuriesRemoved: [],
         });
     });
 
