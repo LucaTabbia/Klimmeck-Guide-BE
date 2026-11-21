@@ -94,6 +94,7 @@ interface CharacterAcceptanceSnapshot extends CharacterEligibilitySnapshot {
         imprisonedUntil?: unknown;
         activeTravel?: unknown;
         injuries?: unknown[];
+        innkeeperInjuries?: unknown[] | null;
         xp?: number;
         currentLifePoints?: number;
         maxLifePoints?: number;
@@ -137,6 +138,7 @@ const CHARACTER_PROJECTION = {
     'status.awaitingAid': 1,
     'status.imprisonedUntil': 1,
     'status.injuries': 1,
+    'status.innkeeperInjuries': 1,
     'status.currentLifePoints': 1,
     'status.maxLifePoints': 1,
     'status.xp': 1,
@@ -401,6 +403,7 @@ export class QuestAcceptanceService {
             currentLifePoints,
             maxLifePoints,
             injuries: character.status.injuries ?? [],
+            innkeeperInjuries: character.status.innkeeperInjuries,
         };
         if (healHasNoEffect(subject, quest.prizes?.cure))
             throw GameRuleException.questNoEffect();
