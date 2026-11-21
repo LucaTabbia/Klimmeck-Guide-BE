@@ -179,6 +179,8 @@ export interface QuestResultDraft extends DungeonTurnFields {
     spellFound?: Types.ObjectId | null;
     // ferite tolte dalle correzioni dell'oste (Phase 25 D-13): planParticipant lo scrive sempre
     injuriesRemoved?: InjuryType[];
+    // il background ha ricevuto una voce dall'oste (Phase 25 D-09): planParticipant lo scrive sempre
+    backgroundEntryAdded?: boolean;
 }
 
 export type PlanVerdict =
@@ -237,6 +239,8 @@ export interface ParticipantPlanInput {
     rescuedCharacters?: readonly Types.ObjectId[];
     // le dungeon a tappe e i soccorritori di un'aid di dungeon (D-12, D-21): null altrove
     stages?: DungeonStages | null;
+    // solo il completamento guidato lo valorizza (Phase 25 D-09, D-10)
+    backgroundEntryAdded?: boolean;
     now: Date;
 }
 
@@ -697,6 +701,7 @@ export function planParticipant(input: ParticipantPlanInput): ParticipantPlan {
                 !rewards.spellCandidate &&
                 !spellFound,
             spellFound: learning?.spellId ?? null,
+            backgroundEntryAdded: input.backgroundEntryAdded ?? false,
         },
         spellRecoveries: spells.recoveries,
         learning,

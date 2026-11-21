@@ -882,6 +882,7 @@ type QuestResult {
   acknowledgedAt: DateTime
   ambush: AmbushReport
   arrested: Boolean!
+  backgroundEntryAdded: Boolean!
   character: ID!
   coinsLost: Coins
   companion: CompanionOutcome

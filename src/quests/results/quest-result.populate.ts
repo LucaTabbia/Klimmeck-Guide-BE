@@ -86,6 +86,7 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         spellLearned: null,
         spellFound: null,
         spellResearchFailed: draft.spellResearchFailed ?? false,
+        backgroundEntryAdded: draft.backgroundEntryAdded ?? false,
         loreUnlocked: [],
         enemies: [],
     };
