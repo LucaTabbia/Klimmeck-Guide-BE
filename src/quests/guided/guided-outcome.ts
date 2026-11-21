@@ -10,8 +10,10 @@ import {
     type CompanionFight,
     companionEnemiesXpOf,
 } from 'src/quests/outcomes/pets/companion-enemies-xp';
-import { effectiveEffectsOf } from './draft-invalidation';
-import { participantEffectsOf } from './fight-state';
+import {
+    effectiveEffectsOf,
+    effectiveParticipantEffectsOf,
+} from './draft-invalidation';
 import type {
     MissionFightEnemyRecord,
     MissionFightOutcomeRecord,
@@ -40,14 +42,11 @@ export function effectiveSequenceOf(
 ): EffectiveFight[] {
     return fights.flatMap((fight) => {
         const outcome = outcomeIn(fight, characterHex);
-        const effects = outcome ? effectiveEffectsOf(outcome) : null;
+        const effects = outcome
+            ? effectiveParticipantEffectsOf(characterHex, outcome)
+            : null;
         if (!outcome || !effects) return [];
-        return [
-            {
-                effects: participantEffectsOf(characterHex, effects),
-                corrected: outcome.corrected != null,
-            },
-        ];
+        return [{ effects, corrected: outcome.corrected != null }];
     });
 }
 

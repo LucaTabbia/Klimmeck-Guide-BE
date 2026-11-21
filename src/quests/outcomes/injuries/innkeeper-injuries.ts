@@ -79,3 +79,15 @@ export function asInnkeeperHand(
     if (effects === null || effects.injuriesAdded.length === 0) return effects;
     return { ...effects, innkeeperInjuries: [...effects.injuriesAdded] };
 }
+
+// ferite di pugno dell'oste in uno scontro corretto (Phase 25 D-12, D-16): aggiunte dal corretto e non dal simulato, oppure tolte e riaggiunte
+export function handInflictedOf(
+    corrected: WoundEffects,
+    simulatedAdded: readonly InjuryType[],
+): InjuryType[] {
+    const removed = corrected.injuriesRemoved ?? [];
+    return [...new Set(corrected.injuriesAdded)].filter(
+        (injury) =>
+            !simulatedAdded.includes(injury) || removed.includes(injury),
+    );
+}

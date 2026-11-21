@@ -153,6 +153,10 @@ export class MissionFightOutcomeRecord {
     @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
     injuriesBefore: InjuryType[];
 
+    // ferite dell'oste all'inizio dello scontro (Phase 25 D-13): sottoinsieme di injuriesBefore, fotografato alla simulazione
+    @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
+    innkeeperInjuriesBefore?: InjuryType[];
+
     @Prop({ type: [MissionItemUsageRecordSchema], default: [] })
     consumablesAvailable: MissionItemUsageRecord[];
 

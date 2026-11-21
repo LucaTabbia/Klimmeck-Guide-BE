@@ -5,7 +5,11 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
-import type { WoundEffects } from 'src/quests/outcomes/injuries/innkeeper-injuries';
+import {
+    applyWoundCorrection,
+    innkeeperInjuriesOf,
+    type WoundEffects,
+} from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
     type OverrideCompanion,
     overrideParticipantOf,
@@ -15,7 +19,6 @@ import {
     consumablesSpent,
     sellLine,
     spellsSpent,
-    woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
 import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
@@ -34,6 +37,8 @@ export interface FightCompanion {
 export interface FightStart {
     hpBefore: number;
     injuriesBefore: InjuryType[];
+    // ferite dell'oste all'inizio dello scontro: sottoinsieme di injuriesBefore (Phase 25 D-13)
+    innkeeperInjuriesBefore: InjuryType[];
     consumablesAvailable: { item: Types.ObjectId; quantity: number }[];
     spellsAvailable: { spell: Types.ObjectId; usages: number }[];
     companion: FightCompanion | null;
@@ -48,10 +53,7 @@ function afterFight(
     effects: ParticipantEffects,
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): ResolutionCharacter {
-    const wounds = woundsAfter(
-        state.status.injuries ?? [],
-        effects.injuriesAdded,
-    );
+    const wounds = applyWoundCorrection(state.status, effects);
     const spent = consumablesSpent(
         state.assets?.ownedItems,
         effects.consumablesUsed,
@@ -73,6 +75,7 @@ function afterFight(
             ...state.status,
             currentLifePoints: effects.hpAfter,
             injuries: wounds.injuries,
+            innkeeperInjuries: wounds.innkeeperInjuries,
             spellStates: spells.spellStates ?? state.status.spellStates,
         },
         assets: { ...state.assets, ownedItems, ownedEquipments },
@@ -131,6 +134,7 @@ export function fightStartOf(
     return {
         hpBefore: bounds.currentLifePoints,
         injuriesBefore: [...(state.status.injuries ?? [])],
+        innkeeperInjuriesBefore: innkeeperInjuriesOf(state.status),
         consumablesAvailable: byHex(bounds.ownedLoot).map(
             ([hex, quantity]) => ({ item: new Types.ObjectId(hex), quantity }),
         ),
