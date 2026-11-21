@@ -8,6 +8,7 @@ import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resol
 import {
     applyWoundCorrection,
     innkeeperInjuriesOf,
+    removalsOf,
     type WoundEffects,
 } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
@@ -154,14 +155,6 @@ export function assertWoundCorrectionAllowed(
     const removed = effects.injuriesRemoved ?? [];
     if (removed.some((injury) => !injuriesBefore.includes(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
-}
-
-// nessuna rimozione = chiave assente, anche sulle bozze di prima (Phase 25 D-13)
-function removalsOf(
-    injuriesRemoved: readonly InjuryType[] | null | undefined,
-): { injuriesRemoved?: InjuryType[] } {
-    const removed = injuriesRemoved ?? [];
-    return removed.length === 0 ? {} : { injuriesRemoved: [...removed] };
 }
 
 export function effectsRecordOf(

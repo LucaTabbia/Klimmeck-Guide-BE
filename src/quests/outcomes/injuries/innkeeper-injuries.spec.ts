@@ -6,6 +6,7 @@ import {
     handInflictedOf,
     innkeeperInjuriesOf,
     netWoundCorrectionOf,
+    removalsOf,
     withoutCarriedAgain,
     type CorrectedWounds,
     type WoundEffects,
@@ -652,5 +653,25 @@ describe('withoutCarriedAgain', () => {
         withoutCarriedAgain([deepCut], effects);
 
         expect(effects).toEqual({ injuriesAdded: [deepCut, infection] });
+    });
+});
+
+describe('removalsOf', () => {
+    it.each<[string, InjuryType[] | null | undefined]>([
+        ['an empty list', []],
+        ['null', null],
+        ['undefined', undefined],
+    ])('carries no key for %s (D-13)', (_label, removed) => {
+        expect(removalsOf(removed)).toEqual({});
+        expect('injuriesRemoved' in removalsOf(removed)).toBe(false);
+    });
+
+    it('carries a copy of the removals when there are some (D-13)', () => {
+        const removed = [deepCut, sprain];
+
+        const { injuriesRemoved } = removalsOf(removed);
+
+        expect(injuriesRemoved).toEqual([deepCut, sprain]);
+        expect(injuriesRemoved).not.toBe(removed);
     });
 });

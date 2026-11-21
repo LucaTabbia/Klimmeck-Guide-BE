@@ -45,6 +45,14 @@ function without(
     return injuries.filter((injury) => !excluded.includes(injury));
 }
 
+// nessuna rimozione = chiave assente, anche sulle bozze di prima (Phase 25 D-13)
+export function removalsOf(
+    injuriesRemoved: readonly InjuryType[] | null | undefined,
+): { injuriesRemoved?: InjuryType[] } {
+    const removed = injuriesRemoved ?? [];
+    return removed.length === 0 ? {} : { injuriesRemoved: [...removed] };
+}
+
 // una correzione dell'oste sulle ferite (Phase 25 D-12, D-13, D-16): prima toglie, poi aggiunge; null = nessun combattimento
 export function applyWoundCorrection(
     status: WoundStatus,
@@ -135,7 +143,7 @@ export function netWoundCorrectionOf(
     );
     return {
         injuriesAdded: added,
-        ...(removed.length === 0 ? {} : { injuriesRemoved: removed }),
+        ...removalsOf(removed),
         ...(byHand.length === 0 ? {} : { innkeeperInjuries: byHand }),
     };
 }

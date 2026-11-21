@@ -7,6 +7,7 @@ import {
 } from 'src/quests/outcomes/combat/combat-resolver';
 import {
     netWoundCorrectionOf,
+    removalsOf,
     type WoundStatus,
 } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
@@ -184,18 +185,6 @@ export function assertFightsComplete(
     if (!complete) throw GameRuleException.outcomeOverrideInvalid();
 }
 
-// nessuna rimozione = chiave assente (Phase 25 D-13)
-function removalsOf({
-    injuriesRemoved = [],
-}: Pick<ParticipantEffects, 'injuriesRemoved'>): Pick<
-    ParticipantOverrideInput,
-    'injuriesRemoved'
-> {
-    return injuriesRemoved.length === 0
-        ? {}
-        : { injuriesRemoved: [...injuriesRemoved] };
-}
-
 export function overrideInputOf(
     characterHex: string,
     effects: ParticipantEffects,
@@ -214,7 +203,7 @@ export function overrideInputOf(
         ...(effects.companionLifeAfter === undefined
             ? {}
             : { companionLifeAfter: effects.companionLifeAfter }),
-        ...removalsOf(effects),
+        ...removalsOf(effects.injuriesRemoved),
     };
 }
 
@@ -226,7 +215,6 @@ export function correctionOverSimulated(
     const base = overrideInputOf(correction.characterId, simulated);
     const companionLifeAfter =
         correction.companionLifeAfter ?? base.companionLifeAfter;
-    const injuriesRemoved = correction.injuriesRemoved ?? [];
     return {
         characterId: correction.characterId,
         hpAfter: correction.hpAfter ?? base.hpAfter,
@@ -234,6 +222,6 @@ export function correctionOverSimulated(
         consumablesUsed: correction.consumablesUsed ?? base.consumablesUsed,
         spellsUsed: correction.spellsUsed ?? base.spellsUsed,
         ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
-        ...(injuriesRemoved.length === 0 ? {} : { injuriesRemoved }),
+        ...removalsOf(correction.injuriesRemoved),
     };
 }
