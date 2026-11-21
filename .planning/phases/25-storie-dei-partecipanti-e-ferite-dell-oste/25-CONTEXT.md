@@ -34,6 +34,7 @@ Fuori ambito: modifica o cancellazione delle voci di background esistenti, malus
 - **D-15 (utente):** il giocatore la riconosce («Troppo grave per essere curata»): il personaggio servito dice quali sue ferite sono dell'oste.
 - **D-16 (default tecnico):** il personaggio conserva l'origine delle ferite; forma nel plan, additiva sul filo se possibile (per esempio una seconda lista col sottoinsieme dell'oste: le ferite già a DB restano normali, nessuna migrazione). I malus non dipendono dall'origine. **Emendata il 2026-11-21 (utente, verbatim: «l'oste per rendere non curabile una ferita curabile già presente deve prima rimuoverla e poi aggiungerla di nuovo»):** una ferita già presente non si aggiunge di nuovo e non cambia origine da sola; per farla diventare dell'oste la si toglie e la si riaggiunge nella stessa correzione.
 - **D-17 (superata il 2026-11-21 dall'emendamento di D-13):** l'assunzione è ritirata: ogni ferita si toglie dalle correzioni.
+- **D-19 (utente, 2026-11-21, verbatim: «Il motore di combattimento non è definitivo, non mi interessa se il simulatore ripropone la stessa ferita. Se lo fa allora non viene aggiunta e basta»):** una ferita già portata dal personaggio e riproposta — dalla simulazione o da una correzione che non la toglie prima — semplicemente non viene aggiunta: nessun rifiuto, nessun errore, nessun cambio di origine. Sostituisce la scelta «rifiutata nel flusso guidato»: le due vie la ignorano.
 
 </decisions>
 
