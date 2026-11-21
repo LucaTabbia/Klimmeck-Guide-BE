@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-13-PLAN.md"
+stopped_at: "Completato 25-14-PLAN.md"
 last_updated: "2026-11-21T19:30:00.000Z"
 last_activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
 progress:
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 13 of 14
+Plan: 14 of 14
 Status: executing — Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 Last activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
 Next step: orchestratore: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore; poi merge di BE e FE.

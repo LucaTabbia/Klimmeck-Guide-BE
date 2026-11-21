@@ -332,7 +332,7 @@ Plans:
 - [x] 25-11-PLAN.md — Aggiunte ai background nella bozza e passo `stories`
 - [x] 25-12-PLAN.md — Scrittura delle storie al completamento e flag sul foglio
 - [x] 25-13-PLAN.md — Gate della fase
-- [ ] 25-14-PLAN.md — Handoff `BACKEND-NOTES.md` e chiusura
+- [x] 25-14-PLAN.md — Handoff `BACKEND-NOTES.md` e chiusura
 
 ## Backend ↔ Frontend alignment (v1.1)
 
@@ -382,7 +382,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 22. Completamento guidato delle missioni | v1.1 | 18/18 | Complete | 2026-11-14 |
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
-| 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 13/14 | In Progress | - |
+| 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
 
 ---
 
