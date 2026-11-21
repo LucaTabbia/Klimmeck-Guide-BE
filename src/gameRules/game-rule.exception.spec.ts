@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { BACKGROUND_ADDITION_MAX_GRAPHEMES } from 'src/characters/creation/grapheme-count';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 
@@ -348,6 +349,14 @@ describe('GameRuleException', () => {
                 "Il compagno non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
             code: 'PET_POTION_RECOVERING',
         });
+    });
+
+    it('tells the limit of a background addition from the rule constant (D-07)', () => {
+        const { message } = GameRuleException.backgroundAdditionTooLong();
+
+        expect(message).toBe(
+            `L'aggiunta alla storia può contenere al massimo ${BACKGROUND_ADDITION_MAX_GRAPHEMES} caratteri`,
+        );
     });
 
     it('refuses a background addition over the limit with its own code (D-07)', () => {

@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import {
+    BACKGROUND_ADDITION_MAX_GRAPHEMES,
     CODE_UNITS_PER_GRAPHEME,
     exceedsGraphemeLimit,
 } from 'src/characters/creation/grapheme-count';
@@ -7,7 +8,6 @@ import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { hexOf, presentOnly } from 'src/quests/guided/ids';
 
 // regole pure delle aggiunte ai background (Phase 25 D-05..D-08)
-export const BACKGROUND_ADDITION_MAX_GRAPHEMES = 1000;
 // tetto di forma sul filo, sopra quello di dominio: fra 1001 grafemi e 8000 unità risponde il codice proprio
 export const BACKGROUND_ADDITION_MAX_FORM_LENGTH =
     BACKGROUND_ADDITION_MAX_GRAPHEMES * CODE_UNITS_PER_GRAPHEME;

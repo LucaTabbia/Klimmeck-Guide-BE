@@ -3,6 +3,7 @@ import {
     CHARACTER_NAME_MAX_LENGTH,
     CHARACTER_NAME_MIN_LENGTH,
 } from 'src/characters/creation/character-name';
+import { BACKGROUND_ADDITION_MAX_GRAPHEMES } from 'src/characters/creation/grapheme-count';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
 export interface GameRuleExtensions {
@@ -348,11 +349,11 @@ export class GameRuleException extends BadRequestException {
         );
     }
 
-    // aggiunta dell'oste al background oltre i 1000 caratteri (Phase 25 D-07)
+    // aggiunta dell'oste al background oltre il tetto (Phase 25 D-07)
     static backgroundAdditionTooLong(): GameRuleException {
         return new GameRuleException(
             GameRuleErrorCode.BACKGROUND_ADDITION_TOO_LONG,
-            "L'aggiunta alla storia può contenere al massimo 1000 caratteri",
+            `L'aggiunta alla storia può contenere al massimo ${BACKGROUND_ADDITION_MAX_GRAPHEMES} caratteri`,
         );
     }
 }

@@ -1,11 +1,11 @@
 import { Types } from 'mongoose';
+import { BACKGROUND_ADDITION_MAX_GRAPHEMES } from 'src/characters/creation/grapheme-count';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import {
     additionFor,
     additionTextOf,
     BACKGROUND_ADDITION_MAX_FORM_LENGTH,
-    BACKGROUND_ADDITION_MAX_GRAPHEMES,
     mergedAdditions,
 } from 'src/quests/guided/background-additions';
 
