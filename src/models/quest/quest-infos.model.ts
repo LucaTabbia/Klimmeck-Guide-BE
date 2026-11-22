@@ -6,6 +6,10 @@ import { Lore } from '../lore.model';
 import { PointOfInterest } from '../point-of-interest.model';
 import { QuestEnemy, QuestEnemySchema } from './quest-enemy.model';
 
+function requiresPlace(this: { type?: unknown }): boolean {
+    return this.type !== QuestType.story;
+}
+
 @ObjectType()
 @Schema({ _id: false })
 export class QuestInfos {
@@ -25,13 +29,14 @@ export class QuestInfos {
     @Prop({ type: String, enum: Object.values(QuestType) })
     type: QuestType;
 
-    @Field(() => PointOfInterest)
+    // solo una story vive senza luogo (quick 261122-snp): ogni altro tipo senza marker resta rifiutato dalla validazione
+    @Field(() => PointOfInterest, { nullable: true })
     @Prop({
         type: MongooseSchema.Types.ObjectId,
         ref: PointOfInterest.name,
-        required: true,
+        required: requiresPlace,
     })
-    markerLocation: Types.ObjectId | PointOfInterest;
+    markerLocation?: Types.ObjectId | PointOfInterest | null;
 
     @Field(() => [Lore])
     @Prop({ type: [MongooseSchema.Types.ObjectId], ref: Lore.name })
@@ -56,8 +61,8 @@ export class QuestInfosInput {
     @Field(() => QuestType)
     type: QuestType;
 
-    @Field(() => ID)
-    markerLocation: string;
+    @Field(() => ID, { nullable: true })
+    markerLocation?: string | null;
 
     @Field(() => [ID])
     relatedLore: string[];

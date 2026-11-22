@@ -829,7 +829,7 @@ type QuestEnemy {
 type QuestInfos {
   description: String
   enemies: [QuestEnemy!]!
-  markerLocation: PointOfInterest!
+  markerLocation: PointOfInterest
   relatedLore: [Lore!]!
   timeToComplete: Int
   title: String!
