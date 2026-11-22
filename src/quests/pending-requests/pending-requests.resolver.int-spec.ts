@@ -357,6 +357,52 @@ describe('pendingRequests / pendingRequestsUpdated (wire)', () => {
             });
         });
 
+        it('returns the request of a story without a place (quick 261122-snp)', async () => {
+            const placeless = (await persistQuest(quests, {
+                infos: {
+                    title: 'The rookie way',
+                    type: 'story',
+                    relatedLore: [],
+                    timeToComplete: null,
+                    enemies: [],
+                },
+            })) as QuestDocument;
+            const placelessPq = await pendingQuestOf(placeless);
+            const cleo = await playerOnLane(
+                'twitch-pr-cleo',
+                'activeStoryQuest',
+                placelessPq._id as Types.ObjectId,
+            );
+
+            const body = bodyOf(
+                await graphqlRequest(
+                    harness.app,
+                    PENDING_REQUESTS,
+                    undefined,
+                    oste.bearer,
+                ),
+            );
+
+            expect(body.errors).toBeUndefined();
+            expect(
+                body.data?.pendingRequests?.find(
+                    (entry) => entry.id === String(placelessPq._id),
+                ),
+            ).toMatchObject({
+                quest: {
+                    id: String(placeless._id),
+                    type: 'story',
+                    title: 'The rookie way',
+                },
+                character: {
+                    id: String(cleo.character?._id),
+                    location: (
+                        cleo.character?.status.location as Types.ObjectId
+                    ).toHexString(),
+                },
+            });
+        });
+
         it('rejects an adventurer with FORBIDDEN', async () => {
             const body = bodyOf(
                 await graphqlRequest(

@@ -500,6 +500,73 @@ describe('GuidedCompletionService (replSet)', () => {
         expect(result.injuriesAdded).toEqual([]);
     });
 
+    describe('a story without a place (quick 261122-snp)', () => {
+        const placelessStory = () => ({
+            ...gmQuest('story'),
+            infos: {
+                ...buildQuest().infos,
+                markerLocation: undefined,
+                type: 'story',
+                title: 'La via della recluta',
+            },
+        });
+
+        const storedQuest = (subject: Quester) =>
+            world.models.quests.collection.findOne({
+                _id: idOf(subject.quest),
+            });
+
+        it('goes from the draft to the completion, raises the rank and stays open', async () => {
+            const subject = await quester({
+                lane: QuestLane.story,
+                questOverrides: placelessStory(),
+            });
+            expect(
+                (await storedQuest(subject))?.infos.markerLocation,
+            ).toBeUndefined();
+
+            const draft = await drafts.start(hexOf(subject), null);
+            expect(draft.place).toBeNull();
+            await service.complete(hexOf(subject));
+
+            const character = await characterOf(subject);
+            expect(character.status.title).toBe('adventurer');
+            expect(character.status.location).toEqual(
+                subject.player.character?.status.location,
+            );
+            expect(character.quests.activeStoryQuest).toBeNull();
+            expect(character.quests.completedQuests).toEqual([
+                idOf(subject.quest),
+            ]);
+            expect((await resultOf(subject)).outcome).toBe(
+                QuestOutcome.gmCompleted,
+            );
+            const quest = await storedQuest(subject);
+            expect(quest?.concludedAt ?? null).toBeNull();
+            expect(quest?.registeredAdventurers).toEqual([]);
+            expect(await draftModel.countDocuments()).toBe(0);
+        });
+
+        it('lets a second character complete the same story afterwards', async () => {
+            const first = await quester({
+                lane: QuestLane.story,
+                questOverrides: placelessStory(),
+            });
+            await drafts.start(hexOf(first), null);
+            await service.complete(hexOf(first));
+            const second = await quester({
+                lane: QuestLane.story,
+                quest: first.quest,
+            });
+
+            await drafts.start(hexOf(second), null);
+            await service.complete(hexOf(second));
+
+            expect((await characterOf(second)).status.title).toBe('adventurer');
+            expect((await storedQuest(first))?.concludedAt ?? null).toBeNull();
+        });
+    });
+
     it('unlocks the lore of the spell the innkeeper awards (D-24)', async () => {
         const originLore = new Types.ObjectId();
         const spell = idOf(

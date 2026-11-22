@@ -228,6 +228,34 @@ describe('GmCompletionService.complete (replSet)', () => {
         ]);
     });
 
+    it('completes an empty story without a place, raises the title and leaves it open (quick 261122-snp)', async () => {
+        const subject = await quester({
+            lane: QuestLane.story,
+            questOverrides: gmQuest('story', {}, { markerLocation: undefined }),
+        });
+
+        await service.complete(inputOf(subject));
+
+        const character = await characterOf(subject);
+        expect(character.quests.activeStoryQuest).toBeNull();
+        expect(character.status.title).toBe('adventurer');
+        expect(character.status.xp).toBe(0);
+        expect(character.status.location).toEqual(
+            subject.player.character?.status.location,
+        );
+        const [result] = await resultsOf(subject);
+        expect(result).toMatchObject({
+            outcome: QuestOutcome.gmCompleted,
+            titleBefore: 'rookie',
+            titleAfter: 'adventurer',
+        });
+        const quest = await world.models.quests.collection.findOne({
+            _id: subject.quest._id,
+        });
+        expect(quest?.infos.markerLocation).toBeUndefined();
+        expect(quest?.concludedAt ?? null).toBeNull();
+    });
+
     it('applies the life cure on top of the game master override and leaves its wound (D-07, Phase 25 D-14)', async () => {
         const subject = await storyQuester({
             questOverrides: gmQuest('story', {

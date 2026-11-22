@@ -280,6 +280,121 @@ describe('quest board by area (wire)', () => {
         expect(await boardOf(viewer.bearer)).toEqual([open]);
     });
 
+    describe('a story without a place (quick 261122-snp)', () => {
+        const BOARD_WITH_PLACE =
+            'query { quests { id infos { type title markerLocation { id } } } }';
+
+        interface PlacedQuest {
+            id: string;
+            infos: {
+                type: string;
+                title: string;
+                markerLocation: { id: string } | null;
+            };
+        }
+
+        function placelessOf(type: QuestType): Record<string, unknown> {
+            return {
+                infos: {
+                    ...buildQuest().infos,
+                    markerLocation: undefined,
+                    type,
+                    title: 'La via del paladino',
+                },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: VIEWER_TITLE,
+                },
+            };
+        }
+
+        async function placedBoardOf(bearer: string): Promise<PlacedQuest[]> {
+            const body = (
+                await graphqlRequest(harness.app, BOARD_WITH_PLACE, {}, bearer)
+            ).body as {
+                data?: { quests?: PlacedQuest[] } | null;
+                errors?: unknown[];
+            };
+            expect(body.errors).toBeUndefined();
+            return body.data?.quests ?? [];
+        }
+
+        it('serves it to a character of its rank with a null place and no error', async () => {
+            const story = await persistQuest(
+                quests,
+                placelessOf(QuestType.story),
+            );
+            const placed = await questAt(cityA.pois[0]);
+            const viewer = await viewerAt(cityA.marker);
+
+            const board = await placedBoardOf(viewer.bearer);
+
+            expect(board.map((quest) => quest.id).sort()).toEqual(
+                [String(story._id), placed].sort(),
+            );
+            expect(
+                board.find((quest) => quest.id === String(story._id)),
+            ).toEqual({
+                id: String(story._id),
+                infos: {
+                    type: QuestType.story,
+                    title: 'La via del paladino',
+                    markerLocation: null,
+                },
+            });
+            expect(
+                board.find((quest) => quest.id === placed)?.infos
+                    .markerLocation,
+            ).toEqual({ id: String(cityA.pois[0]) });
+        });
+
+        it('stores it without the place field', async () => {
+            const story = await persistQuest(
+                quests,
+                placelessOf(QuestType.story),
+            );
+
+            const stored = await quests.collection.findOne({ _id: story._id });
+
+            expect(stored?.infos.markerLocation ?? null).toBeNull();
+        });
+
+        it('hides it from the other ranks and from a character on the road', async () => {
+            const story = await persistQuest(
+                quests,
+                placelessOf(QuestType.story),
+            );
+            const onTheRoad = await viewerAt(await poiId());
+            const mage = await viewerAt(cityA.marker, {
+                status: {
+                    ...buildCharacter().status,
+                    location: cityA.marker,
+                    title: 'mage',
+                },
+            });
+
+            expect(await boardOf(onTheRoad.bearer)).toEqual([
+                String(story._id),
+            ]);
+            expect(await boardOf(mage.bearer)).toEqual([]);
+        });
+
+        it.each([QuestType.hunt, QuestType.worldMission, QuestType.dungeon])(
+            'refuses to create a %s without a place',
+            async (type) => {
+                await expect(
+                    persistQuest(quests, placelessOf(type)),
+                ).rejects.toMatchObject({
+                    name: 'ValidationError',
+                    errors: {
+                        'infos.markerLocation': expect.anything(),
+                    },
+                });
+                expect(await quests.countDocuments()).toBe(0);
+            },
+        );
+    });
+
     it('finds a city whose marker is stored as a legacy hex string (D-05)', async () => {
         const marker = await poiId();
         const listed = await poiId();
