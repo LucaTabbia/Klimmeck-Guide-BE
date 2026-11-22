@@ -2726,6 +2726,42 @@ describe('QuestAcceptanceService (replSet)', () => {
             expect(await pointsOf(ownerId)).toBe(5000);
         });
 
+        it('accepts a story without a place from a city, without a travel (quick 261122-snp)', async () => {
+            const ownerId = await ownerWith(6000);
+            const charId = await characterAt(await otherCityMarker());
+            const story = await persistQuest(quests, {
+                infos: {
+                    ...buildQuest().infos,
+                    markerLocation: undefined,
+                    type: 'story',
+                },
+                requirements: {
+                    ...buildQuest().requirements,
+                    requiredPoints: 1000,
+                    minTitle: 'rookie',
+                },
+            });
+            const questId = story._id as Types.ObjectId;
+            const before = await raw(charId);
+
+            expect(await acceptance.previewTravel(charId, questId)).toBeNull();
+            const pqId = await accept(ownerId, charId, questId);
+
+            const character = await raw(charId);
+            expect(character?.quests.activeStoryQuest).toEqual(pqId);
+            expect(character?.quests.pendingQuest).toBeNull();
+            expect(character?.status.location).toEqual(before?.status.location);
+            expect(character?.status.activeTravel ?? null).toBeNull();
+            expect(await pendingOf(pqId)).toMatchObject({
+                quest: questId,
+                pointsSpent: 1000,
+                startDate: ACCEPTED_AT,
+                arrivedAt: ACCEPTED_AT,
+            });
+            expect(await pointsOf(ownerId)).toBe(5000);
+            expect(queue.added).toHaveLength(0);
+        });
+
         it('rejects a world mission from another city with QUEST_NOT_IN_CITY and writes nothing', async () => {
             const ownerId = await ownerWith(6000);
             const charId = await characterAt(await otherCityMarker());
