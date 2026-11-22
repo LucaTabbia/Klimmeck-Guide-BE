@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { QuestOutcome } from 'src/models/enums/quest-outcome.enum';
 import { QuestType } from 'src/models/enums/quest-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
@@ -153,6 +154,28 @@ describe('unpopulatedResultOf', () => {
 
         expect(result.spellFound).toBeNull();
         expect(result.id).toBeDefined();
+    });
+    it('carries the wounds removed by the innkeeper on the unpopulated result (D-13)', () => {
+        const result = unpopulatedResultOf(
+            draftWith({ injuriesRemoved: [InjuryType.deepCut] }),
+        );
+
+        expect(result.injuriesRemoved).toEqual([InjuryType.deepCut]);
+        expect(result.injuriesHealed).toEqual([]);
+    });
+    it('reads no removed wound from a draft that carries none (D-13)', () => {
+        const result = unpopulatedResultOf(draftWith());
+
+        expect(result.injuriesRemoved).toEqual([]);
+    });
+    it('carries the background entry flag on the unpopulated result (D-09)', () => {
+        const marked = unpopulatedResultOf(
+            draftWith({ backgroundEntryAdded: true }),
+        );
+        const unmarked = unpopulatedResultOf(draftWith());
+
+        expect(marked.backgroundEntryAdded).toBe(true);
+        expect(unmarked.backgroundEntryAdded).toBe(false);
     });
     it('answers no unlocked lore without populate (D-09)', () => {
         const result = unpopulatedResultOf(draftWith());

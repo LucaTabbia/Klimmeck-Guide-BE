@@ -19,6 +19,7 @@ import {
     GmRequestReader,
 } from './gm-request.reader';
 import { overrideParticipantOf, validateOverrides } from './gm-overrides';
+import { asInnkeeperHand } from './injuries/innkeeper-injuries';
 import {
     type EnemyFacts,
     planParticipant,
@@ -45,6 +46,8 @@ export interface GmSeatOutcome {
     enemies: EnemyFacts | null;
     victory: VictoryKnowledge | null;
     rewards: DrawnRewards;
+    // vero solo dal flusso guidato quando il background del posto riceve una voce (Phase 25 D-09)
+    backgroundEntryAdded?: boolean;
 }
 
 // cosa scrive il ciclo condiviso dei completamenti del GM (D-08, D-25): un esito per posto, calcolato sugli snapshot in sessione
@@ -129,8 +132,10 @@ export class GmCompletionService {
                     snapshots.map((snapshot) => [
                         snapshot._id.toHexString(),
                         {
-                            battle:
+                            // senza simulazione ogni ferita dell'override è di pugno dell'oste (Phase 25 D-12)
+                            battle: asInnkeeperHand(
                                 battles.get(snapshot._id.toHexString()) ?? null,
+                            ),
                             enemies: enemyFactsOf(catalog),
                             // gmCompleted con nemici insegna come un success (Phase 16 D-06, C-1): stesso predicato dell'xp dei nemici
                             victory: victoryKnowledgeOf(catalog),
@@ -224,6 +229,7 @@ export class GmCompletionService {
                         spellRecoveryTimes: plan.recoveryTimes,
                         petMaxXp: plan.petMaxXp,
                         petCatalog: plan.petCatalog,
+                        backgroundEntryAdded: outcome.backgroundEntryAdded,
                         now: plan.now,
                     });
                     await this.writer.writeParticipant(participant, session);

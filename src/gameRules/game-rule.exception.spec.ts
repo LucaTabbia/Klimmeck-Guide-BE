@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { BACKGROUND_ADDITION_MAX_GRAPHEMES } from 'src/characters/creation/grapheme-count';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 
@@ -242,6 +243,12 @@ describe('GameRuleException', () => {
             GameRuleErrorCode.PET_NAME_INVALID,
             'Nome del compagno non valido: da 2 a 20 caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera',
         ],
+        [
+            'backgroundAdditionTooLong',
+            () => GameRuleException.backgroundAdditionTooLong(),
+            GameRuleErrorCode.BACKGROUND_ADDITION_TOO_LONG,
+            "L'aggiunta alla storia può contenere al massimo 1000 caratteri",
+        ],
     ];
 
     it.each(cases)(
@@ -341,6 +348,31 @@ describe('GameRuleException', () => {
             message:
                 "Il compagno non reggerebbe un'altra pozione: aspetta che la prima si sia posata",
             code: 'PET_POTION_RECOVERING',
+        });
+    });
+
+    it('tells the limit of a background addition from the rule constant (D-07)', () => {
+        const { message } = GameRuleException.backgroundAdditionTooLong();
+
+        expect(message).toBe(
+            `L'aggiunta alla storia può contenere al massimo ${BACKGROUND_ADDITION_MAX_GRAPHEMES} caratteri`,
+        );
+    });
+
+    it('refuses a background addition over the limit with its own code (D-07)', () => {
+        const exception = GameRuleException.backgroundAdditionTooLong();
+
+        expect(exception).toBeInstanceOf(BadRequestException);
+        expect(exception.code).toBe('BACKGROUND_ADDITION_TOO_LONG');
+        expect(exception.extensions).toEqual({
+            code: 'BACKGROUND_ADDITION_TOO_LONG',
+        });
+        expect(exception.getResponse()).toEqual({
+            statusCode: 400,
+            error: 'Bad Request',
+            message:
+                "L'aggiunta alla storia può contenere al massimo 1000 caratteri",
+            code: 'BACKGROUND_ADDITION_TOO_LONG',
         });
     });
 

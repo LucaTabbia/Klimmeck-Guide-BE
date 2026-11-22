@@ -28,6 +28,7 @@ import { TravelRequest } from 'src/models/request/travel-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
 import { UseSpellRequest } from 'src/models/request/use-spell-request.model';
 import {
+    MissionBackgroundAdditionInput,
     MissionEnemyInput,
     MissionFightInput,
     MissionPrizeInput,
@@ -51,6 +52,7 @@ const VALIDATED_INPUTS: Record<string, InputClass> = {
     EquipPetRequest,
     EquipSpellRequest,
     ItemUsageInput,
+    MissionBackgroundAdditionInput,
     MissionEnemyInput,
     MissionFightInput,
     MissionPrizeInput,

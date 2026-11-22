@@ -226,6 +226,7 @@ describe('MissionSimulationService (replSet)', () => {
             character: first.characterId,
             hpBefore: 800,
             injuriesBefore: [InjuryType.deepCut],
+            innkeeperInjuriesBefore: [],
             consumablesAvailable: [{ item: potion, quantity: 3 }],
             spellsAvailable: [{ spell, usages: 5 }],
             companion: null,
@@ -235,6 +236,7 @@ describe('MissionSimulationService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [{ spell, usages: 1 }],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             },
             corrected: null,
         });
@@ -242,6 +244,7 @@ describe('MissionSimulationService (replSet)', () => {
             character: second.characterId,
             hpBefore: 900,
             injuriesBefore: [],
+            innkeeperInjuriesBefore: [],
             consumablesAvailable: [],
             spellsAvailable: [],
             companion: null,
@@ -251,9 +254,50 @@ describe('MissionSimulationService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             },
             corrected: null,
         });
+    });
+
+    it('does not record a simulated wound the character already carries (D-19)', async () => {
+        const { first, second, enemy } = await startedWorldMission();
+        combat.current = new ScriptedCombatResolver()
+            .willResolve(first.characterId, {
+                injuriesAdded: [InjuryType.deepCut, InjuryType.sprain],
+            })
+            .willResolve(second.characterId, {
+                injuriesAdded: [InjuryType.deepCut],
+            });
+
+        await service.simulate(inputOf(first, 0, enemy));
+
+        const [fight] = (await storedDraft())!.fights;
+        expect(outcomeOf(fight, first)!.simulated!.injuriesAdded).toEqual([
+            InjuryType.sprain,
+        ]);
+        expect(outcomeOf(fight, second)!.simulated!.injuriesAdded).toEqual([
+            InjuryType.deepCut,
+        ]);
+    });
+
+    it('photographs the innkeeper wounds at the start of the fight (D-13)', async () => {
+        const { first, second, enemy } = await startedWorldMission();
+        await world.models.characters.updateOne(
+            { _id: first.characterId },
+            { $set: { 'status.innkeeperInjuries': [InjuryType.deepCut] } },
+        );
+
+        const draft = await service.simulate(inputOf(first, 0, enemy));
+
+        const [fight] = (await storedDraft())!.fights;
+        expect(outcomeOf(fight, first)!.innkeeperInjuriesBefore).toEqual([
+            InjuryType.deepCut,
+        ]);
+        expect(outcomeOf(fight, second)!.innkeeperInjuriesBefore).toEqual([]);
+        expect(
+            outcomeOf(draft.fights[0], first)!.innkeeperInjuriesBefore,
+        ).toEqual([InjuryType.deepCut]);
     });
 
     it('starts the second fight from the corrected state of the first (D-02)', async () => {

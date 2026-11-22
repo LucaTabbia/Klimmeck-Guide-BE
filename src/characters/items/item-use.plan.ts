@@ -34,6 +34,7 @@ import { MAX_RECOVERY_VALUE } from 'src/models/loot-item.model';
 import { relatedLoreIdsOf } from 'src/lore/related-lore-ids';
 import { idForms, sameId } from 'src/mongo/document-id';
 import { cureInjuries } from 'src/quests/outcomes/injuries/cure-injuries';
+import { innkeeperInjuriesOf } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import { lifePointsWithin } from 'src/quests/outcomes/progression/level-table';
 import { statusFactsOf } from 'src/quests/outcomes/progression/status-facts';
 import { knowledgeUpdateOf } from 'src/quests/outcomes/victory-knowledge';
@@ -70,6 +71,7 @@ export interface ItemUseCharacterSnapshot {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: InjuryType[];
+        innkeeperInjuries?: unknown[] | null;
         awaitingAid?: unknown;
         potionRecoveryUntil?: unknown;
         unlockedLore?: unknown[];
@@ -232,7 +234,11 @@ function drinkEffectOf(
         hpAfter: Number.isFinite(currentLifePoints)
             ? Math.max(currentLifePoints, healed)
             : healed,
-        cured: cureInjuries(snapshot.status.injuries ?? [], potion.canHeal),
+        cured: cureInjuries(
+            snapshot.status.injuries ?? [],
+            potion.canHeal,
+            innkeeperInjuriesOf(snapshot.status),
+        ),
     };
 }
 
@@ -257,13 +263,19 @@ function writeGuardOf(
     snapshot: ItemUseCharacterSnapshot,
     drink: TradeLine,
 ): Record<string, unknown> {
-    const { currentLifePoints, injuries, potionRecoveryUntil } =
-        snapshot.status;
+    const {
+        currentLifePoints,
+        injuries,
+        innkeeperInjuries,
+        potionRecoveryUntil,
+    } = snapshot.status;
     return {
         ...activeCharacterById(snapshot._id),
         'status.awaitingAid': null,
         'status.currentLifePoints': currentLifePoints ?? null,
         'status.injuries': injuries ?? null,
+        // l'origine come letta: un togli-e-riaggiungi dell'oste lascia identica la lista delle ferite (Phase 25 D-16)
+        'status.innkeeperInjuries': innkeeperInjuries ?? null,
         'status.potionRecoveryUntil': recoveryAsRead(potionRecoveryUntil),
         ...soldQuantityGuards([drink]),
     };

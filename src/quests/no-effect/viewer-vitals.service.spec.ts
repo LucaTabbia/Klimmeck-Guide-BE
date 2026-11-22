@@ -111,6 +111,34 @@ describe('ViewerVitalsService', () => {
         expect(findOne).toHaveBeenCalledTimes(1);
     });
 
+    it("carries the innkeeper wounds of the viewer's character (D-14)", async () => {
+        const { service, findOne } = vitalsWith(userWithCharacter, {
+            status: {
+                title: TitleType.rookie,
+                xp: 0,
+                currentLifePoints: 1000,
+                maxLifePoints: 1000,
+                injuries: ['deepCut', 'infection'],
+                innkeeperInjuries: ['infection'],
+            },
+        });
+
+        await expect(service.of(playerIdentity(), {})).resolves.toEqual({
+            title: TitleType.rookie,
+            currentLifePoints: 1000,
+            maxLifePoints: 1000,
+            injuries: ['deepCut', 'infection'],
+            innkeeperInjuries: ['infection'],
+        });
+        expect(findOne).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                'status.injuries': 1,
+                'status.innkeeperInjuries': 1,
+            }),
+        );
+    });
+
     it('reads once per viewer within the same request and again in another one (D-25)', async () => {
         const { service, findById } = vitalsWith(userWithCharacter, null);
         const request = {};

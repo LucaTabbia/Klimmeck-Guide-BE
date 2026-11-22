@@ -6,6 +6,12 @@ import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import { objectIdFromHex, refIdOf } from 'src/mongo/document-id';
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
 import {
+    applyWoundCorrection,
+    innkeeperInjuriesOf,
+    removalsOf,
+    type WoundEffects,
+} from 'src/quests/outcomes/injuries/innkeeper-injuries';
+import {
     type OverrideCompanion,
     overrideParticipantOf,
 } from 'src/quests/outcomes/gm-overrides';
@@ -14,7 +20,6 @@ import {
     consumablesSpent,
     sellLine,
     spellsSpent,
-    woundsAfter,
 } from 'src/quests/outcomes/outcome-plan';
 import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
@@ -33,6 +38,8 @@ export interface FightCompanion {
 export interface FightStart {
     hpBefore: number;
     injuriesBefore: InjuryType[];
+    // ferite dell'oste all'inizio dello scontro: sottoinsieme di injuriesBefore (Phase 25 D-13)
+    innkeeperInjuriesBefore: InjuryType[];
     consumablesAvailable: { item: Types.ObjectId; quantity: number }[];
     spellsAvailable: { spell: Types.ObjectId; usages: number }[];
     companion: FightCompanion | null;
@@ -47,10 +54,7 @@ function afterFight(
     effects: ParticipantEffects,
     petCatalog: ReadonlyMap<string, CompanionCatalogEntry>,
 ): ResolutionCharacter {
-    const wounds = woundsAfter(
-        state.status.injuries ?? [],
-        effects.injuriesAdded,
-    );
+    const wounds = applyWoundCorrection(state.status, effects);
     const spent = consumablesSpent(
         state.assets?.ownedItems,
         effects.consumablesUsed,
@@ -72,6 +76,7 @@ function afterFight(
             ...state.status,
             currentLifePoints: effects.hpAfter,
             injuries: wounds.injuries,
+            innkeeperInjuries: wounds.innkeeperInjuries,
             spellStates: spells.spellStates ?? state.status.spellStates,
         },
         assets: { ...state.assets, ownedItems, ownedEquipments },
@@ -130,6 +135,7 @@ export function fightStartOf(
     return {
         hpBefore: bounds.currentLifePoints,
         injuriesBefore: [...(state.status.injuries ?? [])],
+        innkeeperInjuriesBefore: innkeeperInjuriesOf(state.status),
         consumablesAvailable: byHex(bounds.ownedLoot).map(
             ([hex, quantity]) => ({ item: new Types.ObjectId(hex), quantity }),
         ),
@@ -141,12 +147,13 @@ export function fightStartOf(
     };
 }
 
-// D-14: le ferite di prima della missione non si toccano; guarirle è il premio cure
-export function assertAddsOnlyNewInjuries(
+// una correzione toglie solo ferite presenti all'inizio dello scontro (Phase 25 D-13); una ferita ancora portata e riproposta non è un errore: non viene aggiunta (D-19)
+export function assertWoundCorrectionAllowed(
     injuriesBefore: readonly InjuryType[],
-    added: readonly InjuryType[],
+    effects: WoundEffects,
 ): void {
-    if (added.some((injury) => injuriesBefore.includes(injury)))
+    const removed = effects.injuriesRemoved ?? [];
+    if (removed.some((injury) => !injuriesBefore.includes(injury)))
         throw GameRuleException.outcomeOverrideInvalid();
 }
 
@@ -169,6 +176,7 @@ export function effectsRecordOf(
             }),
         ),
         companionLifeAfter: effects.companionLifeAfter ?? null,
+        ...removalsOf(effects.injuriesRemoved),
     };
 }
 
@@ -191,5 +199,6 @@ export function participantEffectsOf(
         ...(record.companionLifeAfter == null
             ? {}
             : { companionLifeAfter: record.companionLifeAfter }),
+        ...removalsOf(record.injuriesRemoved),
     };
 }

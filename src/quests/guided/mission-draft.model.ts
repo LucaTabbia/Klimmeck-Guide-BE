@@ -16,6 +16,8 @@ export enum MissionDraftStep {
     fights = 'fights',
     prizes = 'prizes',
     recap = 'recap',
+    // ultima pagina, dopo il riepilogo (Phase 25 D-05)
+    stories = 'stories',
 }
 
 export enum MissionFightVerdict {
@@ -104,6 +106,10 @@ export class MissionFightEffectsRecord {
     // vita del compagno dopo lo scontro (D-17); null = nessun compagno, anche sulle bozze aperte prima della fase (D-33)
     @Prop({ type: Number, default: null })
     companionLifeAfter?: number | null;
+
+    // ferite tolte dalla correzione dell'oste (Phase 25 D-13); sempre vuota sul simulato e sulle bozze di prima
+    @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
+    injuriesRemoved?: InjuryType[];
 }
 
 export const MissionFightEffectsRecordSchema = SchemaFactory.createForClass(
@@ -148,6 +154,10 @@ export class MissionFightOutcomeRecord {
 
     @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
     injuriesBefore: InjuryType[];
+
+    // ferite dell'oste all'inizio dello scontro (Phase 25 D-13): sottoinsieme di injuriesBefore, fotografato alla simulazione
+    @Prop({ type: [String], enum: INJURY_TYPES, default: [] })
+    innkeeperInjuriesBefore?: InjuryType[];
 
     @Prop({ type: [MissionItemUsageRecordSchema], default: [] })
     consumablesAvailable: MissionItemUsageRecord[];
@@ -286,6 +296,23 @@ export class MissionPrizeRecord {
 export const MissionPrizeRecordSchema =
     SchemaFactory.createForClass(MissionPrizeRecord);
 
+// aggiunta facoltativa al background di un partecipante (Phase 25 D-06): testo già ripulito, mai vuoto
+@Schema({ _id: false })
+export class MissionBackgroundAdditionRecord {
+    @Prop({
+        type: MongooseSchema.Types.ObjectId,
+        ref: Character.name,
+        required: true,
+    })
+    character: Types.ObjectId;
+
+    @Prop({ type: String, required: true })
+    text: string;
+}
+
+export const MissionBackgroundAdditionRecordSchema =
+    SchemaFactory.createForClass(MissionBackgroundAdditionRecord);
+
 @Schema({ collection: 'missiondrafts' })
 export class MissionDraft {
     @Prop({
@@ -320,6 +347,9 @@ export class MissionDraft {
 
     @Prop({ type: [MissionPrizeRecordSchema], default: [] })
     prizes: MissionPrizeRecord[];
+
+    @Prop({ type: [MissionBackgroundAdditionRecordSchema], default: [] })
+    backgroundAdditions: MissionBackgroundAdditionRecord[];
 
     @Prop({ type: MongooseSchema.Types.ObjectId, default: null })
     startedBy: Types.ObjectId | null;

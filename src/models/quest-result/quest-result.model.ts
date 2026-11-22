@@ -200,6 +200,11 @@ export class QuestResult {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuriesHealed: InjuryType[];
 
+    // ferite tolte dalle correzioni dell'oste in questo esito (Phase 25 D-13): mai fra le guarite; vuota sui fogli precedenti
+    @Field(() => [InjuryType])
+    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
+    injuriesRemoved: InjuryType[];
+
     @Field(() => [AssetQuantity])
     @Prop({ type: [assetQuantitySchemaAt('consumablesUsed')], default: [] })
     consumablesUsed: AssetQuantity[];
@@ -323,6 +328,11 @@ export class QuestResult {
     @Field(() => Boolean)
     @Prop({ type: Boolean, default: false })
     arrested: boolean;
+
+    // il background del personaggio ha ricevuto una voce dall'oste in questo completamento guidato (Phase 25 D-09); falso su ogni altro foglio
+    @Field(() => Boolean)
+    @Prop({ type: Boolean, default: false })
+    backgroundEntryAdded: boolean;
 
     // monete perse all'arresto (quick 261110-cgd): null per ogni altro esito
     @Field(() => Coins, { nullable: true })

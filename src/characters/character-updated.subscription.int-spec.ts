@@ -5,12 +5,17 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { TitleType } from 'src/models/enums/title-type.enum';
 import { Pet } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { QuestLane } from 'src/quests/acceptance/quest-lanes';
+import { GuidedMissionModule } from 'src/quests/guided/guided-mission.module';
+import { PendingRequestsModule } from 'src/quests/pending-requests/pending-requests.module';
 import { AuthTestApp, graphqlRequest } from '../../test/auth/auth-test-app';
+import { FixedClock } from '../../test/auth/fixed-clock';
 import {
     expectSilence,
     graphqlWsUrl,
@@ -23,9 +28,16 @@ import {
     characterTouch,
     primeChangeStream,
 } from '../../test/harness/prime-change-stream';
-import { persistSpell, spellStatesOf } from '../../test/fixtures';
+import { buildQuest, persistSpell, spellStatesOf } from '../../test/fixtures';
 import { buildOwnedPet } from '../../test/fixtures/owned-pet.fixture';
 import { persistPet } from '../../test/fixtures/pet.fixture';
+import {
+    createOutcomeHarness,
+    type OutcomeHarness,
+    persistQuester,
+    type Quester,
+} from '../../test/quests/outcome-world';
+import { SequenceChance } from '../../test/quests/sequence-chance';
 
 const CHARACTER_UPDATED =
     'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { id status { coins { silver } } } }';
@@ -84,6 +96,15 @@ const CHARACTER_LORE_UPDATED =
 
 type LoreUpdatedResult = {
     characterUpdated: { status: { unlockedLore: string[] } };
+};
+
+const CHARACTER_WOUNDS_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { status { injuries innkeeperInjuries } } }';
+
+type WoundsUpdatedResult = {
+    characterUpdated: {
+        status: { injuries: InjuryType[]; innkeeperInjuries: InjuryType[] };
+    };
 };
 
 const CHARACTER_SLOTS_UPDATED =
@@ -773,6 +794,50 @@ describe('characterUpdated subscription (wire)', () => {
         });
     });
 
+    it('publishes the character when only the origin of a wound changes (D-15)', async () => {
+        const { deepCut } = InjuryType;
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            { $set: { 'status.injuries': [deepCut] } },
+        );
+        const subscription = openSubscription<WoundsUpdatedResult>(
+            url,
+            { Authorization: alice.bearer },
+            { query: CHARACTER_WOUNDS_UPDATED, variables: { id: aliceCharId } },
+        );
+        opened.push(subscription);
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        status: { injuries: [deepCut], innkeeperInjuries: [] },
+                    },
+                },
+            },
+        });
+
+        await characters.collection.updateOne(
+            { _id: alice.character?._id as Types.ObjectId },
+            { $set: { 'status.innkeeperInjuries': [deepCut] } },
+        );
+
+        expect(await subscription.next()).toEqual({
+            done: false,
+            value: {
+                data: {
+                    characterUpdated: {
+                        status: {
+                            injuries: [deepCut],
+                            innkeeperInjuries: [deepCut],
+                        },
+                    },
+                },
+            },
+        });
+    });
+
     it('serves the computed max active spells on the character stream (D-08)', async () => {
         const subscription = openSubscription<SlotsUpdatedResult>(
             url,
@@ -805,5 +870,195 @@ describe('characterUpdated subscription (wire)', () => {
         const schema = printSchema(harness.app.get(GraphQLSchemaHost).schema);
 
         expect(schema).toContain('characterUpdated(id: String!): Character!');
+    });
+});
+
+const COMPLETION_NOW = new Date('2026-10-24T12:00:00.000Z');
+
+const CHARACTER_STORY_UPDATED =
+    'subscription OnCharacter($id: String!) { characterUpdated(id: $id) { infos { background } } }';
+
+type StoryUpdatedResult = {
+    characterUpdated: { infos: { background: string[] } };
+};
+
+const COMPLETE_PENDING_REQUEST =
+    'mutation Complete($input: CompletePendingRequestInput!) { completePendingRequest(input: $input) { injuriesAdded injuriesRemoved } }';
+
+const START_MISSION_DRAFT =
+    'mutation StartMissionDraft($pendingQuestId: ID!) { startMissionDraft(pendingQuestId: $pendingQuestId) { id } }';
+
+const SAVE_MISSION_DRAFT =
+    'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { id } }';
+
+const COMPLETE_GUIDED_MISSION =
+    'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { backgroundEntryAdded } }';
+
+describe('characterUpdated subscription after an innkeeper completion (wire)', () => {
+    let world: OutcomeHarness;
+    let url: string;
+    let oste: TestPlayer;
+    let seq = 0;
+    const opened: { dispose(): Promise<void> }[] = [];
+
+    beforeAll(async () => {
+        world = await createOutcomeHarness({
+            clock: new FixedClock(COMPLETION_NOW),
+            chance: new SequenceChance(),
+            imports: [PendingRequestsModule, GuidedMissionModule],
+            createApp: createCharactersTestApp,
+        });
+        url = graphqlWsUrl(world.harness.port);
+        await primeChangeStream(
+            world.harness,
+            'characterUpdated',
+            characterTouch(world.harness),
+        );
+    });
+
+    beforeEach(async () => {
+        seq += 1;
+        oste = await createPlayer(world.harness, {
+            twitchId: `twitch-oste-${seq}`,
+            role: RoleType.innkeeper,
+            withCharacter: false,
+        });
+    });
+
+    afterEach(async () => {
+        await Promise.all(
+            opened.splice(0).map((subscription) => subscription.dispose()),
+        );
+        await world.reset();
+    });
+
+    afterAll(async () => {
+        await world.harness.close();
+    });
+
+    function quester(
+        lane: QuestLane,
+        type: string,
+        status: Record<string, unknown> = {},
+    ): Promise<Quester> {
+        return persistQuester(world.harness, {
+            twitchId: `twitch-quester-${seq}`,
+            lane,
+            questOverrides: {
+                infos: { ...buildQuest().infos, type, title: 'Il re' },
+                requirements: {
+                    ...buildQuest().requirements,
+                    minTitle: 'rookie',
+                },
+            },
+            characterOverrides: { status },
+        });
+    }
+
+    function follow<T>(subject: Quester, query: string): OpenSubscription<T> {
+        const subscription = openSubscription<T>(
+            url,
+            { Authorization: subject.player.bearer },
+            { query, variables: { id: String(subject.characterId) } },
+        );
+        opened.push(subscription);
+        return subscription;
+    }
+
+    async function nextOf<T>(subscription: OpenSubscription<T>): Promise<T> {
+        const result = await subscription.next();
+        expect(result.done).toBe(false);
+        expect(result.value.errors).toBeUndefined();
+        return result.value.data as T;
+    }
+
+    async function asInnkeeper(
+        document: string,
+        variables: Record<string, unknown>,
+    ): Promise<Record<string, unknown>> {
+        const response = await graphqlRequest(
+            world.harness.app,
+            document,
+            variables,
+            oste.bearer,
+        );
+        expect(response.body.errors).toBeUndefined();
+        return response.body.data as Record<string, unknown>;
+    }
+
+    it('publishes the character after a completion that only flips the origin of a wound (D-15, D-16)', async () => {
+        const { deepCut } = InjuryType;
+        const subject = await quester(QuestLane.story, 'story', {
+            injuries: [deepCut],
+        });
+        const subscription = follow<WoundsUpdatedResult>(
+            subject,
+            CHARACTER_WOUNDS_UPDATED,
+        );
+        expect((await nextOf(subscription)).characterUpdated.status).toEqual({
+            injuries: [deepCut],
+            innkeeperInjuries: [],
+        });
+
+        const completed = await asInnkeeper(COMPLETE_PENDING_REQUEST, {
+            input: {
+                pendingQuestId: String(subject.pendingQuest._id),
+                outcomes: [
+                    {
+                        characterId: String(subject.characterId),
+                        injuriesRemoved: [deepCut],
+                        injuries: [deepCut],
+                    },
+                ],
+            },
+        });
+
+        // il foglio non racconta una ferita tolta e rimessa: cambia solo l'origine
+        expect(completed.completePendingRequest).toEqual([
+            { injuriesAdded: [], injuriesRemoved: [] },
+        ]);
+        let { status } = (await nextOf(subscription)).characterUpdated;
+        while (!status.innkeeperInjuries.includes(deepCut))
+            ({ status } = (await nextOf(subscription)).characterUpdated);
+        expect(status).toEqual({
+            injuries: [deepCut],
+            innkeeperInjuries: [deepCut],
+        });
+    });
+
+    it('publishes the character with the new page at the end of its background after a guided completion (D-08, D-09)', async () => {
+        const page = 'Ha salvato il mugnaio.';
+        const subject = await quester(QuestLane.worldMission, 'worldMission');
+        const pendingQuestId = String(subject.pendingQuest._id);
+        const { background } = subject.player.character!.infos;
+        const subscription = follow<StoryUpdatedResult>(
+            subject,
+            CHARACTER_STORY_UPDATED,
+        );
+        expect((await nextOf(subscription)).characterUpdated.infos).toEqual({
+            background,
+        });
+        await asInnkeeper(START_MISSION_DRAFT, { pendingQuestId });
+        await asInnkeeper(SAVE_MISSION_DRAFT, {
+            input: {
+                pendingQuestId,
+                step: 'stories',
+                backgroundAdditions: [
+                    { characterId: String(subject.characterId), text: page },
+                ],
+            },
+        });
+
+        const completed = await asInnkeeper(COMPLETE_GUIDED_MISSION, {
+            pendingQuestId,
+        });
+
+        expect(completed.completeGuidedMission).toEqual([
+            { backgroundEntryAdded: true },
+        ]);
+        let { infos } = (await nextOf(subscription)).characterUpdated;
+        while (infos.background.length === background.length)
+            ({ infos } = (await nextOf(subscription)).characterUpdated);
+        expect(infos.background).toEqual([...background, page]);
     });
 });

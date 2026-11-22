@@ -20,6 +20,7 @@ const VIEWER_VITALS_PROJECTION = {
     'status.currentLifePoints': 1,
     'status.maxLifePoints': 1,
     'status.injuries': 1,
+    'status.innkeeperInjuries': 1,
 } as const;
 
 interface VitalsCharacter {
@@ -29,6 +30,7 @@ interface VitalsCharacter {
         currentLifePoints?: number;
         maxLifePoints?: number;
         injuries?: unknown[] | null;
+        innkeeperInjuries?: unknown[] | null;
     };
 }
 
@@ -98,6 +100,7 @@ export class ViewerVitalsService {
             currentLifePoints,
             maxLifePoints,
             injuries: character.status.injuries ?? [],
+            innkeeperInjuries: character.status.innkeeperInjuries,
         };
     }
 }

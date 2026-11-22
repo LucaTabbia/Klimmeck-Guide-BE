@@ -48,6 +48,11 @@ export class CharacterStatus {
     @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
     injuries: InjuryType[];
 
+    // ferite inflitte a mano dall'oste (Phase 25 D-16): sottoinsieme per tipo di injuries, nessuna cura le tocca
+    @Field(() => [InjuryType])
+    @Prop({ type: [String], enum: Object.values(InjuryType), default: [] })
+    innkeeperInjuries: InjuryType[];
+
     // l'unica lista delle magie: una voce per magia conosciuta, in ordine di apprendimento; equipaggiata = flag della voce (Phase 19 D-07, D-16)
     @Field(() => [SpellState])
     @Prop({ type: [SpellStateSchema], default: [] })

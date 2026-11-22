@@ -6,6 +6,7 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { Pet, PetDocument } from 'src/models/pet.model';
 import { Spell, SpellDocument } from 'src/models/spell.model';
@@ -373,6 +374,131 @@ describe('Character ownership on mutations and queries (wire)', () => {
             expect(firstErrorOf(response)?.extensions).toEqual({
                 code: AuthErrorCode.UNAUTHENTICATED,
             });
+        });
+    });
+
+    describe('innkeeper wounds', () => {
+        const CHARACTER_WOUNDS =
+            'query($id: String!) { character(id: $id) { status { injuries innkeeperInjuries } } }';
+        const { deepCut, sprain } = InjuryType;
+
+        function wounds(bearer: string): Promise<request.Response> {
+            return graphqlRequest(
+                harness.app,
+                CHARACTER_WOUNDS,
+                { id: aliceCharId },
+                bearer,
+            );
+        }
+
+        beforeEach(async () => {
+            await characters.collection.updateOne(
+                { _id: new Types.ObjectId(aliceCharId) },
+                {
+                    $set: {
+                        'status.injuries': [deepCut, sprain],
+                        'status.innkeeperInjuries': [sprain],
+                    },
+                },
+            );
+        });
+
+        it('serves the innkeeper wounds of the character to its owner (D-15)', async () => {
+            const response = await wounds(alice.bearer);
+
+            expect(response.body).toEqual({
+                data: {
+                    character: {
+                        status: {
+                            injuries: [deepCut, sprain],
+                            innkeeperInjuries: [sprain],
+                        },
+                    },
+                },
+            });
+        });
+
+        it("serves the innkeeper wounds of another player's character to the innkeeper (D-13)", async () => {
+            const response = await wounds(oste.bearer);
+
+            expect(response.body).toEqual({
+                data: {
+                    character: {
+                        status: {
+                            injuries: [deepCut, sprain],
+                            innkeeperInjuries: [sprain],
+                        },
+                    },
+                },
+            });
+        });
+
+        it('serves an empty list for a character written without the field (D-16)', async () => {
+            await characters.collection.updateOne(
+                { _id: new Types.ObjectId(aliceCharId) },
+                { $unset: { 'status.innkeeperInjuries': '' } },
+            );
+
+            const response = await wounds(alice.bearer);
+
+            expect(response.body).toEqual({
+                data: {
+                    character: {
+                        status: {
+                            injuries: [deepCut, sprain],
+                            innkeeperInjuries: [],
+                        },
+                    },
+                },
+            });
+        });
+    });
+
+    describe('participant stories', () => {
+        const CHARACTER_STORY =
+            'query($id: String!) { character(id: $id) { infos { name background } status { title } } }';
+        const STORY = ['Nata sotto la luna.', 'Cresciuta in una taverna.'];
+
+        function story(bearer: string): Promise<request.Response> {
+            return graphqlRequest(
+                harness.app,
+                CHARACTER_STORY,
+                { id: aliceCharId },
+                bearer,
+            );
+        }
+
+        beforeEach(async () => {
+            await characters.collection.updateOne(
+                { _id: new Types.ObjectId(aliceCharId) },
+                { $set: { 'infos.background': STORY } },
+            );
+        });
+
+        it("lets the innkeeper read the background of another player's character (D-02)", async () => {
+            const response = await story(oste.bearer);
+
+            expect(response.body).toEqual({
+                data: {
+                    character: {
+                        infos: {
+                            name: alice.character?.infos.name,
+                            background: STORY,
+                        },
+                        status: { title: 'mage' },
+                    },
+                },
+            });
+        });
+
+        it("refuses a player reading the background of another player's character (D-02)", async () => {
+            const response = await story(bruno.bearer);
+
+            expect(firstErrorOf(response)?.extensions).toEqual({
+                code: 'FORBIDDEN',
+            });
+            expect(firstErrorOf(response)?.message).toBe(FORBIDDEN_MESSAGE);
+            expect(bodyOf(response).data ?? null).toBeNull();
         });
     });
 

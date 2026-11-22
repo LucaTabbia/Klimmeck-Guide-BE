@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
+import { Character } from 'src/models/character/character.model';
 import {
     enemyFactsOf,
     enemyXpByIdOf,
@@ -31,9 +32,10 @@ import type {
     RewardRefs,
 } from 'src/quests/outcomes/rewards/quest-rewards';
 import { victoryKnowledgeOf } from 'src/quests/outcomes/victory-knowledge';
+import { additionFor } from './background-additions';
 import { chosenRewardsOf } from './chosen-rewards';
 import {
-    assertAddsOnlyNewInjuries,
+    assertWoundCorrectionAllowed,
     fightStartOf,
     stateBeforeFight,
 } from './fight-state';
@@ -79,7 +81,7 @@ const chosenRefsOf = (prize: MissionPrizeRecord): ChosenPrizeRefs => ({
     spell: prize.spell && hexOf(prize.spell),
 });
 
-// D-07, D-14: ogni scontro rivalidato sullo stato lasciato dai precedenti; le ferite di prima solo sugli effetti corretti (ruling W5)
+// D-07, D-14: ogni scontro rivalidato sullo stato lasciato dai precedenti; le rimozioni solo sugli effetti corretti (ruling W5); una ferita già portata riproposta è ignorata dalla piega (Phase 25 D-19)
 function assertSequenceAllowed(
     snapshot: ResolutionCharacter,
     sequence: readonly EffectiveFight[],
@@ -97,9 +99,9 @@ function assertSequenceAllowed(
             [overrideParticipantOf(overlay, petCatalog)],
         );
         if (corrected)
-            assertAddsOnlyNewInjuries(
+            assertWoundCorrectionAllowed(
                 fightStartOf(overlay, petCatalog).injuriesBefore,
-                effects.injuriesAdded,
+                effects,
             );
     });
 }
@@ -123,6 +125,8 @@ export class GuidedCompletionService {
         private readonly loader: ResolutionLoader,
         @InjectModel(MissionDraft.name)
         private readonly draftModel: Model<MissionDraft>,
+        @InjectModel(Character.name)
+        private readonly characterModel: Model<Character>,
         private readonly clock: Clock,
     ) {}
 
@@ -154,15 +158,43 @@ export class GuidedCompletionService {
         return this.completion.completeWith({
             request,
             recoveryTimes: await this.loader.recoveryTimesOf(
-                this.spellsUsedBy(draft, characterHexes),
+                this.spellsUsedBy(draft, characters),
             ),
             petMaxXp: combat.petMaxXp,
             petCatalog: combat.pets,
             now: this.clock.now(),
             outcomesOf: (snapshots) =>
                 this.outcomesOf(request, draft, catalogs, snapshots),
-            afterSeats: (session) => this.deleteReadRevision(draft, session),
+            afterSeats: async (session) => {
+                await this.appendBackgroundAdditions(
+                    draft,
+                    characters,
+                    session,
+                );
+                await this.deleteReadRevision(draft, session);
+            },
         });
+    }
+
+    // D-05, D-08: una voce in coda per ogni posto con un'aggiunta, nella transazione del completamento; le voci di prima non si leggono né si riscrivono
+    private async appendBackgroundAdditions(
+        draft: MissionDraftRecord,
+        characters: readonly ResolutionCharacter[],
+        session: ClientSession,
+    ): Promise<void> {
+        for (const { _id } of characters) {
+            const addition = additionFor(draft.backgroundAdditions, _id);
+            if (addition === null) continue;
+            const { matchedCount } = await this.characterModel
+                .updateOne(
+                    { _id },
+                    { $push: { 'infos.background': addition } },
+                    { session },
+                )
+                .exec();
+            if (matchedCount !== 1)
+                throw GameRuleException.outcomeOverrideInvalid();
+        }
     }
 
     // B-01: un salvataggio o una simulazione arrivati dopo la lettura cambiano la revisione e annullano la transazione
@@ -232,19 +264,27 @@ export class GuidedCompletionService {
                 draft.fights,
                 characterHex,
                 catalogs.enemyXp,
+                snapshot.status,
             ),
             rewards: chosenRewardsOf(prize, catalogs.rewardCatalog),
+            // D-09: la stessa lettura rivalidata che decide la scrittura in afterSeats
+            backgroundEntryAdded:
+                additionFor(draft.backgroundAdditions, snapshot._id) !== null,
         };
     }
 
     private spellsUsedBy(
         draft: MissionDraftRecord,
-        characterHexes: readonly string[],
+        characters: readonly ResolutionCharacter[],
     ): Types.ObjectId[] {
         return uniqueIds(
-            characterHexes.flatMap(
-                (hex) =>
-                    aggregateEffectsOf(draft.fights, hex)?.spellsUsed.map(
+            characters.flatMap(
+                ({ _id, status }) =>
+                    aggregateEffectsOf(
+                        draft.fights,
+                        hexOf(_id),
+                        status,
+                    )?.spellsUsed.map(
                         ({ spellId }) => new Types.ObjectId(spellId),
                     ) ?? [],
             ),

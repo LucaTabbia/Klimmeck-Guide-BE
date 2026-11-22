@@ -2,11 +2,23 @@ import { healHasNoEffect } from 'src/quests/outcomes/injuries/heal-no-effect';
 
 const VILLAGE = { lifePointsShare: 0.5, canHeal: ['deepCut'] };
 
-const subject = (hp: number, injuries: unknown[], max = 1000) => ({
+const subject = (
+    hp: number,
+    injuries: unknown[],
+    max = 1000,
+    innkeeperInjuries: readonly unknown[] | null | undefined = undefined,
+) => ({
     currentLifePoints: hp,
     maxLifePoints: max,
     injuries,
+    innkeeperInjuries,
 });
+
+const woundedByInnkeeper = (
+    hp: number,
+    injuries: unknown[],
+    innkeeperInjuries: readonly unknown[] | null | undefined,
+) => subject(hp, injuries, 1000, innkeeperInjuries);
 
 describe('healHasNoEffect', () => {
     it.each([
@@ -57,5 +69,55 @@ describe('healHasNoEffect', () => {
         const cure = { lifePointsShare: 0.5, canHeal: ['oldWound', 'deepCut'] };
 
         expect(healHasNoEffect(subject(700, ['oldWound']), cure)).toBe(true);
+    });
+
+    describe('innkeeper wounds (Phase 25)', () => {
+        const TEMPLE = {
+            lifePointsShare: 1,
+            canHeal: ['deepCut', 'infection'],
+        };
+
+        it('has no effect when the cure matches only innkeeper wounds (D-14)', () => {
+            const character = woundedByInnkeeper(
+                1000,
+                ['infection'],
+                ['infection'],
+            );
+
+            expect(healHasNoEffect(character, TEMPLE)).toBe(true);
+        });
+
+        it('has an effect when an ordinary wound is curable beside an innkeeper one (D-14)', () => {
+            const character = woundedByInnkeeper(
+                1000,
+                ['deepCut', 'infection'],
+                ['infection'],
+            );
+
+            expect(healHasNoEffect(character, TEMPLE)).toBe(false);
+        });
+
+        it('has an effect below the life ceiling whatever the wounds (D-14)', () => {
+            const character = woundedByInnkeeper(
+                999,
+                ['infection'],
+                ['infection'],
+            );
+
+            expect(healHasNoEffect(character, TEMPLE)).toBe(false);
+        });
+
+        it.each([undefined, null])(
+            'reads a missing origin (%p) as no innkeeper wound (D-16)',
+            (origin) => {
+                const character = woundedByInnkeeper(
+                    1000,
+                    ['infection'],
+                    origin,
+                );
+
+                expect(healHasNoEffect(character, TEMPLE)).toBe(false);
+            },
+        );
     });
 });

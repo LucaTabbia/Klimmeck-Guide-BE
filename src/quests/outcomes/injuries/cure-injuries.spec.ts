@@ -66,3 +66,52 @@ describe('cureInjuries', () => {
         expect(canHeal).toEqual([sprain]);
     });
 });
+
+describe('innkeeper wounds', () => {
+    it('leaves an innkeeper wound where it is (D-11)', () => {
+        expect(
+            cureInjuries([deepCut, sprain], [deepCut, sprain], [sprain]),
+        ).toEqual({ injuries: [sprain], healed: [deepCut] });
+    });
+
+    it('never reports an innkeeper wound as healed (D-14)', () => {
+        expect(
+            cureInjuries(
+                [deepCut, sprain],
+                [deepCut, sprain],
+                [deepCut, sprain],
+            ),
+        ).toEqual({ injuries: [deepCut, sprain], healed: [] });
+    });
+
+    it('keeps every copy of a duplicated innkeeper wound (D-11)', () => {
+        expect(
+            cureInjuries(
+                [sprain, deepCut, sprain],
+                [deepCut, sprain],
+                [sprain],
+            ),
+        ).toEqual({ injuries: [sprain, sprain], healed: [deepCut] });
+    });
+
+    it('heals as before without innkeeper wounds (D-14)', () => {
+        const asBefore = { injuries: [sprain], healed: [deepCut, infection] };
+
+        expect(
+            cureInjuries([deepCut, infection, sprain], [infection, deepCut]),
+        ).toEqual(asBefore);
+        expect(
+            cureInjuries(
+                [deepCut, infection, sprain],
+                [infection, deepCut],
+                [],
+            ),
+        ).toEqual(asBefore);
+    });
+
+    it('ignores a protected wound the character does not carry (D-14)', () => {
+        expect(
+            cureInjuries([deepCut, sprain], [deepCut, frostbite], [frostbite]),
+        ).toEqual({ injuries: [sprain], healed: [deepCut] });
+    });
+});

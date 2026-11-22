@@ -317,6 +317,7 @@ describe('MissionDraftSaveService (replSet)', () => {
                 consumablesUsed: [{ item: potion, quantity: 3 }],
                 spellsUsed: [{ spell, usages: 5 }],
                 companionLifeAfter: null,
+                injuriesRemoved: [],
             });
             // A-08: i campi omessi valgono il simulato, non lo stato d'inizio scontro
             expect(outcomeOf(highest.fights[0], first)!.corrected).toEqual({
@@ -382,30 +383,6 @@ describe('MissionDraftSaveService (replSet)', () => {
                 }),
             ).rejects.toMatchObject(OUTCOME_NOT_PARTICIPANT);
             expect(await storedDraft()).toEqual(before);
-        });
-
-        it('refuses a correction that adds an injury the character already had (D-14)', async () => {
-            const { first, enemy } = await startedWorldMission();
-            await simulate(first, 0, enemy);
-            const before = await storedDraft();
-
-            await expect(
-                save(first, {
-                    fights: [
-                        fightOf(enemy, 1, [
-                            correctionOf(first, {
-                                injuries: [InjuryType.deepCut],
-                            }),
-                        ]),
-                    ],
-                }),
-            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
-            expect(await storedDraft()).toEqual(before);
-            const character = await world.models.characters
-                .findById(first.characterId)
-                .lean<{ status: { injuries: InjuryType[] } }>()
-                .exec();
-            expect(character!.status.injuries).toEqual([InjuryType.deepCut]);
         });
 
         it('voids the following simulations when a fight is corrected (D-24)', async () => {
@@ -575,6 +552,7 @@ describe('MissionDraftSaveService (replSet)', () => {
                 consumablesUsed: [],
                 spellsUsed: [],
                 companionLifeAfter: 2,
+                injuriesRemoved: [],
             });
         });
 
@@ -600,6 +578,199 @@ describe('MissionDraftSaveService (replSet)', () => {
                 OUTCOME_OVERRIDE_INVALID,
             );
             expect(await storedDraft()).toEqual(before);
+        });
+    });
+
+    describe('wound removals', () => {
+        const { deepCut } = InjuryType;
+        const UNSIMULATED = { verdict: null, outcomes: [] };
+
+        const correctFirst = (
+            subject: Quester,
+            enemy: Types.ObjectId,
+            correction: Omit<ParticipantOverrideInput, 'characterId'>,
+            laterFights: MissionFightInput[] = [],
+        ) =>
+            save(subject, {
+                fights: [
+                    fightOf(enemy, 1, [correctionOf(subject, correction)]),
+                    ...laterFights,
+                ],
+            });
+
+        const storedCorrection = async (subject: Quester) =>
+            outcomeOf((await storedDraft())!.fights[0], subject)!.corrected;
+
+        const storedRemovals = async (subject: Quester) =>
+            (await storedCorrection(subject))?.injuriesRemoved ?? [];
+
+        it('saves a correction that removes a wound carried before the fight (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            expect(await storedRemovals(first)).toEqual([deepCut]);
+        });
+
+        it('writes a correction that changes only the removals and resets the later fights (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, { hpAfter: 500 });
+            await simulate(first, 1, enemy);
+
+            const saved = await correctFirst(
+                first,
+                enemy,
+                { hpAfter: 500, injuriesRemoved: [deepCut] },
+                [fightOf(enemy)],
+            );
+
+            expect(await storedRemovals(first)).toEqual([deepCut]);
+            expect(saved.fights[1]).toMatchObject(UNSIMULATED);
+        });
+
+        it('keeps the simulated effects when the correction lists only removals (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            const simulation = await simulate(first, 0, enemy);
+            const simulated = outcomeOf(simulation.fights[0], first)!.simulated;
+
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            expect(await storedCorrection(first)).toEqual({
+                ...simulated,
+                injuriesRemoved: [deepCut],
+            });
+        });
+
+        it('accepts an explicit empty list of removals (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuriesRemoved: [],
+            });
+
+            expect((await storedCorrection(first))!.hpAfter).toBe(500);
+            expect(await storedRemovals(first)).toEqual([]);
+        });
+
+        it.each<[string, Omit<ParticipantOverrideInput, 'characterId'>]>([
+            ['an empty list', { hpAfter: 500, injuriesRemoved: [] }],
+            ['no removal field', { hpAfter: 500 }],
+        ])(
+            'undoes a saved removal when the correction comes back with %s (D-13)',
+            async (_label, withoutRemoval) => {
+                const { first, enemy } = await startedWorldMission();
+                await simulate(first, 0, enemy);
+                await correctFirst(first, enemy, {
+                    hpAfter: 500,
+                    injuriesRemoved: [deepCut],
+                });
+                await simulate(first, 1, enemy);
+
+                const saved = await correctFirst(first, enemy, withoutRemoval, [
+                    fightOf(enemy),
+                ]);
+
+                expect((await storedCorrection(first))!.hpAfter).toBe(500);
+                expect(await storedRemovals(first)).toEqual([]);
+                expect(saved.fights[1]).toMatchObject(UNSIMULATED);
+            },
+        );
+
+        it('accepts a wound removed and added again in the same correction (D-16)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, {
+                injuries: [deepCut],
+                injuriesRemoved: [deepCut],
+            });
+
+            expect(await storedCorrection(first)).toMatchObject({
+                injuriesAdded: [deepCut],
+                injuriesRemoved: [deepCut],
+            });
+        });
+
+        it('does not add a wound still carried that a correction proposes again (D-19)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuries: [deepCut, InjuryType.fracturedRib],
+            });
+
+            expect(await storedCorrection(first)).toMatchObject({
+                hpAfter: 500,
+                injuriesAdded: [InjuryType.fracturedRib],
+            });
+            expect(await storedRemovals(first)).toEqual([]);
+        });
+
+        it('starts the next fight with a carried wound proposed again still ordinary and single (D-19)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, {
+                hpAfter: 500,
+                injuries: [deepCut],
+            });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([deepCut]);
+            expect(start.innkeeperInjuriesBefore).toEqual([]);
+        });
+
+        it('refuses the removal of a wound the character did not carry at the start of the fight (D-13)', async () => {
+            const { first, second, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            const before = await storedDraft();
+
+            await expect(
+                correctFirst(first, enemy, {
+                    injuriesRemoved: [InjuryType.fracturedRib],
+                }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            await expect(
+                correctFirst(second, enemy, { injuriesRemoved: [deepCut] }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+            expect(await storedDraft()).toEqual(before);
+        });
+
+        it('starts the second fight with the wound the innkeeper inflicted in the first (D-12)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, {
+                injuries: [InjuryType.fracturedRib],
+            });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([
+                deepCut,
+                InjuryType.fracturedRib,
+            ]);
+            expect(start.innkeeperInjuriesBefore).toEqual([
+                InjuryType.fracturedRib,
+            ]);
+        });
+
+        it('starts the second fight without the wound removed in the first (D-13)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            await correctFirst(first, enemy, { injuriesRemoved: [deepCut] });
+
+            const draft = await simulate(first, 1, enemy);
+
+            const start = outcomeOf(draft.fights[1], first)!;
+            expect(start.injuriesBefore).toEqual([]);
+            expect(start.innkeeperInjuriesBefore).toEqual([]);
         });
     });
 
@@ -982,6 +1153,279 @@ describe('MissionDraftSaveService (replSet)', () => {
                 save(mage, { prizes: [prizeOf(mage), prizeOf(mage)] }),
             ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
             expect(await storedDraft()).toEqual(before);
+        });
+    });
+
+    describe('background additions', () => {
+        const MILLER = 'Ha salvato il mugnaio.';
+        const BRIDGE = 'Ha tenuto il ponte da sola.';
+        const BACKGROUND_ADDITION_TOO_LONG = {
+            code: 'BACKGROUND_ADDITION_TOO_LONG',
+        };
+
+        const additionOf = (subject: Quester, text: string) => ({
+            characterId: String(subject.characterId),
+            text,
+        });
+
+        const entryOf = (subject: Quester, text: string) => ({
+            character: String(subject.characterId),
+            text,
+        });
+
+        const entriesOf = (draft: MissionDraftRecord | null) =>
+            (draft?.backgroundAdditions ?? []).map(({ character, text }) => ({
+                character: String(character),
+                text,
+            }));
+
+        const storedAdditions = async () => entriesOf(await storedDraft());
+
+        it('saves one addition per participant and reads it back (D-05, D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+
+            const saved = await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            const expected = [entryOf(first, MILLER), entryOf(second, BRIDGE)];
+            expect(entriesOf(saved)).toEqual(expected);
+            expect(await storedAdditions()).toEqual(expected);
+        });
+
+        it('replaces the addition of the listed character only (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [additionOf(second, MILLER)],
+            });
+
+            expect(await storedAdditions()).toEqual([
+                entryOf(first, MILLER),
+                entryOf(second, MILLER),
+            ]);
+        });
+
+        it('saves the additions sent in chunks without erasing the earlier ones (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+            await save(first, {
+                backgroundAdditions: [additionOf(second, BRIDGE)],
+            });
+
+            expect(await storedAdditions()).toEqual([
+                entryOf(first, MILLER),
+                entryOf(second, BRIDGE),
+            ]);
+        });
+
+        it('deletes only the saved addition of the character whose text comes back empty (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, '  ')],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('leaves the additions untouched when the section comes empty (D-06)', async () => {
+            const { first } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, { backgroundAdditions: [] });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
+        });
+
+        it('leaves the additions untouched when the section is absent (D-05)', async () => {
+            const { first } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, { step: MissionDraftStep.recap });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
+        });
+
+        it.each([
+            ['empty', ''],
+            ['blank', '  \n\t '],
+        ])('drops an addition left empty: %s (D-06)', async (_name, text) => {
+            const { first, second } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, text),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('clears a saved addition when its text comes back empty (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, MILLER),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, ''),
+                    additionOf(second, BRIDGE),
+                ],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(second, BRIDGE)]);
+        });
+
+        it('accepts a section with an empty text for every participant (D-06)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            await save(first, {
+                backgroundAdditions: [
+                    additionOf(first, ''),
+                    additionOf(second, '   '),
+                ],
+            });
+
+            expect((await storedDraft())!.backgroundAdditions).toEqual([]);
+        });
+
+        it('trims the text it saves (D-07)', async () => {
+            const { first } = await startedWorldMission();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, `  ${MILLER}\n`)],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, MILLER)]);
+        });
+
+        it('accepts an addition of exactly 1000 graphemes (D-07)', async () => {
+            const { first } = await startedWorldMission();
+            const text = 'é'.repeat(1000);
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, text)],
+            });
+
+            expect(await storedAdditions()).toEqual([entryOf(first, text)]);
+        });
+
+        it('refuses an addition of 1001 graphemes and leaves the draft as it was (D-07)', async () => {
+            const { first, second } = await startedWorldMission();
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+            const before = await storedDraft();
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [
+                        additionOf(second, BRIDGE),
+                        additionOf(first, 'é'.repeat(1001)),
+                    ],
+                }),
+            ).rejects.toMatchObject(BACKGROUND_ADDITION_TOO_LONG);
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.rev).toBe(before!.rev);
+        });
+
+        it('refuses an addition for a character outside the draft (D-06)', async () => {
+            const { first } = await startedWorldMission();
+            const stranger = await quester({ questOverrides: gmQuest() });
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [additionOf(stranger, MILLER)],
+                }),
+            ).rejects.toMatchObject(OUTCOME_NOT_PARTICIPANT);
+
+            expect(await storedAdditions()).toEqual([]);
+        });
+
+        it('refuses two additions for the same character (D-06)', async () => {
+            const { first } = await startedWorldMission();
+
+            await expect(
+                save(first, {
+                    backgroundAdditions: [
+                        additionOf(first, MILLER),
+                        additionOf(first, ''),
+                    ],
+                }),
+            ).rejects.toMatchObject(OUTCOME_OVERRIDE_INVALID);
+
+            expect(await storedAdditions()).toEqual([]);
+        });
+
+        it('saves the stories step (D-05)', async () => {
+            const { first } = await startedWorldMission();
+
+            const saved = await save(first, { step: MissionDraftStep.stories });
+
+            expect(saved.step).toBe(MissionDraftStep.stories);
+            expect((await storedDraft())!.step).toBe(MissionDraftStep.stories);
+        });
+
+        it('bumps the revision of the draft with the additions (D-05)', async () => {
+            const { first } = await startedWorldMission();
+            const before = (await storedDraft())!.rev;
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.rev).toBe(before + 1);
+        });
+
+        it('keeps fights and prizes when only the additions are saved (D-05)', async () => {
+            const { first, enemy } = await startedWorldMission();
+            await simulate(first, 0, enemy);
+            const before = await storedDraft();
+
+            await save(first, {
+                backgroundAdditions: [additionOf(first, MILLER)],
+            });
+
+            const after = await storedDraft();
+            expect(entriesOf(after)).toEqual([entryOf(first, MILLER)]);
+            expect(after!.fights).toEqual(before!.fights);
+            expect(after!.prizes).toEqual(before!.prizes);
+            expect(after!.step).toBe(before!.step);
         });
     });
 });

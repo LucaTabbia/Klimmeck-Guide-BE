@@ -1,17 +1,23 @@
 import { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
-import type { InjuryType } from 'src/models/enums/injury-type.enum';
 import type { ParticipantOverrideInput } from 'src/models/request/complete-pending-request.model';
 import {
     lastCompanionLifeOf,
     type ParticipantEffects,
 } from 'src/quests/outcomes/combat/combat-resolver';
 import {
+    netWoundCorrectionOf,
+    removalsOf,
+    type WoundStatus,
+} from 'src/quests/outcomes/injuries/innkeeper-injuries';
+import {
     type CompanionFight,
     companionEnemiesXpOf,
 } from 'src/quests/outcomes/pets/companion-enemies-xp';
-import { effectiveEffectsOf } from './draft-invalidation';
-import { participantEffectsOf } from './fight-state';
+import {
+    effectiveEffectsOf,
+    effectiveParticipantEffectsOf,
+} from './draft-invalidation';
 import type {
     MissionFightEnemyRecord,
     MissionFightOutcomeRecord,
@@ -40,14 +46,11 @@ export function effectiveSequenceOf(
 ): EffectiveFight[] {
     return fights.flatMap((fight) => {
         const outcome = outcomeIn(fight, characterHex);
-        const effects = outcome ? effectiveEffectsOf(outcome) : null;
+        const effects = outcome
+            ? effectiveParticipantEffectsOf(characterHex, outcome)
+            : null;
         if (!outcome || !effects) return [];
-        return [
-            {
-                effects: participantEffectsOf(characterHex, effects),
-                corrected: outcome.corrected != null,
-            },
-        ];
+        return [{ effects, corrected: outcome.corrected != null }];
     });
 }
 
@@ -71,10 +74,11 @@ const companionLifeOf = (
         {},
     );
 
-// vita dell'ultimo scontro, ferite unite, consumi e usi sommati per id, vita del compagno dell'ultimo scontro che la porta; nessuno scontro = nessun combattimento
+// vita dell'ultimo scontro, ferite dalla piega in ordine sullo stato letto (Phase 25 D-13), consumi e usi sommati per id, vita del compagno dell'ultimo scontro che la porta; nessuno scontro = nessun combattimento
 export function aggregateEffectsOf(
     fights: readonly MissionFightRecord[],
     characterHex: string,
+    status: WoundStatus,
 ): ParticipantEffects | null {
     const sequence = effectiveSequenceOf(fights, characterHex).map(
         ({ effects }) => effects,
@@ -84,11 +88,7 @@ export function aggregateEffectsOf(
     return {
         characterId: characterHex,
         hpAfter: last.hpAfter,
-        injuriesAdded: [
-            ...new Set<InjuryType>(
-                sequence.flatMap(({ injuriesAdded }) => injuriesAdded),
-            ),
-        ],
+        ...netWoundCorrectionOf(status, sequence),
         consumablesUsed: totalsById(
             sequence.flatMap(({ consumablesUsed }) =>
                 consumablesUsed.map(({ itemId, quantity }) => ({
@@ -144,8 +144,9 @@ export function guidedBattleOf(
     fights: readonly MissionFightRecord[],
     characterHex: string,
     enemyXp: ReadonlyMap<string, number>,
+    status: WoundStatus,
 ): ParticipantEffects | null {
-    const battle = aggregateEffectsOf(fights, characterHex);
+    const battle = aggregateEffectsOf(fights, characterHex, status);
     if (!battle) return null;
     return {
         ...battle,
@@ -202,10 +203,11 @@ export function overrideInputOf(
         ...(effects.companionLifeAfter === undefined
             ? {}
             : { companionLifeAfter: effects.companionLifeAfter }),
+        ...removalsOf(effects.injuriesRemoved),
     };
 }
 
-// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince
+// A-08: ciò che l'oste non tocca (omesso o null) vale il simulato dello scontro; un valore esplicito, anche una lista vuota, vince; le rimozioni sono solo quelle della correzione in arrivo (Phase 25 D-13)
 export function correctionOverSimulated(
     correction: ParticipantOverrideInput,
     simulated: ParticipantEffects,
@@ -220,5 +222,6 @@ export function correctionOverSimulated(
         consumablesUsed: correction.consumablesUsed ?? base.consumablesUsed,
         spellsUsed: correction.spellsUsed ?? base.spellsUsed,
         ...(companionLifeAfter == null ? {} : { companionLifeAfter }),
+        ...removalsOf(correction.injuriesRemoved),
     };
 }

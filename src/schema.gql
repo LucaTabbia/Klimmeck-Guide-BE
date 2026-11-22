@@ -107,6 +107,7 @@ type CharacterStatus {
   guidedMissionInProgress: Boolean!
   imprisonedUntil: DateTime
   injuries: [InjuryType!]!
+  innkeeperInjuries: [InjuryType!]!
   level: Int!
   location: PointOfInterest!
   maxActiveSpells: Int!
@@ -419,6 +420,16 @@ type Lore {
   type: String!
 }
 
+type MissionBackgroundAddition {
+  character: ID!
+  text: String!
+}
+
+input MissionBackgroundAdditionInput {
+  characterId: ID!
+  text: String!
+}
+
 type MissionCompanion {
   lifeBefore: Int!
   maxLifePoints: Int!
@@ -427,6 +438,7 @@ type MissionCompanion {
 }
 
 type MissionDraft {
+  backgroundAdditions: [MissionBackgroundAddition!]!
   fights: [MissionFight!]!
   id: ID!
   participants: [MissionParticipant!]!
@@ -443,6 +455,7 @@ enum MissionDraftStep {
   fights
   prizes
   recap
+  stories
   teleport
 }
 
@@ -462,6 +475,8 @@ type MissionFightEffects {
   consumablesUsed: [MissionItemUsage!]!
   hpAfter: Int!
   injuriesAdded: [InjuryType!]!
+  injuriesRemoved: [InjuryType!]!
+  innkeeperInjuries: [InjuryType!]!
   spellsUsed: [MissionSpellUsage!]!
 }
 
@@ -482,6 +497,7 @@ type MissionFightOutcome {
   corrected: MissionFightEffects
   hpBefore: Int!
   injuriesBefore: [InjuryType!]!
+  innkeeperInjuriesBefore: [InjuryType!]!
   simulated: MissionFightEffects
   spellsAvailable: [MissionSpellUsage!]!
 }
@@ -601,6 +617,7 @@ input ParticipantOverrideInput {
   consumablesUsed: [ItemUsageInput!]
   hpAfter: Int
   injuries: [InjuryType!]
+  injuriesRemoved: [InjuryType!]
   spellsUsed: [SpellUsageInput!]
 }
 
@@ -865,6 +882,7 @@ type QuestResult {
   acknowledgedAt: DateTime
   ambush: AmbushReport
   arrested: Boolean!
+  backgroundEntryAdded: Boolean!
   character: ID!
   coinsLost: Coins
   companion: CompanionOutcome
@@ -876,6 +894,7 @@ type QuestResult {
   id: ID!
   injuriesAdded: [InjuryType!]!
   injuriesHealed: [InjuryType!]!
+  injuriesRemoved: [InjuryType!]!
   kind: QuestResultKind!
   lastTurn: Int
   lastTurnKind: DungeonTurnKind
@@ -967,6 +986,7 @@ enum RoleType {
 }
 
 input SaveMissionDraftInput {
+  backgroundAdditions: [MissionBackgroundAdditionInput!]
   fights: [MissionFightInput!]
   pendingQuestId: ID!
   place: ID

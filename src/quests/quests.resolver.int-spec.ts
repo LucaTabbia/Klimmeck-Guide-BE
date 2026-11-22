@@ -937,6 +937,29 @@ describe('quest catalog (wire)', () => {
             expect(await noEffectOf(heal._id, innkeeper.bearer)).toBe(false);
         });
 
+        it('marks a heal quest as without effect when only innkeeper wounds match (D-14)', async () => {
+            const alice = await playerAtFullLife('alice', ['deepCut']);
+            const heal = await persistCuringQuest('heal');
+            const characters = modelOf(Character.name, CharacterSchema);
+            const aliceId = alice.character?._id as Types.ObjectId;
+
+            expect(await noEffectOf(heal._id, alice.bearer)).toBe(false);
+
+            await characters.collection.updateOne(
+                { _id: aliceId },
+                { $set: { 'status.innkeeperInjuries': ['deepCut'] } },
+            );
+
+            expect(await noEffectOf(heal._id, alice.bearer)).toBe(true);
+
+            await characters.collection.updateOne(
+                { _id: aliceId },
+                { $set: { 'status.currentLifePoints': 400 } },
+            );
+
+            expect(await noEffectOf(heal._id, alice.bearer)).toBe(false);
+        });
+
         it('answers false to a user without a current character, whatever the role (D-25)', async () => {
             const wanderer = await createPlayer(harness, {
                 twitchId: 'twitch-no-effect-wanderer',

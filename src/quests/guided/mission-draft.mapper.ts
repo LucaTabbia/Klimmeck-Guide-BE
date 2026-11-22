@@ -4,7 +4,10 @@ import { Model, Types } from 'mongoose';
 import { ENEMY_WIRE_POPULATE } from 'src/enemies/enemies.service';
 import { withoutOrphanRelatedLore } from 'src/lore/related-lore';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
+import type { InjuryType } from 'src/models/enums/injury-type.enum';
+import { handInflictedOf } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import {
+    MissionBackgroundAdditionRecord,
     MissionCompanionRecord,
     MissionDraftParticipant,
     MissionDraftRecord,
@@ -18,6 +21,7 @@ import {
 } from './mission-draft.model';
 import { hexOf } from './ids';
 import {
+    MissionBackgroundAddition,
     MissionCompanion,
     MissionDraftView,
     MissionFight,
@@ -45,16 +49,38 @@ function spellUsageOf(usage: MissionSpellUsageRecord): MissionSpellUsage {
 }
 
 function effectsOf(
-    effects: MissionFightEffectsRecord | null | undefined,
-): MissionFightEffects | null {
-    if (!effects) return null;
+    effects: MissionFightEffectsRecord,
+    innkeeperInjuries: readonly InjuryType[],
+): MissionFightEffects {
     return {
         hpAfter: effects.hpAfter,
         injuriesAdded: [...effects.injuriesAdded],
+        injuriesRemoved: [...(effects.injuriesRemoved ?? [])],
+        innkeeperInjuries: [...innkeeperInjuries],
         consumablesUsed: effects.consumablesUsed.map(itemUsageOf),
         spellsUsed: effects.spellsUsed.map(spellUsageOf),
         companionLifeAfter: effects.companionLifeAfter ?? null,
     };
+}
+
+// il motore non toglie ferite e non ne infligge a nome dell'oste (Phase 25 D-12)
+function simulatedEffectsOf(
+    outcome: MissionFightOutcomeRecord,
+): MissionFightEffects | null {
+    if (!outcome.simulated) return null;
+    return effectsOf({ ...outcome.simulated, injuriesRemoved: [] }, []);
+}
+
+// origine derivata con la regola del completamento, mai salvata nella bozza (Phase 25 D-12, D-16)
+function correctedEffectsOf(
+    outcome: MissionFightOutcomeRecord,
+): MissionFightEffects | null {
+    const { corrected } = outcome;
+    if (!corrected) return null;
+    return effectsOf(
+        corrected,
+        handInflictedOf(corrected, outcome.simulated?.injuriesAdded ?? []),
+    );
 }
 
 function companionOf(
@@ -74,11 +100,12 @@ function outcomeOf(outcome: MissionFightOutcomeRecord): MissionFightOutcome {
         character: hexOf(outcome.character),
         hpBefore: outcome.hpBefore,
         injuriesBefore: [...outcome.injuriesBefore],
+        innkeeperInjuriesBefore: [...(outcome.innkeeperInjuriesBefore ?? [])],
         consumablesAvailable: outcome.consumablesAvailable.map(itemUsageOf),
         spellsAvailable: outcome.spellsAvailable.map(spellUsageOf),
         companion: companionOf(outcome.companion),
-        simulated: effectsOf(outcome.simulated),
-        corrected: effectsOf(outcome.corrected),
+        simulated: simulatedEffectsOf(outcome),
+        corrected: correctedEffectsOf(outcome),
     };
 }
 
@@ -137,6 +164,12 @@ function prizeOf(prize: MissionPrizeRecord): MissionPrize {
     };
 }
 
+function backgroundAdditionOf(
+    addition: MissionBackgroundAdditionRecord,
+): MissionBackgroundAddition {
+    return { character: hexOf(addition.character), text: addition.text };
+}
+
 export function toMissionDraftWire(
     record: MissionDraftRecord,
     enemies: Bestiary,
@@ -150,6 +183,10 @@ export function toMissionDraftWire(
         participants: record.participants.map(participantOf),
         fights: record.fights.map((fight) => fightOf(fight, enemies)),
         prizes: record.prizes.map(prizeOf),
+        // una bozza aperta prima della sezione non ha il campo (Phase 25 D-05)
+        backgroundAdditions: (record.backgroundAdditions ?? []).map(
+            backgroundAdditionOf,
+        ),
         startedAt: record.startedAt,
         updatedAt: record.updatedAt,
     };

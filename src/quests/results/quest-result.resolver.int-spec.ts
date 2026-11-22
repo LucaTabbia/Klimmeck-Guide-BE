@@ -40,6 +40,8 @@ const QUEST_RESULT_COMPANION =
     'query QuestResult($id: String!) { questResult(id: $id) { id xpGained petXpGained } }';
 const QUEST_RESULT_HEALED =
     'query QuestResult($id: String!) { questResult(id: $id) { id hpBefore hpAfter injuriesHealed } }';
+const QUEST_RESULT_REMOVED =
+    'query QuestResult($id: String!) { questResult(id: $id) { id injuriesHealed injuriesRemoved } }';
 const QUEST_RESULT_ENEMY_SPELLS =
     'query QuestResult($id: String!) { questResult(id: $id) { id enemies { quantity enemy { id spells { id name } } } } }';
 const QUEST_RESULT_TURNS =
@@ -48,6 +50,8 @@ const QUEST_RESULT_REWARDS =
     'query QuestResult($id: String!) { questResult(id: $id) { id rewards { coins { gold silver copper } items { quantity } pet { id } } } }';
 const QUEST_RESULT_RESEARCH =
     'query QuestResult($id: String!) { questResult(id: $id) { id spellFound { id name origin requiredLearnTime } spellLearned { id } spellResearchFailed } }';
+const QUEST_RESULT_STORY =
+    'query QuestResult($id: String!) { questResult(id: $id) { id backgroundEntryAdded } }';
 const MISSING_ID = '64b0000000000000000000ff';
 const CONFIRMED_AT = new Date('2026-10-25T09:30:00.000Z');
 
@@ -567,6 +571,97 @@ describe('questResult(id) (wire)', () => {
                     injuriesHealed: [],
                 },
             },
+        });
+    });
+
+    it('serves the wounds removed by the innkeeper (D-13)', async () => {
+        const result = await persistAliceResult({
+            injuriesHealed: [],
+            injuriesRemoved: ['deepCut'],
+        });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_REMOVED,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    injuriesHealed: [],
+                    injuriesRemoved: ['deepCut'],
+                },
+            },
+        });
+    });
+
+    it('serves no removed wound for a result written before the field (D-13)', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const raw = buildQuestResult({
+            character: alice.character?._id,
+            user: alice.user._id,
+        }) as Record<string, unknown>;
+        delete raw.injuriesRemoved;
+        const { insertedId } = await results.collection.insertOne(raw);
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_REMOVED,
+            { id: String(insertedId) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult).toEqual({
+            id: String(insertedId),
+            injuriesHealed: [],
+            injuriesRemoved: [],
+        });
+    });
+
+    it('serves the background entry flag (D-09)', async () => {
+        const result = await persistAliceResult({ backgroundEntryAdded: true });
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_STORY,
+            { id: String(result._id) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response)).toEqual({
+            data: {
+                questResult: {
+                    id: String(result._id),
+                    backgroundEntryAdded: true,
+                },
+            },
+        });
+    });
+
+    it('serves false for a result written before the field (D-09)', async () => {
+        const results = modelOf<QuestResultDocument>(QuestResult.name);
+        const raw = buildQuestResult({
+            character: alice.character?._id,
+            user: alice.user._id,
+        }) as Record<string, unknown>;
+        delete raw.backgroundEntryAdded;
+        const { insertedId } = await results.collection.insertOne(raw);
+
+        const response = await graphqlRequest(
+            harness.app,
+            QUEST_RESULT_STORY,
+            { id: String(insertedId) },
+            alice.bearer,
+        );
+
+        expect(bodyOf(response).errors).toBeUndefined();
+        expect(bodyOf(response).data?.questResult).toEqual({
+            id: String(insertedId),
+            backgroundEntryAdded: false,
         });
     });
 

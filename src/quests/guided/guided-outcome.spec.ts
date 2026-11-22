@@ -92,6 +92,9 @@ const twoFights = (): MissionFightRecord[] => [
     ]),
 ];
 
+// nessuna ferita prima della missione
+const UNHURT = {};
+
 const codeOf = (run: () => unknown): unknown => {
     try {
         run();
@@ -103,17 +106,18 @@ const codeOf = (run: () => unknown): unknown => {
 
 describe('guided outcome', () => {
     it('aggregates the corrected effects of every fight (D-08)', () => {
-        expect(aggregateEffectsOf(twoFights(), HERO)).toEqual({
+        expect(aggregateEffectsOf(twoFights(), HERO, UNHURT)).toEqual({
             characterId: HERO,
             hpAfter: 600,
             injuriesAdded: [InjuryType.blackEye, InjuryType.deepCut],
+            innkeeperInjuries: [InjuryType.blackEye],
             consumablesUsed: [
                 { itemId: POTION_ID.toHexString(), quantity: 2 },
                 { itemId: HERB_ID.toHexString(), quantity: 2 },
             ],
             spellsUsed: [{ spellId: SPARK_ID.toHexString(), usages: 3 }],
         });
-        expect(aggregateEffectsOf(twoFights(), MATE)).toEqual({
+        expect(aggregateEffectsOf(twoFights(), MATE, UNHURT)).toEqual({
             characterId: MATE,
             hpAfter: 900,
             injuriesAdded: [],
@@ -134,10 +138,12 @@ describe('guided outcome', () => {
             );
 
         expect(
-            aggregateEffectsOf(fightsWith(40, null), HERO)?.companionLifeAfter,
+            aggregateEffectsOf(fightsWith(40, null), HERO, UNHURT)
+                ?.companionLifeAfter,
         ).toBe(40);
         expect(
-            aggregateEffectsOf(fightsWith(40, 1), HERO)?.companionLifeAfter,
+            aggregateEffectsOf(fightsWith(40, 1), HERO, UNHURT)
+                ?.companionLifeAfter,
         ).toBe(1);
         expect(
             aggregateEffectsOf(
@@ -151,18 +157,19 @@ describe('guided outcome', () => {
                     ]),
                 ],
                 HERO,
+                UNHURT,
             )?.companionLifeAfter,
         ).toBe(30);
         expect(
-            aggregateEffectsOf(fightsWith(null, null), HERO),
+            aggregateEffectsOf(fightsWith(null, null), HERO, UNHURT),
         ).not.toHaveProperty('companionLifeAfter');
-        expect(aggregateEffectsOf(twoFights(), HERO)).not.toHaveProperty(
-            'companionLifeAfter',
-        );
+        expect(
+            aggregateEffectsOf(twoFights(), HERO, UNHURT),
+        ).not.toHaveProperty('companionLifeAfter');
     });
 
     it('has no battle without fights (D-24)', () => {
-        expect(aggregateEffectsOf([], HERO)).toBeNull();
+        expect(aggregateEffectsOf([], HERO, UNHURT)).toBeNull();
         expect(mergedEnemiesOf([])).toEqual([]);
         expect(effectiveSequenceOf([], HERO)).toEqual([]);
     });
@@ -213,6 +220,138 @@ describe('guided outcome', () => {
                 ({ corrected }) => corrected,
             ),
         ).toEqual([false, false]);
+    });
+
+    it('carries the origin of the wounds along the effective sequence (D-12)', () => {
+        const sequence = effectiveSequenceOf(twoFights(), HERO);
+
+        expect(sequence[0].effects.innkeeperInjuries).toEqual([
+            InjuryType.blackEye,
+        ]);
+        expect(sequence[1].effects).not.toHaveProperty('innkeeperInjuries');
+        expect(
+            effectiveSequenceOf(twoFights(), MATE).some(
+                ({ effects }) => 'innkeeperInjuries' in effects,
+            ),
+        ).toBe(false);
+    });
+
+    it('folds the wounds of the fights in order instead of joining them (D-13)', () => {
+        const fights = [
+            fightOf(enemiesOf([WOLF_ID, 1]), [
+                outcomeOf(
+                    HERO_ID,
+                    effects(900, { injuriesAdded: [InjuryType.deepCut] }),
+                ),
+            ]),
+            fightOf(enemiesOf([ORC_ID, 1]), [
+                outcomeOf(
+                    HERO_ID,
+                    effects(800, { injuriesAdded: [InjuryType.blackEye] }),
+                    effects(800, {
+                        injuriesAdded: [InjuryType.blackEye],
+                        injuriesRemoved: [InjuryType.deepCut],
+                    }),
+                ),
+            ]),
+        ];
+
+        const aggregate = aggregateEffectsOf(fights, HERO, UNHURT);
+
+        expect(aggregate?.injuriesAdded).toEqual([InjuryType.blackEye]);
+        expect(aggregate).not.toHaveProperty('injuriesRemoved');
+        expect(aggregate).not.toHaveProperty('innkeeperInjuries');
+    });
+
+    it('removes in the aggregate a wound carried before the mission (D-13)', () => {
+        const fights = [
+            fightOf(enemiesOf([WOLF_ID, 1]), [
+                outcomeOf(
+                    HERO_ID,
+                    effects(900),
+                    effects(900, { injuriesRemoved: [InjuryType.deepCut] }),
+                ),
+            ]),
+        ];
+
+        expect(
+            aggregateEffectsOf(fights, HERO, {
+                injuries: [InjuryType.deepCut, InjuryType.blackEye],
+            }),
+        ).toMatchObject({
+            injuriesAdded: [],
+            injuriesRemoved: [InjuryType.deepCut],
+        });
+    });
+
+    it('marks in the aggregate a wound hand-inflicted in any fight (D-12)', () => {
+        const fights = [
+            fightOf(enemiesOf([WOLF_ID, 1]), [
+                outcomeOf(
+                    HERO_ID,
+                    effects(900, { injuriesAdded: [InjuryType.deepCut] }),
+                ),
+            ]),
+            fightOf(enemiesOf([ORC_ID, 1]), [
+                outcomeOf(
+                    HERO_ID,
+                    effects(800),
+                    effects(800, { injuriesAdded: [InjuryType.blackEye] }),
+                ),
+            ]),
+            fightOf(enemiesOf([WOLF_ID, 1]), [
+                outcomeOf(HERO_ID, effects(700)),
+            ]),
+        ];
+
+        expect(aggregateEffectsOf(fights, HERO, UNHURT)).toMatchObject({
+            injuriesAdded: [InjuryType.deepCut, InjuryType.blackEye],
+            innkeeperInjuries: [InjuryType.blackEye],
+        });
+    });
+
+    it('leaves out of the aggregate a simulated wound the character already carries (D-13)', () => {
+        const aggregate = aggregateEffectsOf(twoFights(), MATE, {
+            injuries: [InjuryType.deepCut],
+        });
+        const hurtAgain = aggregateEffectsOf(twoFights(), HERO, {
+            injuries: [InjuryType.deepCut],
+            innkeeperInjuries: [InjuryType.deepCut],
+        });
+
+        expect(aggregate?.injuriesAdded).toEqual([]);
+        expect(hurtAgain?.injuriesAdded).toEqual([InjuryType.blackEye]);
+        expect(hurtAgain).not.toHaveProperty('injuriesRemoved');
+    });
+
+    it('carries the removals into the override input (D-13)', () => {
+        const withRemovals = overrideInputOf(HERO, {
+            characterId: HERO,
+            hpAfter: 800,
+            injuriesAdded: [InjuryType.deepCut],
+            injuriesRemoved: [InjuryType.deepCut, InjuryType.blackEye],
+            innkeeperInjuries: [InjuryType.deepCut],
+            consumablesUsed: [],
+            spellsUsed: [],
+        });
+        const withoutRemovals = overrideInputOf(HERO, {
+            characterId: HERO,
+            hpAfter: 800,
+            injuriesAdded: [InjuryType.deepCut],
+            injuriesRemoved: [],
+            consumablesUsed: [],
+            spellsUsed: [],
+        });
+
+        expect(withRemovals).toEqual({
+            characterId: HERO,
+            hpAfter: 800,
+            injuries: [InjuryType.deepCut],
+            injuriesRemoved: [InjuryType.deepCut, InjuryType.blackEye],
+            consumablesUsed: [],
+            spellsUsed: [],
+        });
+        expect(withoutRemovals).not.toHaveProperty('injuriesRemoved');
     });
 
     it('turns effects back into an override input (D-06)', () => {
@@ -303,4 +442,33 @@ describe('correctionOverSimulated', () => {
             ),
         ).not.toHaveProperty('companionLifeAfter');
     });
+
+    it('takes the removals from the correction over the simulated effects (D-13)', () => {
+        expect(
+            correctionOverSimulated(
+                { characterId: HERO, injuriesRemoved: [InjuryType.deepCut] },
+                simulated,
+            ),
+        ).toEqual({
+            ...simulatedInput,
+            injuriesRemoved: [InjuryType.deepCut],
+        });
+    });
+
+    it.each<[string, { injuriesRemoved?: InjuryType[] | null }]>([
+        ['omitted', {}],
+        ['null', { injuriesRemoved: null }],
+        ['an empty list', { injuriesRemoved: [] }],
+    ])(
+        'carries no removal when the correction omits them or sends an empty list: %s (D-13)',
+        (_label, removals) => {
+            const merged = correctionOverSimulated(
+                { characterId: HERO, ...removals },
+                { ...simulated, injuriesRemoved: [InjuryType.deepCut] },
+            );
+
+            expect(merged).toEqual(simulatedInput);
+            expect(merged).not.toHaveProperty('injuriesRemoved');
+        },
+    );
 });

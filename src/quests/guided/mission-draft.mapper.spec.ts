@@ -93,6 +93,7 @@ function draftWith(fights: MissionFightRecord[]): MissionDraftRecord {
                 cure: { lifePointsShare: 0.5, canHeal: [InjuryType.blackEye] },
             },
         ],
+        backgroundAdditions: [],
         startedBy: null,
         startedAt: STARTED_AT,
         updatedAt: UPDATED_AT,
@@ -115,6 +116,30 @@ function fightWithCompanion(): MissionFightRecord {
             simulated: { ...outcome.simulated!, companionLifeAfter: 35 },
         })),
     };
+}
+
+type EffectsRecord = NonNullable<
+    MissionFightRecord['outcomes'][number]['corrected']
+>;
+
+function fightCorrectedWith(
+    correction: Partial<EffectsRecord>,
+    innkeeperInjuriesBefore: InjuryType[] = [],
+): MissionFightRecord {
+    const fight = simulatedFight();
+    return {
+        ...fight,
+        outcomes: fight.outcomes.map((outcome) => ({
+            ...outcome,
+            innkeeperInjuriesBefore,
+            corrected: { ...outcome.simulated!, ...correction },
+        })),
+    };
+}
+
+function servedOutcomeOf(fight: MissionFightRecord) {
+    return toMissionDraftWire(draftWith([fight]), BESTIARY).fights[0]
+        .outcomes[0];
 }
 
 describe('toMissionDraftWire', () => {
@@ -145,6 +170,7 @@ describe('toMissionDraftWire', () => {
                             character: HERO_ID.toHexString(),
                             hpBefore: 30,
                             injuriesBefore: [InjuryType.blackEye],
+                            innkeeperInjuriesBefore: [],
                             consumablesAvailable: [
                                 { item: POTION_ID.toHexString(), quantity: 3 },
                             ],
@@ -154,6 +180,8 @@ describe('toMissionDraftWire', () => {
                             simulated: {
                                 hpAfter: 18,
                                 injuriesAdded: [InjuryType.headConcussion],
+                                injuriesRemoved: [],
+                                innkeeperInjuries: [],
                                 consumablesUsed: [
                                     {
                                         item: POTION_ID.toHexString(),
@@ -191,6 +219,7 @@ describe('toMissionDraftWire', () => {
                     },
                 },
             ],
+            backgroundAdditions: [],
             startedAt: STARTED_AT,
             updatedAt: UPDATED_AT,
         });
@@ -261,6 +290,106 @@ describe('toMissionDraftWire', () => {
                 outcomes: [],
             },
         ]);
+    });
+
+    it('serves the innkeeper wounds carried before the fight (D-13)', () => {
+        const outcome = servedOutcomeOf(
+            fightCorrectedWith({}, [InjuryType.blackEye]),
+        );
+
+        expect(outcome.innkeeperInjuriesBefore).toEqual([InjuryType.blackEye]);
+    });
+
+    it('serves the wounds removed by the correction (D-13)', () => {
+        const outcome = servedOutcomeOf(
+            fightCorrectedWith({ injuriesRemoved: [InjuryType.blackEye] }),
+        );
+
+        expect(outcome.corrected!.injuriesRemoved).toEqual([
+            InjuryType.blackEye,
+        ]);
+    });
+
+    it('serves the hand-inflicted wounds of a corrected fight (D-12)', () => {
+        const outcome = servedOutcomeOf(
+            fightCorrectedWith({
+                injuriesAdded: [
+                    InjuryType.headConcussion,
+                    InjuryType.fracturedRib,
+                ],
+            }),
+        );
+
+        expect(outcome.corrected!.innkeeperInjuries).toEqual([
+            InjuryType.fracturedRib,
+        ]);
+    });
+
+    it("serves a wound removed and added again as the innkeeper's (D-16)", () => {
+        const outcome = servedOutcomeOf(
+            fightCorrectedWith({
+                injuriesAdded: [InjuryType.headConcussion, InjuryType.blackEye],
+                injuriesRemoved: [InjuryType.blackEye],
+            }),
+        );
+
+        expect(outcome.corrected!.innkeeperInjuries).toEqual([
+            InjuryType.blackEye,
+        ]);
+    });
+
+    it('serves empty lists on the simulated effects (D-12)', () => {
+        const outcome = servedOutcomeOf(
+            fightCorrectedWith({
+                injuriesAdded: [InjuryType.fracturedRib],
+                injuriesRemoved: [InjuryType.blackEye],
+            }),
+        );
+
+        expect(outcome.simulated!.injuriesRemoved).toEqual([]);
+        expect(outcome.simulated!.innkeeperInjuries).toEqual([]);
+    });
+
+    it('serves empty lists for a draft opened before the fields (D-13)', () => {
+        const legacy = fightCorrectedWith({});
+        for (const outcome of legacy.outcomes) {
+            delete outcome.innkeeperInjuriesBefore;
+            delete outcome.corrected!.injuriesRemoved;
+        }
+
+        const outcome = servedOutcomeOf(legacy);
+
+        expect(outcome.innkeeperInjuriesBefore).toEqual([]);
+        expect(outcome.corrected!.injuriesRemoved).toEqual([]);
+        expect(outcome.corrected!.innkeeperInjuries).toEqual([]);
+    });
+
+    it('serves the background additions of the draft (D-05)', () => {
+        const draft: MissionDraftRecord = {
+            ...draftWith([]),
+            backgroundAdditions: [
+                { character: HERO_ID, text: 'Ha salvato il mugnaio.' },
+            ],
+        };
+
+        expect(toMissionDraftWire(draft, BESTIARY).backgroundAdditions).toEqual(
+            [
+                {
+                    character: HERO_ID.toHexString(),
+                    text: 'Ha salvato il mugnaio.',
+                },
+            ],
+        );
+    });
+
+    it('serves no addition for a draft opened before the section (D-05)', () => {
+        const legacy: Partial<MissionDraftRecord> = draftWith([]);
+        delete legacy.backgroundAdditions;
+
+        expect(
+            toMissionDraftWire(legacy as MissionDraftRecord, BESTIARY)
+                .backgroundAdditions,
+        ).toEqual([]);
     });
 
     it('serves the prize items without their item type (D-17)', () => {

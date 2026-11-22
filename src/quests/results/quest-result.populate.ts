@@ -76,6 +76,7 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         id: draft._id.toHexString(),
         kind: QuestResultKind.quest,
         ambush: null,
+        injuriesRemoved: draft.injuriesRemoved ?? [],
         consumablesUsed: [],
         spellsUsed: draft.spellsUsed.map(({ usages }) => ({
             spell: null,
@@ -85,6 +86,7 @@ export function unpopulatedResultOf(draft: QuestResultDraft): QuestResult {
         spellLearned: null,
         spellFound: null,
         spellResearchFailed: draft.spellResearchFailed ?? false,
+        backgroundEntryAdded: draft.backgroundEntryAdded ?? false,
         loreUnlocked: [],
         enemies: [],
     };

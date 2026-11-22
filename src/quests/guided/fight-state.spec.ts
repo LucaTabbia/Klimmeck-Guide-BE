@@ -6,7 +6,7 @@ import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resol
 import type { CompanionCatalogEntry } from 'src/quests/outcomes/pets/companion-after-fight';
 import type { ResolutionCharacter } from 'src/quests/outcomes/resolution-loader.service';
 import {
-    assertAddsOnlyNewInjuries,
+    assertWoundCorrectionAllowed,
     effectsRecordOf,
     fightStartOf,
     participantEffectsOf,
@@ -123,6 +123,7 @@ describe('stateBeforeFight', () => {
                 ...snapshot.status,
                 currentLifePoints: 600,
                 injuries: [InjuryType.crushedRightHand],
+                innkeeperInjuries: [],
                 spellStates: [
                     {
                         spell: ACTIVE_SPELL_ID,
@@ -227,6 +228,7 @@ describe('fightStartOf', () => {
         expect(fightStartOf(state, PET_CATALOG)).toEqual({
             hpBefore: 600,
             injuriesBefore: [InjuryType.crushedRightHand],
+            innkeeperInjuriesBefore: [],
             consumablesAvailable: [
                 { item: HERB_ID, quantity: 1 },
                 { item: POTION_ID, quantity: 2 },
@@ -317,21 +319,146 @@ describe('fightStartOf', () => {
     });
 });
 
-describe('assertAddsOnlyNewInjuries', () => {
-    it('refuses a correction that adds an injury the character already had (D-14)', () => {
+describe('wounds across the fights (Phase 25)', () => {
+    const { deepCut, crushedRightHand, brokenLeftLeg } = InjuryType;
+
+    const woundedSnapshot = (
+        wounds: Partial<ResolutionCharacter['status']>,
+    ): ResolutionCharacter => {
+        const snapshot = heroSnapshot();
+        return { ...snapshot, status: { ...snapshot.status, ...wounds } };
+    };
+
+    const fightWith = (
+        wounds: Partial<ParticipantEffects>,
+    ): ParticipantEffects => ({
+        characterId: HERO_ID.toHexString(),
+        hpAfter: 700,
+        injuriesAdded: [],
+        consumablesUsed: [],
+        spellsUsed: [],
+        ...wounds,
+    });
+
+    const startAfter = (
+        snapshot: ResolutionCharacter,
+        previous: ParticipantEffects[],
+    ) => fightStartOf(stateBeforeFight(snapshot, previous, NO_PETS), NO_PETS);
+
+    it('starts the next fight without a wound removed in the previous one (D-13)', () => {
+        const start = startAfter(
+            woundedSnapshot({
+                injuries: [deepCut, brokenLeftLeg],
+                innkeeperInjuries: [deepCut],
+            }),
+            [fightWith({ injuriesRemoved: [deepCut] })],
+        );
+
+        expect(start.injuriesBefore).toEqual([brokenLeftLeg]);
+        expect(start.innkeeperInjuriesBefore).toEqual([]);
+    });
+
+    it("starts the next fight counting a hand-inflicted wound among the innkeeper's (D-12)", () => {
+        const start = startAfter(woundedSnapshot({ injuries: [deepCut] }), [
+            fightWith({
+                injuriesAdded: [crushedRightHand],
+                innkeeperInjuries: [crushedRightHand],
+            }),
+            fightWith({}),
+        ]);
+
+        expect(start.injuriesBefore).toEqual([deepCut, crushedRightHand]);
+        expect(start.innkeeperInjuriesBefore).toEqual([crushedRightHand]);
+    });
+
+    it('starts the next fight with a simulated wound as an ordinary one (D-12)', () => {
+        const start = startAfter(heroSnapshot(), [firstFight]);
+
+        expect(start.injuriesBefore).toEqual([crushedRightHand]);
+        expect(start.innkeeperInjuriesBefore).toEqual([]);
+    });
+
+    it('reads the innkeeper wounds at the start of the first fight from the character (D-13)', () => {
+        expect(
+            startAfter(
+                woundedSnapshot({
+                    injuries: [deepCut, brokenLeftLeg],
+                    innkeeperInjuries: [brokenLeftLeg],
+                }),
+                [],
+            ).innkeeperInjuriesBefore,
+        ).toEqual([brokenLeftLeg]);
+        expect(
+            startAfter(woundedSnapshot({ injuries: [deepCut] }), [])
+                .innkeeperInjuriesBefore,
+        ).toEqual([]);
+    });
+
+    it('does not mutate the snapshot it overlays', () => {
+        const snapshot = woundedSnapshot({
+            injuries: [deepCut],
+            innkeeperInjuries: [deepCut],
+        });
+        const copy = structuredClone(snapshot);
+
+        stateBeforeFight(
+            snapshot,
+            [
+                fightWith({
+                    injuriesAdded: [deepCut, crushedRightHand],
+                    injuriesRemoved: [deepCut],
+                    innkeeperInjuries: [crushedRightHand],
+                }),
+            ],
+            NO_PETS,
+        );
+
+        expect(snapshot).toEqual(copy);
+    });
+});
+
+describe('assertWoundCorrectionAllowed', () => {
+    const { crushedRightHand, brokenLeftLeg } = InjuryType;
+
+    it('allows the removal of a wound carried before the fight (D-13)', () => {
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [],
+                injuriesRemoved: [crushedRightHand],
+            }),
+        ).not.toThrow();
+    });
+
+    it('refuses the removal of a wound not carried before the fight (D-13)', () => {
         expect(
             codeOf(() =>
-                assertAddsOnlyNewInjuries(
-                    [InjuryType.crushedRightHand],
-                    [InjuryType.crushedRightHand],
-                ),
+                assertWoundCorrectionAllowed([crushedRightHand], {
+                    injuriesAdded: [],
+                    injuriesRemoved: [brokenLeftLeg],
+                }),
             ),
         ).toBe(GameRuleErrorCode.OUTCOME_OVERRIDE_INVALID);
+    });
+
+    it('does not refuse a correction that proposes again a wound still carried (D-19)', () => {
         expect(() =>
-            assertAddsOnlyNewInjuries(
-                [InjuryType.crushedRightHand],
-                [InjuryType.brokenLeftLeg],
-            ),
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [crushedRightHand],
+            }),
+        ).not.toThrow();
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [brokenLeftLeg],
+            }),
+        ).not.toThrow();
+    });
+
+    it('allows a wound removed and added again in the same correction (D-16)', () => {
+        expect(() =>
+            assertWoundCorrectionAllowed([crushedRightHand], {
+                injuriesAdded: [crushedRightHand],
+                injuriesRemoved: [crushedRightHand],
+            }),
         ).not.toThrow();
     });
 });
@@ -363,5 +490,43 @@ describe('effects conversions', () => {
                 effectsRecordOf(firstFight),
             ),
         ).not.toHaveProperty('companionLifeAfter');
+    });
+
+    it('keeps the removals in the saved effects and back (D-13)', () => {
+        const corrected: ParticipantEffects = {
+            ...firstFight,
+            injuriesRemoved: [InjuryType.deepCut],
+        };
+
+        expect(effectsRecordOf(corrected).injuriesRemoved).toEqual([
+            InjuryType.deepCut,
+        ]);
+        expect(
+            participantEffectsOf(
+                HERO_ID.toHexString(),
+                effectsRecordOf(corrected),
+            ),
+        ).toEqual(corrected);
+    });
+
+    it('carries no removal key for effects without removals (D-13)', () => {
+        const { injuriesRemoved, ...recordOfAnOlderDraft } = effectsRecordOf({
+            ...firstFight,
+            injuriesRemoved: [],
+        });
+
+        expect(injuriesRemoved).toBeUndefined();
+        expect(effectsRecordOf(firstFight)).not.toHaveProperty(
+            'injuriesRemoved',
+        );
+        expect(
+            participantEffectsOf(HERO_ID.toHexString(), recordOfAnOlderDraft),
+        ).toEqual(firstFight);
+        expect(
+            participantEffectsOf(HERO_ID.toHexString(), {
+                ...recordOfAnOlderDraft,
+                injuriesRemoved: [],
+            }),
+        ).not.toHaveProperty('injuriesRemoved');
     });
 });

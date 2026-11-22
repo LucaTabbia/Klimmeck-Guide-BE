@@ -4,6 +4,7 @@ import {
     AdminAuditLogSchema,
     AUDIT_OUTCOME_OK,
 } from 'src/authz/audit/admin-audit-log.model';
+import { InjuryType } from 'src/models/enums/injury-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     PointOfInterest,
@@ -12,6 +13,7 @@ import {
 import { QuestLane } from 'src/quests/acceptance/quest-lanes';
 import { graphqlRequest } from '../../../test/auth/auth-test-app';
 import { FixedClock } from '../../../test/auth/fixed-clock';
+import { createCharactersTestApp } from '../../../test/authz/characters-test-app';
 import {
     createPlayer,
     type TestPlayer,
@@ -34,6 +36,7 @@ import {
 import { SequenceChance } from '../../../test/quests/sequence-chance';
 import { GuidedMissionModule } from './guided-mission.module';
 import { MissionDraft } from './mission-draft.model';
+import { MissionSimulationChance } from './mission-simulation.chance';
 
 const NOW = new Date('2026-10-24T12:00:00.000Z');
 const START =
@@ -74,6 +77,15 @@ describe('GuidedMissionResolver (wire)', () => {
             clock: new FixedClock(NOW),
             chance: new SequenceChance(),
             imports: [GuidedMissionModule],
+            // con la query character: il filo rilegge il personaggio servito al giocatore dopo il completamento (Phase 25 D-09)
+            createApp: createCharactersTestApp,
+            // simulazione senza eventi casuali: le ferite simulate non cambiano da un giro all'altro
+            overrides: [
+                {
+                    token: MissionSimulationChance,
+                    useValue: new SequenceChance(),
+                },
+            ],
         });
         const connection = world.harness.connection;
         audits =
@@ -989,10 +1001,27 @@ describe('GuidedMissionResolver (wire)', () => {
             errors?: { message: string; extensions: Record<string, unknown> }[];
         }
 
-        async function simulatedPair() {
-            const [first, second] = await worldMissionPair();
-            const oste = await innkeeper();
-            await send(START, hexOf(first), oste.bearer);
+        interface WoundsBody {
+            data?: {
+                saveMissionDraft?: {
+                    fights: {
+                        outcomes: {
+                            character: string;
+                            injuriesBefore: string[];
+                            innkeeperInjuriesBefore: string[];
+                            simulated: Record<string, string[]> | null;
+                            corrected: Record<string, string[]> | null;
+                        }[];
+                    }[];
+                } | null;
+            } | null;
+            errors?: { message: string; extensions: Record<string, unknown> }[];
+        }
+
+        async function simulateFirst(
+            first: Quester,
+            oste: TestPlayer,
+        ): Promise<string> {
             const enemy = String(
                 (await world.models.enemies.create(buildEnemy()))._id,
             );
@@ -1008,6 +1037,14 @@ describe('GuidedMissionResolver (wire)', () => {
                 },
                 oste.bearer,
             );
+            return enemy;
+        }
+
+        async function simulatedPair() {
+            const [first, second] = await worldMissionPair();
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = await simulateFirst(first, oste);
             return { first, second, oste, enemy };
         }
 
@@ -1064,6 +1101,211 @@ describe('GuidedMissionResolver (wire)', () => {
             expect(
                 draft.prizes.find(({ character }) => character === firstHex),
             ).toEqual({ character: firstHex, xp: 1234 });
+        });
+
+        it('serves the removals and the origin of the wounds over the wire (D-12, D-13)', async () => {
+            const WOUNDS =
+                'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { fights { outcomes { character injuriesBefore innkeeperInjuriesBefore simulated { injuriesRemoved innkeeperInjuries } corrected { injuriesAdded injuriesRemoved innkeeperInjuries } } } } }';
+            const { deepCut, fracturedRib } = InjuryType;
+            const [first] = await worldMissionPair();
+            await world.models.characters.updateOne(
+                { _id: first.characterId },
+                {
+                    $set: {
+                        'status.injuries': [deepCut],
+                        'status.innkeeperInjuries': [deepCut],
+                    },
+                },
+            );
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemy = await simulateFirst(first, oste);
+            const firstHex = String(first.characterId);
+
+            const response = await graphqlRequest(
+                world.harness.app,
+                WOUNDS,
+                {
+                    input: {
+                        pendingQuestId: hexOf(first),
+                        fights: [
+                            {
+                                enemies: [{ enemy, quantity: 1 }],
+                                corrections: [
+                                    {
+                                        characterId: firstHex,
+                                        injuries: [fracturedRib],
+                                        injuriesRemoved: [deepCut],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+                oste.bearer,
+            );
+
+            const body = response.body as WoundsBody;
+            expect(body.errors).toBeUndefined();
+            expect(
+                body.data!.saveMissionDraft!.fights[0].outcomes.find(
+                    ({ character }) => character === firstHex,
+                ),
+            ).toEqual({
+                character: firstHex,
+                injuriesBefore: [deepCut],
+                innkeeperInjuriesBefore: [deepCut],
+                simulated: { injuriesRemoved: [], innkeeperInjuries: [] },
+                corrected: {
+                    injuriesAdded: [fracturedRib],
+                    injuriesRemoved: [deepCut],
+                    innkeeperInjuries: [fracturedRib],
+                },
+            });
+        });
+
+        describe('background additions', () => {
+            const STORIES =
+                'mutation SaveMissionDraft($input: SaveMissionDraftInput!) { saveMissionDraft(input: $input) { step backgroundAdditions { character text } } }';
+            const READ_STORIES =
+                'query MissionDraft($pendingQuestId: ID!) { missionDraft(pendingQuestId: $pendingQuestId) { step backgroundAdditions { character text } } }';
+            const MILLER = 'Ha salvato il mugnaio.';
+
+            interface StoriesDraft {
+                step: string;
+                backgroundAdditions: { character: string; text: string }[];
+            }
+
+            interface StoriesBody {
+                data?: {
+                    saveMissionDraft?: StoriesDraft | null;
+                    missionDraft?: StoriesDraft | null;
+                } | null;
+                errors?: {
+                    message: string;
+                    extensions: Record<string, unknown>;
+                }[];
+            }
+
+            async function startedPair() {
+                const [first, second] = await worldMissionPair();
+                const oste = await innkeeper();
+                await send(START, hexOf(first), oste.bearer);
+                return { first, second, oste };
+            }
+
+            async function saveStories(
+                first: Quester,
+                oste: TestPlayer,
+                texts: [Quester, string][],
+            ): Promise<StoriesBody> {
+                const response = await graphqlRequest(
+                    world.harness.app,
+                    STORIES,
+                    {
+                        input: {
+                            pendingQuestId: hexOf(first),
+                            step: 'stories',
+                            backgroundAdditions: texts.map(
+                                ([subject, text]) => ({
+                                    characterId: String(subject.characterId),
+                                    text,
+                                }),
+                            ),
+                        },
+                    },
+                    oste.bearer,
+                );
+                return response.body as StoriesBody;
+            }
+
+            async function readStories(
+                subject: Quester,
+                oste: TestPlayer,
+            ): Promise<StoriesBody> {
+                const response = await graphqlRequest(
+                    world.harness.app,
+                    READ_STORIES,
+                    { pendingQuestId: hexOf(subject) },
+                    oste.bearer,
+                );
+                return response.body as StoriesBody;
+            }
+
+            const codesOf = (body: StoriesBody) =>
+                body.errors?.map(({ extensions }) => extensions.code);
+
+            it('saves and reads the background additions over the wire (D-05, D-06)', async () => {
+                const { first, second, oste } = await startedPair();
+                const expected = {
+                    step: 'stories',
+                    backgroundAdditions: [
+                        { character: String(first.characterId), text: MILLER },
+                    ],
+                };
+
+                const saved = await saveStories(first, oste, [
+                    [first, MILLER],
+                    [second, ''],
+                ]);
+
+                expect(saved.errors).toBeUndefined();
+                expect(saved.data!.saveMissionDraft).toEqual(expected);
+                const read = await readStories(second, oste);
+                expect(read.errors).toBeUndefined();
+                expect(read.data!.missionDraft).toEqual(expected);
+            });
+
+            it('answers its own code for an addition over 1000 characters (D-07)', async () => {
+                const { first, oste } = await startedPair();
+
+                const body = await saveStories(first, oste, [
+                    [first, 'a'.repeat(1001)],
+                ]);
+
+                expect(body.data ?? null).toBeNull();
+                expect(codesOf(body)).toEqual(['BACKGROUND_ADDITION_TOO_LONG']);
+                const read = await readStories(first, oste);
+                expect(read.data!.missionDraft!.backgroundAdditions).toEqual(
+                    [],
+                );
+            });
+
+            it('answers a form error for an addition over the wire cap (D-07)', async () => {
+                const { first, oste } = await startedPair();
+
+                const body = await saveStories(first, oste, [
+                    [first, 'a'.repeat(8001)],
+                ]);
+
+                expect(body.data ?? null).toBeNull();
+                expect(codesOf(body)).toEqual(['BAD_USER_INPUT']);
+            });
+
+            it('accepts an empty text over the wire and clears the saved addition (D-06)', async () => {
+                const { first, second, oste } = await startedPair();
+                await saveStories(first, oste, [
+                    [first, MILLER],
+                    [second, MILLER],
+                ]);
+
+                const body = await saveStories(first, oste, [
+                    [first, ''],
+                    [second, MILLER],
+                ]);
+
+                expect(body.errors).toBeUndefined();
+                const kept = [
+                    { character: String(second.characterId), text: MILLER },
+                ];
+                expect(
+                    body.data!.saveMissionDraft!.backgroundAdditions,
+                ).toEqual(kept);
+                const read = await readStories(first, oste);
+                expect(read.data!.missionDraft!.backgroundAdditions).toEqual(
+                    kept,
+                );
+            });
         });
 
         it('refuses an adventurer (D-10)', async () => {
@@ -1242,6 +1484,148 @@ describe('GuidedMissionResolver (wire)', () => {
                     ({ character }) => character === String(first.characterId),
                 )!.hpAfter,
             ).toBe(1);
+            const read = await send(READ, hexOf(first), oste.bearer);
+            expect(
+                read.errors?.map(({ extensions }) => extensions.code),
+            ).toEqual(['NOT_FOUND']);
+        });
+
+        it('completes a guided mission with wound corrections and a story page over the wire (D-05, D-09, D-12, D-13)', async () => {
+            const SIMULATED_WOUNDS =
+                'mutation SimulateMissionFight($input: SimulateMissionFightInput!) { simulateMissionFight(input: $input) { fights { outcomes { character simulated { injuriesAdded } } } } }';
+            const COMPLETE_SHEET =
+                'mutation CompleteGuidedMission($pendingQuestId: ID!) { completeGuidedMission(pendingQuestId: $pendingQuestId) { character injuriesAdded injuriesRemoved injuriesHealed backgroundEntryAdded } }';
+            const SERVED_CHARACTER =
+                'query Character($id: String!) { character(id: $id) { status { injuries innkeeperInjuries } infos { background } } }';
+            const { deepCut, fracturedRib } = InjuryType;
+            const page = 'Ha salvato il mugnaio.';
+            const [first, second] = await worldMissionPair();
+            const firstHex = String(first.characterId);
+            const { background } = first.player.character!.infos;
+            await world.models.characters.updateOne(
+                { _id: first.characterId },
+                {
+                    $set: {
+                        'status.injuries': [deepCut],
+                        'status.currentLifePoints': 1000,
+                        'status.maxLifePoints': 1000,
+                    },
+                },
+            );
+            const oste = await innkeeper();
+            await send(START, hexOf(first), oste.bearer);
+            const enemies = [
+                {
+                    enemy: String(
+                        (await world.models.enemies.create(buildEnemy()))._id,
+                    ),
+                    quantity: 1,
+                },
+            ];
+            const simulated = await graphqlRequest(
+                world.harness.app,
+                SIMULATED_WOUNDS,
+                {
+                    input: {
+                        pendingQuestId: hexOf(first),
+                        fightIndex: 0,
+                        enemies,
+                    },
+                },
+                oste.bearer,
+            );
+            expect(simulated.body.errors).toBeUndefined();
+            const simulatedWounds: InjuryType[] =
+                simulated.body.data.simulateMissionFight.fights[0].outcomes.find(
+                    ({ character }: { character: string }) =>
+                        character === firstHex,
+                ).simulated.injuriesAdded;
+            expect(simulatedWounds).not.toContain(fracturedRib);
+
+            const corrected = await sendInput(
+                SAVE_DRAFT,
+                {
+                    pendingQuestId: hexOf(first),
+                    fights: [
+                        {
+                            enemies,
+                            corrections: [
+                                {
+                                    characterId: firstHex,
+                                    injuriesRemoved: [deepCut],
+                                    injuries: [
+                                        ...simulatedWounds,
+                                        fracturedRib,
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                    prizes: [
+                        {
+                            characterId: firstHex,
+                            coins: { gold: 0, silver: 0, copper: 0 },
+                            cure: false,
+                            items: [],
+                            xp: 0,
+                        },
+                    ],
+                },
+                oste.bearer,
+            );
+            expect(corrected.errors).toBeUndefined();
+            const storied = await sendInput(
+                SAVE_DRAFT,
+                {
+                    pendingQuestId: hexOf(first),
+                    step: 'stories',
+                    backgroundAdditions: [
+                        { characterId: firstHex, text: `  ${page}  ` },
+                        { characterId: String(second.characterId), text: '' },
+                    ],
+                },
+                oste.bearer,
+            );
+            expect(storied.errors).toBeUndefined();
+
+            const completed = await graphqlRequest(
+                world.harness.app,
+                COMPLETE_SHEET,
+                { pendingQuestId: hexOf(second) },
+                oste.bearer,
+            );
+
+            expect(completed.body.errors).toBeUndefined();
+            const sheets: {
+                character: string;
+                injuriesAdded: InjuryType[];
+                injuriesRemoved: InjuryType[];
+                injuriesHealed: InjuryType[];
+                backgroundEntryAdded: boolean;
+            }[] = completed.body.data.completeGuidedMission;
+            const sheet = sheets.find(
+                ({ character }) => character === firstHex,
+            )!;
+            expect(sheet.injuriesRemoved).toContain(deepCut);
+            expect(sheet.injuriesAdded).toContain(fracturedRib);
+            expect(sheet.injuriesHealed).not.toContain(deepCut);
+            expect(sheet.backgroundEntryAdded).toBe(true);
+            expect(
+                sheets.find(({ character }) => character !== firstHex)!
+                    .backgroundEntryAdded,
+            ).toBe(false);
+            const served = await graphqlRequest(
+                world.harness.app,
+                SERVED_CHARACTER,
+                { id: firstHex },
+                first.player.bearer,
+            );
+            expect(served.body.errors).toBeUndefined();
+            const { status, infos } = served.body.data.character;
+            expect(status.injuries).not.toContain(deepCut);
+            expect(status.injuries).toContain(fracturedRib);
+            expect(status.innkeeperInjuries).toEqual([fracturedRib]);
+            expect(infos.background).toEqual([...background, page]);
             const read = await send(READ, hexOf(first), oste.bearer);
             expect(
                 read.errors?.map(({ extensions }) => extensions.code),

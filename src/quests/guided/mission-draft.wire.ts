@@ -43,6 +43,14 @@ export class MissionFightEffects {
     @Field(() => [InjuryType])
     injuriesAdded: InjuryType[];
 
+    // ferite tolte dalla correzione dell'oste (Phase 25 D-13): sempre vuota sull'effetto simulato
+    @Field(() => [InjuryType])
+    injuriesRemoved: InjuryType[];
+
+    // sottoinsieme di injuriesAdded inflitto a mano dall'oste (Phase 25 D-12): sempre vuota sull'effetto simulato
+    @Field(() => [InjuryType])
+    innkeeperInjuries: InjuryType[];
+
     @Field(() => [MissionItemUsage])
     consumablesUsed: MissionItemUsage[];
 
@@ -89,6 +97,10 @@ export class MissionFightOutcome {
 
     @Field(() => [InjuryType])
     injuriesBefore: InjuryType[];
+
+    // ferite dell'oste all'inizio dello scontro (Phase 25 D-13): sottoinsieme di injuriesBefore
+    @Field(() => [InjuryType])
+    innkeeperInjuriesBefore: InjuryType[];
 
     @Field(() => [MissionItemUsage])
     consumablesAvailable: MissionItemUsage[];
@@ -170,6 +182,15 @@ export class MissionPrize {
     cure: QuestCure | null;
 }
 
+@ObjectType()
+export class MissionBackgroundAddition {
+    @Field(() => ID)
+    character: string;
+
+    @Field(() => String)
+    text: string;
+}
+
 @ObjectType('MissionDraft')
 export class MissionDraftView {
     @Field(() => ID)
@@ -195,6 +216,9 @@ export class MissionDraftView {
 
     @Field(() => [MissionPrize])
     prizes: MissionPrize[];
+
+    @Field(() => [MissionBackgroundAddition])
+    backgroundAdditions: MissionBackgroundAddition[];
 
     @Field(() => Date)
     startedAt: Date;

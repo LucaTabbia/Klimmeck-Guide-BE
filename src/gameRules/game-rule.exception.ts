@@ -3,6 +3,7 @@ import {
     CHARACTER_NAME_MAX_LENGTH,
     CHARACTER_NAME_MIN_LENGTH,
 } from 'src/characters/creation/character-name';
+import { BACKGROUND_ADDITION_MAX_GRAPHEMES } from 'src/characters/creation/grapheme-count';
 import { GameRuleErrorCode } from 'src/gameRules/game-rule-error-code.enum';
 
 export interface GameRuleExtensions {
@@ -345,6 +346,14 @@ export class GameRuleException extends BadRequestException {
         return new GameRuleException(
             GameRuleErrorCode.PET_NAME_INVALID,
             `Nome del compagno non valido: da ${CHARACTER_NAME_MIN_LENGTH} a ${CHARACTER_NAME_MAX_LENGTH} caratteri tra lettere, spazi, apostrofi e trattini, con almeno una lettera`,
+        );
+    }
+
+    // aggiunta dell'oste al background oltre il tetto (Phase 25 D-07)
+    static backgroundAdditionTooLong(): GameRuleException {
+        return new GameRuleException(
+            GameRuleErrorCode.BACKGROUND_ADDITION_TOO_LONG,
+            `L'aggiunta alla storia può contenere al massimo ${BACKGROUND_ADDITION_MAX_GRAPHEMES} caratteri`,
         );
     }
 }

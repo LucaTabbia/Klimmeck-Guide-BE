@@ -86,7 +86,7 @@ const RARITY_TYPE_BLOCK =
 const OWNED_PET_BLOCK =
     'type OwnedPet {\n  currentLifePoints: Int!\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  level: Int!\n  lifeAsOf: DateTime\n  maxLifePoints: Int!\n  name: String\n  pet: Pet!\n  potionRecoveryUntil: DateTime\n  xp: Int!\n}';
 const CHARACTER_STATUS_BLOCK =
-    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  guidedMissionInProgress: Boolean!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  missionInProgress: Boolean!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
+    'type CharacterStatus {\n  activeTravel: ActiveTravel\n  awaitingAid: AwaitingAid\n  coins: Coins!\n  currentLifePoints: Int!\n  guidedMissionInProgress: Boolean!\n  imprisonedUntil: DateTime\n  injuries: [InjuryType!]!\n  innkeeperInjuries: [InjuryType!]!\n  level: Int!\n  location: PointOfInterest!\n  maxActiveSpells: Int!\n  maxLifePoints: Int!\n  missionInProgress: Boolean!\n  potionRecoveryUntil: DateTime\n  spellStates: [SpellState!]!\n  title: String!\n  unlockedLore: [ID!]!\n  xp: Int!\n}';
 const CHARACTER_ASSETS_BLOCK =
     'type CharacterAssets {\n  ownedEquipments: [AssetQuantity!]!\n  ownedItems: [AssetQuantity!]!\n  ownedPets: [OwnedPet!]!\n  pet: Pet\n  wornEquipment: Equipment!\n}';
 const EQUIPMENT_BLOCK =
@@ -96,19 +96,21 @@ const SLOT_TYPE_BLOCK =
 // SDL della bozza guidata (RESEARCH §Q9 + D-17): blocchi verbatim
 const MISSION_DRAFT_BLOCKS: Record<string, string> = {
     'type MissionDraft':
-        'type MissionDraft {\n  fights: [MissionFight!]!\n  id: ID!\n  participants: [MissionParticipant!]!\n  place: ID\n  prizes: [MissionPrize!]!\n  quest: ID!\n  questType: String!\n  startedAt: DateTime!\n  step: MissionDraftStep!\n  updatedAt: DateTime!\n}',
+        'type MissionDraft {\n  backgroundAdditions: [MissionBackgroundAddition!]!\n  fights: [MissionFight!]!\n  id: ID!\n  participants: [MissionParticipant!]!\n  place: ID\n  prizes: [MissionPrize!]!\n  quest: ID!\n  questType: String!\n  startedAt: DateTime!\n  step: MissionDraftStep!\n  updatedAt: DateTime!\n}',
     'enum MissionDraftStep':
-        'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  teleport\n}',
+        'enum MissionDraftStep {\n  fights\n  prizes\n  recap\n  stories\n  teleport\n}',
+    'type MissionBackgroundAddition':
+        'type MissionBackgroundAddition {\n  character: ID!\n  text: String!\n}',
     'type MissionFight':
         'type MissionFight {\n  enemies: [MissionFightEnemy!]!\n  outcomes: [MissionFightOutcome!]!\n  verdict: MissionFightVerdict\n}',
     'type MissionCompanion':
         'type MissionCompanion {\n  lifeBefore: Int!\n  maxLifePoints: Int!\n  name: String!\n  pet: ID!\n}',
     'type MissionFightEffects':
-        'type MissionFightEffects {\n  companionLifeAfter: Int\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
+        'type MissionFightEffects {\n  companionLifeAfter: Int\n  consumablesUsed: [MissionItemUsage!]!\n  hpAfter: Int!\n  injuriesAdded: [InjuryType!]!\n  injuriesRemoved: [InjuryType!]!\n  innkeeperInjuries: [InjuryType!]!\n  spellsUsed: [MissionSpellUsage!]!\n}',
     'type MissionFightEnemy':
         'type MissionFightEnemy {\n  enemy: Enemy!\n  quantity: Int!\n}',
     'type MissionFightOutcome':
-        'type MissionFightOutcome {\n  character: ID!\n  companion: MissionCompanion\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
+        'type MissionFightOutcome {\n  character: ID!\n  companion: MissionCompanion\n  consumablesAvailable: [MissionItemUsage!]!\n  corrected: MissionFightEffects\n  hpBefore: Int!\n  injuriesBefore: [InjuryType!]!\n  innkeeperInjuriesBefore: [InjuryType!]!\n  simulated: MissionFightEffects\n  spellsAvailable: [MissionSpellUsage!]!\n}',
     'enum MissionFightVerdict':
         'enum MissionFightVerdict {\n  failure\n  success\n}',
     'type MissionItemUsage':
@@ -804,9 +806,9 @@ describe('AppModule (real boot without Twitch credentials)', () => {
     it('writes the quest result contract into the generated schema', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
-        // magia scoperta (Phase 24 D-31) e ricerca fallita (Phase 24 D-29): righe additive
+        // magia scoperta (Phase 24 D-31), ricerca fallita (Phase 24 D-29) e ferite tolte dall'oste (Phase 25 D-13): righe additive
         expect(schema.match(/type QuestResult \{[^}]*\}/)?.[0]).toBe(
-            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellFound: Spell\n  spellLearned: Spell\n  spellResearchFailed: Boolean!\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
+            'type QuestResult {\n  acknowledgedAt: DateTime\n  ambush: AmbushReport\n  arrested: Boolean!\n  backgroundEntryAdded: Boolean!\n  character: ID!\n  coinsLost: Coins\n  companion: CompanionOutcome\n  consumablesUsed: [AssetQuantity!]!\n  enemies: [QuestEnemy!]!\n  guardEncounter: Boolean!\n  hpAfter: Int!\n  hpBefore: Int!\n  id: ID!\n  injuriesAdded: [InjuryType!]!\n  injuriesHealed: [InjuryType!]!\n  injuriesRemoved: [InjuryType!]!\n  kind: QuestResultKind!\n  lastTurn: Int\n  lastTurnKind: DungeonTurnKind\n  levelAfter: Int!\n  levelBefore: Int!\n  loreUnlocked: [Lore!]!\n  maxLifePoints: Int!\n  outcome: QuestOutcome!\n  petXpGained: Int!\n  quest: QuestResultQuest\n  rescuedCharacters: [ID!]!\n  resolvedAt: DateTime!\n  rewards: QuestRewards!\n  spellFound: Spell\n  spellLearned: Spell\n  spellResearchFailed: Boolean!\n  spellsUsed: [SpellUsage!]!\n  stagesCleared: Int\n  stagesTotal: Int\n  titleAfter: String!\n  titleBefore: String!\n  turnsCompleted: Int\n  turnsTotal: Int\n  user: ID!\n  xpAfter: Int!\n  xpBefore: Int!\n  xpGained: Int!\n}',
         );
         expect(schema.match(/type CompanionOutcome \{[^}]*\}/)?.[0]).toBe(
             'type CompanionOutcome {\n  defeated: Boolean!\n  fullLifeAt: DateTime\n  lifeBefore: Int!\n  lifePoints: Int!\n  maxLifePoints: Int!\n  name: String!\n}',
@@ -1010,8 +1012,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
                 'input MissionPrizeInput {\n  characterId: ID!\n  coins: CoinsInput!\n  cure: Boolean!\n  items: [MissionPrizeItemInput!]!\n  pet: ID\n  spell: ID\n  xp: Int!\n}',
             MissionPrizeItemInput:
                 'input MissionPrizeItemInput {\n  item: ID!\n  quantity: Int!\n}',
+            MissionBackgroundAdditionInput:
+                'input MissionBackgroundAdditionInput {\n  characterId: ID!\n  text: String!\n}',
             SaveMissionDraftInput:
-                'input SaveMissionDraftInput {\n  fights: [MissionFightInput!]\n  pendingQuestId: ID!\n  place: ID\n  prizes: [MissionPrizeInput!]\n  step: MissionDraftStep\n}',
+                'input SaveMissionDraftInput {\n  backgroundAdditions: [MissionBackgroundAdditionInput!]\n  fights: [MissionFightInput!]\n  pendingQuestId: ID!\n  place: ID\n  prizes: [MissionPrizeInput!]\n  step: MissionDraftStep\n}',
         };
 
         for (const [name, block] of Object.entries(inputs)) {
@@ -1049,7 +1053,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(
             schema.match(/input ParticipantOverrideInput \{[^}]*\}/)?.[0],
         ).toBe(
-            'input ParticipantOverrideInput {\n  characterId: ID!\n  companionLifeAfter: Int\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
+            'input ParticipantOverrideInput {\n  characterId: ID!\n  companionLifeAfter: Int\n  consumablesUsed: [ItemUsageInput!]\n  hpAfter: Int\n  injuries: [InjuryType!]\n  injuriesRemoved: [InjuryType!]\n  spellsUsed: [SpellUsageInput!]\n}',
         );
         expect(schema.match(/input SpellUsageInput \{[^}]*\}/)?.[0]).toBe(
             'input SpellUsageInput {\n  spell: ID!\n  usages: Int!\n}',

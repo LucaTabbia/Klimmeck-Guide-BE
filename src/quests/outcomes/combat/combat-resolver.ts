@@ -94,6 +94,10 @@ export interface ParticipantEffects {
     companionLifeAfter?: number;
     // xp dei nemici dei soli scontri da cui il compagno caduto in una sequenza è uscito in piedi (D-13); assente = tutti i nemici, salvo il compagno caduto nello scontro singolo (companionShareOf)
     companionEnemiesXp?: number;
+    // ferite tolte dall'oste prima delle aggiunte di questo esito (Phase 25 D-13); assente = nessuna
+    injuriesRemoved?: InjuryType[];
+    // sottoinsieme di injuriesAdded inflitto a mano dall'oste (Phase 25 D-12); assente = nessuna
+    innkeeperInjuries?: InjuryType[];
 }
 
 // effetti fusi di scontri in sequenza (D-12): vale la vita del compagno dell'ultimo scontro in cui c'era

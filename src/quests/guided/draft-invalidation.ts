@@ -1,4 +1,5 @@
 import type { ParticipantEffects } from 'src/quests/outcomes/combat/combat-resolver';
+import { handInflictedOf } from 'src/quests/outcomes/injuries/innkeeper-injuries';
 import { participantEffectsOf } from './fight-state';
 import { hexOf } from './ids';
 import type {
@@ -16,6 +17,25 @@ export function effectiveEffectsOf(
     return outcome.corrected ?? outcome.simulated ?? null;
 }
 
+// effetto effettivo di un personaggio in uno scontro, con l'origine delle ferite (Phase 25 D-12); null = scontro non simulato
+export function effectiveParticipantEffectsOf(
+    characterHex: string,
+    outcome: MissionFightOutcomeRecord,
+): ParticipantEffects | null {
+    if (!outcome.corrected)
+        return outcome.simulated
+            ? participantEffectsOf(characterHex, outcome.simulated)
+            : null;
+    const corrected = participantEffectsOf(characterHex, outcome.corrected);
+    const innkeeperInjuries = handInflictedOf(
+        corrected,
+        outcome.simulated?.injuriesAdded ?? [],
+    );
+    return innkeeperInjuries.length === 0
+        ? corrected
+        : { ...corrected, innkeeperInjuries };
+}
+
 export function previousEffectsOf(
     fights: readonly MissionFightRecord[],
     index: number,
@@ -26,8 +46,10 @@ export function previousEffectsOf(
         const outcome = fight.outcomes.find(
             (entry) => hexOf(entry.character) === characterHex,
         );
-        const effects = outcome ? effectiveEffectsOf(outcome) : null;
-        if (effects) previous.push(participantEffectsOf(characterHex, effects));
+        const effects = outcome
+            ? effectiveParticipantEffectsOf(characterHex, outcome)
+            : null;
+        if (effects) previous.push(effects);
     }
     return previous;
 }

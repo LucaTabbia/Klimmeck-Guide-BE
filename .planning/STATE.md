@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 23-01-PLAN.md"
-last_updated: "2026-11-14T17:38:39.269Z"
-last_activity: 2026-11-14 -- Phase 23 planning complete
+stopped_at: "Completato 25-14-PLAN.md"
+last_updated: "2026-11-21T19:30:00.000Z"
+last_activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 95
-  completed_plans: 77
-  percent: 81
+  completed_plans: 78
+  percent: 82
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 24 — Origini delle magie, quest void e shamanic (↔ FE Phase 23) su `feat/24-origini-magie-quest-void-shamanic`: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore
+**Current focus:** Phase 25 — Storie dei partecipanti e ferite dell'oste (↔ FE Phase 24) su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 24 di 24 (Origini delle magie, quest void e shamanic) — in esecuzione su `feat/24-origini-magie-quest-void-shamanic`
-Plan: 18 of 18
-Status: executing — Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore.
-Last activity: 2026-11-16 -- piani 24-16, 24-17 e 24-18 eseguiti: push di fine ricerca, filo, gate verde (unit 310 / 4 495, integration 162 / 2 586) e handoff §8
-Next step: orchestratore: Phase 24 eseguita (18/18): ricerca e apprendimento (D-26..D-31) nel ramo; tempi di apprendimento a DB (D-27), test:cov, verifica e audit, riavvio dal ramo, brief della FE e UAT su device (BACKEND-NOTES.md §8.8, §8.9) a cura dell'orchestratore; poi UAT della prima parte (§7), merge di BE e FE e `$unset` di `minXpToLearn` a DB (§4 passo 7).
+Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
+Plan: 14 of 14
+Status: executing — Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
+Last activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
+Next step: orchestratore: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore; poi merge di BE e FE.
 
 ## Current Milestone
 

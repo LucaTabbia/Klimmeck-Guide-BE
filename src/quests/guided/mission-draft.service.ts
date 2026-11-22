@@ -33,7 +33,10 @@ import {
 } from './mission-draft.model';
 
 export type MissionDraftSections = Partial<
-    Pick<MissionDraft, 'step' | 'place' | 'fights' | 'prizes'>
+    Pick<
+        MissionDraft,
+        'step' | 'place' | 'fights' | 'prizes' | 'backgroundAdditions'
+    >
 >;
 
 interface NamedCharacter {
@@ -216,6 +219,7 @@ export class MissionDraftService {
                     catalog,
                 }),
             ),
+            backgroundAdditions: [],
             startedBy: objectIdFromHex(startedBy),
             startedAt: now,
             updatedAt: now,
