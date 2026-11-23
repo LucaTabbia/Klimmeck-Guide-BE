@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import {
     creaturesByOwnLore,
+    knowsEnemyByOwnLore,
     ownLoreHexOf,
     visibleLoreHexOf,
 } from 'src/lore/lore-creature';
@@ -114,5 +115,66 @@ describe('the creature of a lore (quick 261123-lcv)', () => {
             unlocked.toHexString(),
         );
         expect(visibleLoreHexOf(viewer, null)).toBeUndefined();
+    });
+});
+
+describe('whether the viewer knows an enemy (quick 261123-lcv)', () => {
+    const chiefLore = new Types.ObjectId();
+    const goblinLore = new Types.ObjectId();
+    const shamanLore = new Types.ObjectId();
+    const chief = {
+        _id: new Types.ObjectId(),
+        relatedLore: [chiefLore, goblinLore],
+    };
+    const goblin = { _id: new Types.ObjectId(), relatedLore: [goblinLore] };
+    const shaman = {
+        _id: new Types.ObjectId(),
+        relatedLore: [shamanLore, goblinLore],
+    };
+
+    it('knows the enemies whose own lore is unlocked: the chief and the goblin, not the shaman', () => {
+        const winner = visibilityOf({
+            unlockedLore: [chiefLore, goblinLore],
+            knownEnemies: [chief._id],
+        });
+
+        expect(knowsEnemyByOwnLore(winner, chief)).toBe(true);
+        expect(knowsEnemyByOwnLore(winner, goblin)).toBe(true);
+        expect(knowsEnemyByOwnLore(winner, shaman)).toBe(false);
+    });
+
+    it('knows an enemy whose lore was unlocked without a fight, as by buying the pet of the same lore', () => {
+        const buyer = visibilityOf({ unlockedLore: [goblinLore] });
+
+        expect(knowsEnemyByOwnLore(buyer, goblin)).toBe(true);
+    });
+
+    it('does not know a defeated enemy whose own lore is locked: the sheet says what the bestiary says', () => {
+        const winner = visibilityOf({
+            unlockedLore: [goblinLore],
+            knownEnemies: [shaman._id],
+        });
+
+        expect(knowsEnemyByOwnLore(winner, shaman)).toBe(false);
+    });
+
+    it('falls back on the defeated enemies for an enemy without an own lore', () => {
+        const loreless = { _id: new Types.ObjectId(), relatedLore: [] };
+        const fieldless = { _id: new Types.ObjectId() };
+        const bare = new Types.ObjectId();
+        const winner = visibilityOf({
+            knownEnemies: [loreless._id, fieldless._id, bare],
+        });
+        const stranger = visibilityOf({ unlockedLore: [goblinLore] });
+
+        expect(knowsEnemyByOwnLore(winner, loreless)).toBe(true);
+        expect(knowsEnemyByOwnLore(winner, fieldless)).toBe(true);
+        expect(knowsEnemyByOwnLore(winner, bare)).toBe(true);
+        expect(knowsEnemyByOwnLore(stranger, loreless)).toBe(false);
+    });
+
+    it('knows every enemy as who sees everything, and none as who sees nothing', () => {
+        expect(knowsEnemyByOwnLore(SEES_EVERYTHING, shaman)).toBe(true);
+        expect(knowsEnemyByOwnLore(visibilityOf(null), goblin)).toBe(false);
     });
 });

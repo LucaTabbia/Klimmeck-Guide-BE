@@ -4,6 +4,7 @@ import {
     CharacterSchema,
 } from 'src/models/character/character.model';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
@@ -32,6 +33,7 @@ import { createPlayer, type TestPlayer } from '../../test/authz/player-fixture';
 import {
     buildQuest,
     persistEnemy,
+    persistLore,
     persistPoi,
     persistQuest,
 } from '../../test/fixtures';
@@ -251,6 +253,153 @@ describe('QuestEnemy.known (wire)', () => {
                     },
                 },
             },
+        });
+    });
+
+    describe('by the own lore of the enemy (quick 261123-lcv)', () => {
+        let lore: Model<any>;
+
+        async function loreNamed(name: string): Promise<EnemyRef> {
+            return persistLore(lore, { name });
+        }
+
+        function enemyWith(name: string, ...related: EnemyRef[]) {
+            return persistEnemy(modelOf(Enemy.name, EnemySchema), {
+                name,
+                relatedLore: related.map((entry) => entry._id),
+            });
+        }
+
+        beforeEach(() => {
+            lore = modelOf(Lore.name, LoreSchema);
+        });
+
+        it('knows the chief and the goblin after defeating the chief, not the shaman nor the bugbear', async () => {
+            const goblinLore = await loreNamed('Goblin');
+            const chiefLore = await loreNamed('Capo goblin');
+            const chief = await enemyWith('Capo goblin', chiefLore, goblinLore);
+            const quest = await persistQuestAgainst(
+                chief,
+                await enemyWith('Goblin comune', goblinLore),
+                await enemyWith(
+                    'Sciamano goblin',
+                    await loreNamed('Sciamano goblin'),
+                    goblinLore,
+                ),
+                await enemyWith(
+                    'Bugbear',
+                    await loreNamed('Bugbear'),
+                    goblinLore,
+                ),
+            );
+            const player = await playerKnowing(harness, {
+                twitchId: 'twitch-known-chief',
+                lore: [chiefLore._id, goblinLore._id],
+                enemies: [chief._id],
+            });
+
+            expect(await knownOnQuest(quest._id, player.bearer)).toEqual({
+                'Capo goblin': true,
+                'Goblin comune': true,
+                'Sciamano goblin': false,
+                Bugbear: false,
+            });
+        });
+
+        it('knows the enemy whose lore was unlocked by buying the pet of the same lore', async () => {
+            const horseLore = await loreNamed('Cavallo leggero');
+            const quest = await persistQuestAgainst(
+                await enemyWith('Cavallo leggero', horseLore),
+            );
+            const buyer = await playerKnowing(harness, {
+                twitchId: 'twitch-known-buyer',
+                lore: [horseLore._id],
+            });
+
+            expect(await knownOnQuest(quest._id, buyer.bearer)).toEqual({
+                'Cavallo leggero': true,
+            });
+        });
+
+        it('does not know a defeated enemy whose own lore is locked', async () => {
+            const troll = await enemyWith('Troll', await loreNamed('Troll'));
+            const quest = await persistQuestAgainst(troll);
+            const winner = await playerKnowing(harness, {
+                twitchId: 'twitch-known-loreless-win',
+                enemies: [troll._id],
+            });
+
+            expect(await knownOnQuest(quest._id, winner.bearer)).toEqual({
+                Troll: false,
+            });
+        });
+
+        it('falls back on the defeated enemies for an enemy without any lore', async () => {
+            const quest = await persistQuestAgainst(goblin, wolf);
+            const winner = await playerKnowing(harness, {
+                twitchId: 'twitch-known-fallback',
+                enemies: [wolf._id],
+            });
+
+            expect(await knownOnQuest(quest._id, winner.bearer)).toEqual({
+                Goblin: false,
+                Lupo: true,
+            });
+        });
+
+        it('serves the same known on the result enemies', async () => {
+            const horseLore = await loreNamed('Cavallo leggero');
+            const horse = await enemyWith('Cavallo leggero', horseLore);
+            const player = await playerKnowing(harness, {
+                twitchId: 'twitch-known-result-lore',
+                lore: [horseLore._id],
+            });
+            const result = await persistResultOf(player, horse, goblin);
+
+            const response = await graphqlRequest(
+                harness.app,
+                QUEST_RESULT,
+                { id: String(result._id) },
+                player.bearer,
+            );
+            const body = response.body as WireBody;
+
+            expect(body.errors).toBeUndefined();
+            expect(knownByName(body.data?.questResult?.enemies ?? [])).toEqual({
+                'Cavallo leggero': true,
+                Goblin: false,
+            });
+        });
+
+        it('reads the viewer once and no catalogue for a quest with many enemies', async () => {
+            const horseLore = await loreNamed('Cavallo leggero');
+            const quest = await persistQuestAgainst(
+                await enemyWith('Cavallo leggero', horseLore),
+                goblin,
+                wolf,
+            );
+            const player = await playerKnowing(harness, {
+                twitchId: 'twitch-known-lore-once',
+                lore: [horseLore._id],
+            });
+            const characterRead = jest.spyOn(
+                modelOf(Character.name, CharacterSchema),
+                'findOne',
+            );
+            const loreRead = jest.spyOn(lore, 'find');
+            const enemyRead = jest.spyOn(
+                modelOf(Enemy.name, EnemySchema),
+                'findOne',
+            );
+
+            expect(await knownOnQuest(quest._id, player.bearer)).toEqual({
+                'Cavallo leggero': true,
+                Goblin: false,
+                Lupo: false,
+            });
+            expect(characterRead).toHaveBeenCalledTimes(1);
+            expect(loreRead).not.toHaveBeenCalled();
+            expect(enemyRead).not.toHaveBeenCalled();
         });
     });
 
