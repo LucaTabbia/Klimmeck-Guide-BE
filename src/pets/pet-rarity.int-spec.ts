@@ -1,5 +1,6 @@
 import { Model, Types } from 'mongoose';
 import type request from 'supertest';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { RarityType } from 'src/models/enums/rarity-type.enum';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
@@ -49,8 +50,11 @@ describe('pet rarity (wire)', () => {
         petModel =
             harness.connection.models[Pet.name] ??
             harness.connection.model(Pet.name, PetSchema);
+        // il catalogo intero dei pet è dell'oste (quick 261123-lcv)
         ({ bearer } = await createPlayer(harness, {
             twitchId: 'twitch-pet-rarity-reader',
+            role: RoleType.innkeeper,
+            withCharacter: false,
         }));
     });
 

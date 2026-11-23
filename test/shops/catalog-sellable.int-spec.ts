@@ -6,6 +6,7 @@ import { EquipmentItem } from 'src/models/equipment-item.model';
 import { LootItem } from 'src/models/loot-item.model';
 import { Pet } from 'src/models/pet.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import { PetsModule } from 'src/pets/pets.module';
 import {
     AuthTestApp,
@@ -52,8 +53,10 @@ describe('catalogue sellable on the wire', () => {
     });
 
     beforeEach(async () => {
+        // il catalogo intero dei pet è dell'oste (quick 261123-lcv)
         ({ bearer } = await createPlayer(harness, {
             twitchId: 'twitch-catalog-sellable',
+            role: RoleType.innkeeper,
             withCharacter: false,
         }));
     });

@@ -54,6 +54,13 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         document: 'query Characters { characters { id } }',
         variables: NO_VARIABLES,
     },
+    'EnemiesResolver.enemys': {
+        kind: 'query',
+        field: 'enemys',
+        target: 'none',
+        document: 'query Enemys { enemys { id } }',
+        variables: NO_VARIABLES,
+    },
     'GuidedMissionResolver.completeGuidedMission': {
         kind: 'mutation',
         field: 'completeGuidedMission',
@@ -152,6 +159,13 @@ export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
         target: 'none',
         document:
             'subscription PendingRequestsUpdated { pendingRequestsUpdated { id } }',
+        variables: NO_VARIABLES,
+    },
+    'PetsResolver.pets': {
+        kind: 'query',
+        field: 'pets',
+        target: 'none',
+        document: 'query Pets { pets { id } }',
         variables: NO_VARIABLES,
     },
     'PushResolver.sendTestPush': {

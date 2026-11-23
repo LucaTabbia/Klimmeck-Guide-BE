@@ -54,6 +54,9 @@ const SPELLS = 'query { spells { id relatedLore { id name } } }';
 const SPELL =
     'query Spell($id: String!) { spell(id: $id) { id relatedLore { id name } } }';
 const PET_KNOWN = 'query Pet($id: String!) { pet(id: $id) { id known } }';
+// tre pet nella stessa richiesta: il viewer si legge una volta sola
+const THREE_PETS_KNOWN =
+    'query Pets($a: String!, $b: String!, $c: String!) { a: pet(id: $a) { known } b: pet(id: $b) { known } c: pet(id: $c) { known } }';
 
 interface WireRelated {
     id: string;
@@ -246,7 +249,7 @@ describe('related lore (wire)', () => {
         });
         const expected = [{ id: String(loreA._id), name: 'A' }];
 
-        const list = await request(ENEMIES);
+        const list = await request(ENEMIES, undefined, await innkeeperBearer());
         const single = await request(ENEMY, { id: String(enemy._id) });
 
         expect(list.errors).toBeUndefined();
@@ -335,12 +338,12 @@ describe('related lore (wire)', () => {
         expect(single.errors?.[0]?.extensions?.code).toBe('NOT_FOUND');
     });
 
-    it('filters the related lore of every enemy (D-10)', async () => {
+    it('filters the related lore of an enemy for a player, not for the innkeeper (D-10)', async () => {
         const enemy = await persistEnemy(modelOf(Enemy.name, EnemySchema), {
             relatedLore: [loreA._id, loreC._id],
         });
 
-        const player = await request(ENEMY_RELATED);
+        const player = await request(ENEMY, { id: String(enemy._id) });
         const innkeeper = await request(
             ENEMY_RELATED,
             undefined,
@@ -348,8 +351,8 @@ describe('related lore (wire)', () => {
         );
 
         expect(player.errors).toBeUndefined();
-        expect(relatedOf(player.data?.enemys, enemy._id)).toEqual([
-            { id: String(loreA._id) },
+        expect(player.data?.enemy?.relatedLore).toEqual([
+            { id: String(loreA._id), name: 'A' },
         ]);
         expect(innkeeper.errors).toBeUndefined();
         expect(relatedOf(innkeeper.data?.enemys, enemy._id)).toEqual([
@@ -371,7 +374,11 @@ describe('related lore (wire)', () => {
             spells: [{ id: String(spell._id), name: 'Soffio gelido' }],
         };
 
-        const list = await request(ENEMIES_SPELLS);
+        const list = await request(
+            ENEMIES_SPELLS,
+            undefined,
+            await innkeeperBearer(),
+        );
         const single = await request(ENEMY_SPELLS, { id: String(enemy._id) });
 
         expect(list.errors).toBeUndefined();
@@ -495,12 +502,10 @@ describe('related lore (wire)', () => {
         it('serves a player only the unlocked lore of a pet (D-26)', async () => {
             const pet = await petWith([loreA._id, loreC._id]);
 
-            const body = await request(PETS);
+            const body = await request(PET, { id: String(pet._id) });
 
             expect(body.errors).toBeUndefined();
-            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
-                wireOf(loreA, 'A'),
-            ]);
+            expect(body.data?.pet?.relatedLore).toEqual([wireOf(loreA, 'A')]);
         });
 
         it('serves the innkeeper every lore of a pet in the order of the refs (D-26)', async () => {
@@ -526,10 +531,10 @@ describe('related lore (wire)', () => {
                 withCharacter: false,
             });
 
-            const body = await request(PETS, undefined, homeless);
+            const body = await request(PET, { id: String(pet._id) }, homeless);
 
             expect(body.errors).toBeUndefined();
-            expect(relatedOf(body.data?.pets, pet._id)).toEqual([]);
+            expect(body.data?.pet?.relatedLore).toEqual([]);
         });
 
         it('drops a lore of a pet that no longer exists (D-26)', async () => {
@@ -547,15 +552,6 @@ describe('related lore (wire)', () => {
             ]);
         });
 
-        it('serves the unlocked lore on the single pet query too (D-26)', async () => {
-            const pet = await petWith([loreA._id, loreC._id]);
-
-            const body = await request(PET, { id: String(pet._id) });
-
-            expect(body.errors).toBeUndefined();
-            expect(body.data?.pet?.relatedLore).toEqual([wireOf(loreA, 'A')]);
-        });
-
         it('reads a pet lore id written as a string by a content script (D-26)', async () => {
             const pet = await petWith([]);
             await modelOf(Pet.name, PetSchema).collection.updateOne(
@@ -563,12 +559,10 @@ describe('related lore (wire)', () => {
                 { $set: { relatedLore: [loreA._id.toHexString()] } },
             );
 
-            const body = await request(PETS);
+            const body = await request(PET, { id: String(pet._id) });
 
             expect(body.errors).toBeUndefined();
-            expect(relatedOf(body.data?.pets, pet._id)).toEqual([
-                wireOf(loreA, 'A'),
-            ]);
+            expect(body.data?.pet?.relatedLore).toEqual([wireOf(loreA, 'A')]);
         });
     });
 
@@ -682,24 +676,32 @@ describe('related lore (wire)', () => {
             return entries?.find((entry) => entry.id === String(id))?.known;
         }
 
+        // il catalogo intero è dell'oste (quick 261123-lcv): il giocatore chiede il pet per id
+        async function knownTo(
+            pet: { _id: Types.ObjectId },
+            auth?: string,
+        ): Promise<boolean | undefined> {
+            const body = await request(
+                PET_KNOWN,
+                { id: String(pet._id) },
+                auth,
+            );
+            expect(body.errors).toBeUndefined();
+            return body.data?.pet?.known;
+        }
+
         it('knows a pet once one of its lore is unlocked (UAT 2026-11-15)', async () => {
             const known = await petWith([loreC._id, loreA._id]);
             const locked = await petWith([loreC._id]);
 
-            const body = await request(PETS_KNOWN);
-
-            expect(body.errors).toBeUndefined();
-            expect(knownOf(body.data?.pets, known._id)).toBe(true);
-            expect(knownOf(body.data?.pets, locked._id)).toBe(false);
+            expect(await knownTo(known)).toBe(true);
+            expect(await knownTo(locked)).toBe(false);
         });
 
         it('knows a pet without any lore, there is nothing to discover (UAT 2026-11-15)', async () => {
             const pet = await petWith([]);
 
-            const body = await request(PETS_KNOWN);
-
-            expect(body.errors).toBeUndefined();
-            expect(knownOf(body.data?.pets, pet._id)).toBe(true);
+            expect(await knownTo(pet)).toBe(true);
         });
 
         it('knows every pet as the innkeeper (UAT 2026-11-15)', async () => {
@@ -723,20 +725,8 @@ describe('related lore (wire)', () => {
                 withCharacter: false,
             });
 
-            const body = await request(PETS_KNOWN, undefined, homeless);
-
-            expect(body.errors).toBeUndefined();
-            expect(knownOf(body.data?.pets, withLore._id)).toBe(false);
-            expect(knownOf(body.data?.pets, withoutLore._id)).toBe(true);
-        });
-
-        it('serves known on the single pet query too (UAT 2026-11-15)', async () => {
-            const pet = await petWith([loreC._id]);
-
-            const body = await request(PET_KNOWN, { id: String(pet._id) });
-
-            expect(body.errors).toBeUndefined();
-            expect(body.data?.pet?.known).toBe(false);
+            expect(await knownTo(withLore, homeless)).toBe(false);
+            expect(await knownTo(withoutLore, homeless)).toBe(true);
         });
 
         it('reads a pet lore id written as a string by a content script (UAT 2026-11-15)', async () => {
@@ -746,16 +736,15 @@ describe('related lore (wire)', () => {
                 { $set: { relatedLore: [loreA._id.toHexString()] } },
             );
 
-            const body = await request(PETS_KNOWN);
-
-            expect(body.errors).toBeUndefined();
-            expect(knownOf(body.data?.pets, pet._id)).toBe(true);
+            expect(await knownTo(pet)).toBe(true);
         });
 
         it('reads the viewer once and no lore for many pets (UAT 2026-11-15)', async () => {
-            await petWith([loreA._id]);
-            await petWith([loreC._id]);
-            await petWith([]);
+            const pets = [
+                await petWith([loreA._id]),
+                await petWith([loreC._id]),
+                await petWith([]),
+            ];
             const lore = harness.app.get<Model<unknown>>(
                 getModelToken(Lore.name),
             );
@@ -766,12 +755,18 @@ describe('related lore (wire)', () => {
             const characterRead = jest.spyOn(character, 'findOne');
 
             try {
-                const body = await request(PETS_KNOWN);
+                const body = await request(THREE_PETS_KNOWN, {
+                    a: String(pets[0]._id),
+                    b: String(pets[1]._id),
+                    c: String(pets[2]._id),
+                });
 
                 expect(body.errors).toBeUndefined();
-                expect(
-                    (body.data?.pets ?? []).map((pet) => pet.known).sort(),
-                ).toEqual([false, true, true]);
+                expect(body.data).toEqual({
+                    a: { known: true },
+                    b: { known: false },
+                    c: { known: true },
+                });
                 expect(loreRead).not.toHaveBeenCalled();
                 expect(characterRead).toHaveBeenCalledTimes(1);
             } finally {
