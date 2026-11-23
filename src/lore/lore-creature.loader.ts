@@ -1,18 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, type FilterQuery } from 'mongoose';
 import { ENEMY_WIRE_POPULATE } from 'src/enemies/enemies.service';
 import { Enemy, EnemyDocument } from 'src/models/enemy.model';
 import { Pet, PetDocument } from 'src/models/pet.model';
-import { objectIdFromHex } from 'src/mongo/document-id';
-import { creaturesByLore, LoreCreature } from './lore-creature';
+import { creaturesByOwnLore, LoreCreature } from './lore-creature';
 import { withoutOrphanRelatedLore } from './related-lore';
 
-type ReadCreatures<T> = (loreHexes: string[]) => Promise<T[]>;
+type ReadOwners<T> = (loreHexes: string[]) => Promise<Map<string, T>>;
 
 interface Batch<T> {
     loreHexes: Set<string>;
-    creatures: Promise<Map<string, T>>;
+    owners: Promise<Map<string, T>>;
 }
 
 // i resolver fratelli di una lista ripartono nello stesso giro di microtask: il blocco si chiude al tick successivo
@@ -20,79 +19,73 @@ const nextTick = (): Promise<void> =>
     new Promise((resolve) => process.nextTick(resolve));
 
 // caricamento a blocchi per richiesta (quick 261123-lcv): le lore chieste nello stesso giro si leggono con una sola query
-export class CreaturesOfLoreBatcher<T extends LoreCreature> {
+export class CreaturesOfLoreBatcher<T> {
     private readonly open = new WeakMap<object, Batch<T>>();
 
-    constructor(private readonly read: ReadCreatures<T>) {}
+    constructor(private readonly read: ReadOwners<T>) {}
 
     async load(scope: object, loreHex: string): Promise<T | null> {
         const batch = this.open.get(scope) ?? this.openBatch(scope);
         batch.loreHexes.add(loreHex);
-        return (await batch.creatures).get(loreHex) ?? null;
+        return (await batch.owners).get(loreHex) ?? null;
     }
 
     private openBatch(scope: object): Batch<T> {
         const loreHexes = new Set<string>();
         const batch: Batch<T> = {
             loreHexes,
-            creatures: Promise.resolve()
+            owners: Promise.resolve()
                 .then(nextTick)
                 .then(() => {
                     this.open.delete(scope);
                     return this.read([...loreHexes]);
-                })
-                .then(creaturesByLore),
+                }),
         };
         this.open.set(scope, batch);
         return batch;
     }
 }
 
-// le due forme salvate di un ref (ObjectId, o stringa scritta da uno script di contenuto): Mongoose casta $in sul path, $expr no
-export function carryingAnyLore(loreHexes: string[]): FilterQuery<unknown> {
-    const savedAsString = {
-        $expr: {
-            $setIsSubset: [
-                [true],
-                {
-                    $map: {
-                        input: {
-                            $cond: [
-                                { $isArray: '$relatedLore' },
-                                '$relatedLore',
-                                [],
-                            ],
-                        },
-                        in: { $in: ['$$this', loreHexes] },
-                    },
-                },
-            ],
-        },
+// la prima relatedLore nelle due forme salvate (ObjectId, o stringa scritta da uno script di contenuto):
+// Mongoose casterebbe un filtro sul path, $expr confronta l'esadecimale
+export function owningAnyLore(loreHexes: string[]): FilterQuery<unknown> {
+    const related = {
+        $cond: [{ $isArray: '$relatedLore' }, '$relatedLore', []],
     };
     return {
-        $or: [
-            { relatedLore: { $in: loreHexes.map(objectIdFromHex) } },
-            savedAsString,
-        ],
+        $expr: {
+            $in: [{ $toString: { $arrayElemAt: [related, 0] } }, loreHexes],
+        },
     };
 }
 
-// nemico e pet nella stessa forma di `enemys` e `pets`; l'ordine per _id rende stabile la lettura, la scelta la fa creaturesByLore
+// nemico e pet nella stessa forma di `enemys` e `pets`; il proprietario si decide sui ref letti, prima del populate che scarta gli orfani
 @Injectable()
 export class LoreCreatureLoader {
+    private readonly logger = new Logger(LoreCreatureLoader.name);
+
     private readonly enemies = new CreaturesOfLoreBatcher<Enemy>(
         async (loreHexes) => {
-            const enemies = await this.enemyModel
-                .find(carryingAnyLore(loreHexes))
-                .sort({ _id: 1 })
-                .populate(ENEMY_WIRE_POPULATE)
+            const found = await this.enemyModel
+                .find(owningAnyLore(loreHexes))
                 .exec();
-            return enemies.map(withoutOrphanRelatedLore);
+            const owners = this.ownersOf(found, 'nemici');
+            await this.enemyModel.populate(
+                [...owners.values()],
+                ENEMY_WIRE_POPULATE,
+            );
+            owners.forEach(withoutOrphanRelatedLore);
+            return owners;
         },
     );
 
-    private readonly pets = new CreaturesOfLoreBatcher<Pet>((loreHexes) =>
-        this.petModel.find(carryingAnyLore(loreHexes)).sort({ _id: 1 }).exec(),
+    private readonly pets = new CreaturesOfLoreBatcher<Pet>(
+        async (loreHexes) => {
+            const found = await this.petModel
+                .find(owningAnyLore(loreHexes))
+                .exec();
+            return this.ownersOf(found, 'pet');
+        },
     );
 
     constructor(
@@ -107,5 +100,18 @@ export class LoreCreatureLoader {
 
     petOf(scope: object, loreHex: string): Promise<Pet | null> {
         return this.pets.load(scope, loreHex);
+    }
+
+    private ownersOf<T extends LoreCreature>(
+        creatures: T[],
+        kind: string,
+    ): Map<string, T> {
+        const { byLore, contested } = creaturesByOwnLore(creatures);
+        for (const lore of contested) {
+            this.logger.warn(
+                `Più ${kind} hanno la lore ${lore} come prima voce: servito quello con l'id più piccolo`,
+            );
+        }
+        return byLore;
     }
 }
