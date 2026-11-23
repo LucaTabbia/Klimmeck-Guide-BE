@@ -413,9 +413,11 @@ type LootRecovery {
 
 type Lore {
   description: String!
+  enemy: Enemy
   id: ID!
   imagePath: String
   name: String!
+  pet: Pet
   relatedLore: [Lore!]!
   type: String!
 }

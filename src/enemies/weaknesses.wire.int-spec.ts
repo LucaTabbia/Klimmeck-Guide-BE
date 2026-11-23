@@ -1,6 +1,7 @@
 import { Model, Types } from 'mongoose';
 import type request from 'supertest';
 import { Enemy, EnemySchema } from 'src/models/enemy.model';
+import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -31,6 +32,8 @@ function bodyOf(response: request.Response): WireBody {
 describe('enemy weaknesses (wire)', () => {
     let harness: AuthTestApp;
     let bearer: string;
+    // il catalogo intero è dell'oste (quick 261123-lcv)
+    let innkeeper: string;
     let enemies: Model<any>;
 
     // il contenuto lo scrive uno script col driver nativo, senza i validatori dello schema
@@ -53,6 +56,13 @@ describe('enemy weaknesses (wire)', () => {
         bearer = (
             await createPlayer(harness, { twitchId: 'twitch-weakness-reader' })
         ).bearer;
+        innkeeper = (
+            await createPlayer(harness, {
+                twitchId: 'twitch-weakness-innkeeper',
+                role: RoleType.innkeeper,
+                withCharacter: false,
+            })
+        ).bearer;
     });
 
     afterAll(async () => {
@@ -66,7 +76,7 @@ describe('enemy weaknesses (wire)', () => {
         })) as { _id: Types.ObjectId };
 
         const body = bodyOf(
-            await graphqlRequest(harness.app, ENEMIES, {}, bearer),
+            await graphqlRequest(harness.app, ENEMIES, {}, innkeeper),
         );
 
         expect(body.errors).toBeUndefined();
@@ -88,7 +98,7 @@ describe('enemy weaknesses (wire)', () => {
         });
 
         const body = bodyOf(
-            await graphqlRequest(harness.app, ENEMIES, {}, bearer),
+            await graphqlRequest(harness.app, ENEMIES, {}, innkeeper),
         );
 
         expect(body.errors).toBeUndefined();
