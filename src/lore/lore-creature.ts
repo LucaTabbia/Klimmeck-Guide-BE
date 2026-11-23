@@ -1,5 +1,10 @@
 import { documentIdOf } from 'src/mongo/document-id';
-import { isVisible, LoreVisibility, refHexOf } from './lore-visibility';
+import {
+    isVisible,
+    knowsEnemy,
+    LoreVisibility,
+    refHexOf,
+} from './lore-visibility';
 
 // la creatura di una lore (quick 261123-lcv): il nemico o il pet che l'ha come lore PROPRIA, la prima delle sue relatedLore
 // («Goblin» è del Goblin, non del Capo goblin che la porta per seconda); esce solo se la lore è visibile al viewer (isVisible)
@@ -48,4 +53,16 @@ export function creaturesByOwnLore<T extends LoreCreature>(
 
 function comesBefore(creature: unknown, other: unknown): boolean {
     return (documentIdOf(creature) ?? '') < (documentIdOf(other) ?? '');
+}
+
+// nemico conosciuto dal viewer (quick 261123-lcv): la sua lore propria è sbloccata, così foglio quest e bestiario dicono lo stesso;
+// senza lore propria leggibile (nessuna lore, o nemico non popolato) vale il ripiego sugli sconfitti: nessun nemico resta inconoscibile
+export function knowsEnemyByOwnLore(
+    visibility: LoreVisibility,
+    enemy: unknown,
+): boolean {
+    const ownLore = ownLoreHexOf(enemy);
+    return ownLore === undefined
+        ? knowsEnemy(visibility, enemy)
+        : isVisible(visibility, ownLore);
 }

@@ -3,10 +3,11 @@ import type { GraphQLResolveInfo } from 'graphql';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { QuestEnemy } from 'src/models/quest/quest-enemy.model';
-import { knowsEnemy } from './lore-visibility';
+import { knowsEnemyByOwnLore } from './lore-creature';
 import { ViewerKnowledgeService } from './viewer-knowledge.service';
 
-// nemico conosciuto dal viewer (Phase 16 D-06, D-07): l'id esatto, mai la specie; una lettura per richiesta o per evento
+// nemico conosciuto dal viewer (Phase 16 D-07, quick 261123-lcv): la lore propria del nemico è sbloccata, la stessa regola di Lore.enemy;
+// la lore si legge dal nemico già popolato sulla voce: una lettura del viewer per richiesta o per evento, nessuna per voce
 @Resolver(() => QuestEnemy)
 export class KnownEnemiesResolver {
     constructor(private readonly viewers: ViewerKnowledgeService) {}
@@ -18,7 +19,7 @@ export class KnownEnemiesResolver {
         @Context() context: object,
         @Info() info: GraphQLResolveInfo,
     ): Promise<boolean> {
-        return knowsEnemy(
+        return knowsEnemyByOwnLore(
             await this.viewers.of(identity, context, info),
             entry.enemy,
         );
