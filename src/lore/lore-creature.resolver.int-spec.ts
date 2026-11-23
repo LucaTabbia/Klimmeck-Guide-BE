@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Schema, Types } from 'mongoose';
 import type request from 'supertest';
@@ -261,7 +262,73 @@ describe('the creature of a lore on the wire (quick 261123-lcv)', () => {
         expect(loreOf(body, petLore)?.pet?.id).toBe(String(hawk._id));
     });
 
-    it('picks the enemy and the pet with the smallest id when more share a lore', async () => {
+    it('serves an enemy only on its own lore, the first of its list', async () => {
+        const goblin = await persistEnemy(enemies(), {
+            name: 'Goblin',
+            relatedLore: [plainLore._id],
+        });
+        const chief = await persistEnemy(enemies(), {
+            _id: new Types.ObjectId('0000000000000000000000a1'),
+            name: 'Capo goblin',
+            relatedLore: [enemyLore._id, plainLore._id],
+        });
+        await persistEnemy(enemies(), {
+            _id: new Types.ObjectId('0000000000000000000000a0'),
+            name: 'Sciamano goblin',
+            relatedLore: [lockedLore._id, plainLore._id, petLore._id],
+        });
+
+        const body = await ask(LORES, reader.bearer);
+
+        expect(body.errors).toBeUndefined();
+        expect(loreOf(body, plainLore)?.enemy?.id).toBe(String(goblin._id));
+        expect(loreOf(body, enemyLore)?.enemy?.id).toBe(String(chief._id));
+        expect(loreOf(body, petLore)?.enemy).toBeNull();
+    });
+
+    it('serves a pet only on its own lore, the first of its list', async () => {
+        const hawk = await persistPet(pets(), {
+            relatedLore: [petLore._id, plainLore._id],
+        });
+
+        const body = await ask(LORES, reader.bearer);
+
+        expect(body.errors).toBeUndefined();
+        expect(loreOf(body, petLore)?.pet?.id).toBe(String(hawk._id));
+        expect(loreOf(body, plainLore)?.pet).toBeNull();
+    });
+
+    it('serves both the enemy and the pet of a lore that belongs to one of each', async () => {
+        const horse = await persistEnemy(enemies(), {
+            name: 'Cavallo leggero',
+            relatedLore: [petLore._id],
+        });
+        const mount = await persistPet(pets(), {
+            name: 'Cavallo leggero',
+            relatedLore: [petLore._id],
+        });
+
+        const body = await ask(LORES, reader.bearer);
+
+        expect(body.errors).toBeUndefined();
+        expect(loreOf(body, petLore)).toMatchObject({
+            enemy: { id: String(horse._id) },
+            pet: { id: String(mount._id) },
+        });
+    });
+
+    it('does not promote the second lore of an enemy whose first no longer exists', async () => {
+        await persistEnemy(enemies(), {
+            relatedLore: [new Types.ObjectId(), enemyLore._id],
+        });
+
+        const body = await ask(LORES, reader.bearer);
+
+        expect(body.errors).toBeUndefined();
+        expect(loreOf(body, enemyLore)?.enemy).toBeNull();
+    });
+
+    it('picks the smallest id when two enemies or two pets own the same lore, and warns without failing', async () => {
         const first = new Types.ObjectId('0000000000000000000000a1');
         const second = new Types.ObjectId('0000000000000000000000a2');
         await persistEnemy(enemies(), {
@@ -274,12 +341,28 @@ describe('the creature of a lore on the wire (quick 261123-lcv)', () => {
         });
         await persistPet(pets(), { _id: second, relatedLore: [petLore._id] });
         await persistPet(pets(), { _id: first, relatedLore: [petLore._id] });
+        const warn = jest
+            .spyOn(Logger.prototype, 'warn')
+            .mockImplementation(() => undefined);
 
-        const body = await ask(LORES, reader.bearer);
+        try {
+            const body = await ask(LORES, reader.bearer);
 
-        expect(body.errors).toBeUndefined();
-        expect(loreOf(body, enemyLore)?.enemy?.id).toBe(String(first));
-        expect(loreOf(body, petLore)?.pet?.id).toBe(String(first));
+            expect(body.errors).toBeUndefined();
+            expect(loreOf(body, enemyLore)?.enemy?.id).toBe(String(first));
+            expect(loreOf(body, petLore)?.pet?.id).toBe(String(first));
+            const warnings = warn.mock.calls.map(([message]) =>
+                String(message),
+            );
+            expect(warnings).toEqual(
+                expect.arrayContaining([
+                    expect.stringContaining(String(enemyLore._id)),
+                    expect.stringContaining(String(petLore._id)),
+                ]),
+            );
+        } finally {
+            warn.mockRestore();
+        }
     });
 
     it('reads a lore id written as a string by a content script', async () => {
