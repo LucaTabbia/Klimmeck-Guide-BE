@@ -616,6 +616,42 @@ describe('CharacterCreationResolver (wire)', () => {
         });
     });
 
+    describe('owner', () => {
+        const CREATE_SELECTING_OWNER = `
+            mutation Create($input: CreateCharacterInput!) {
+                createCharacter(input: $input) {
+                    currentCharacter { id user }
+                }
+            }
+        `;
+
+        it('records the owner on the created character (D-24)', async () => {
+            const character = createdCharacterOf(await create(VALID_INPUT));
+
+            const raw = await rawCharacter(character.id);
+            expect(raw?.user).toBeInstanceOf(Types.ObjectId);
+            expect((raw?.user as Types.ObjectId).equals(user._id)).toBe(true);
+        });
+
+        it('serves the created character without its owner (D-24)', async () => {
+            const character = createdCharacterOf(await create(VALID_INPUT));
+            expect(Object.keys(character).sort()).toEqual(['id', 'infos']);
+
+            const response = await graphqlRequest(
+                harness.app,
+                CREATE_SELECTING_OWNER,
+                { input: { ...VALID_INPUT, name: 'Brina' } },
+                bearer,
+            );
+
+            const body = response.body as WireBody;
+            expect(body.data ?? null).toBeNull();
+            expect(body.errors?.[0].message).toContain(
+                'Cannot query field "user"',
+            );
+        });
+    });
+
     describe('raceTraits', () => {
         it('returns the same table used by the validation', async () => {
             const response = await graphqlRequest(
