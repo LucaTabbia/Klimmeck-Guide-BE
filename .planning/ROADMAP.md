@@ -383,6 +383,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
+| 26. Eliminazione account e consenso | v1.1 | 0/14 | Planned | - |
 
 ### Phase 26: Eliminazione account e consenso
 

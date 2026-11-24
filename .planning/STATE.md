@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-14-PLAN.md"
+stopped_at: "Phase 26 pianificata (14 piani)"
 last_updated: "2026-11-21T19:30:00.000Z"
 last_activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
 progress:
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 25 — Storie dei partecipanti e ferite dell'oste (↔ FE Phase 24) su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
+**Current focus:** Phase 26 — Eliminazione account e consenso (↔ FE Phase 25) su `feat/26-eliminazione-account-e-consenso`: 14 piani sequenziali, in esecuzione. In precedenza: Phase 25 — Storie dei partecipanti e ferite dell'oste (↔ FE Phase 24) su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 14 of 14
-Status: executing — Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
+Phase: 26 (Eliminazione account e consenso) — pianificata il 2026-11-25, 14 piani, in esecuzione. In precedenza: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
+Plan: 0 of 14
+Status: executing — Phase 26 in esecuzione (0/14). In precedenza: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 Last activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
 Next step: orchestratore: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore; poi merge di BE e FE.
 
