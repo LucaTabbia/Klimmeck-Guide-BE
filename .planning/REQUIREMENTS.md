@@ -135,7 +135,7 @@ I requisiti sono stati scritti nei discuss del 2026-11-09 (`18-CONTEXT.md`, `19-
 ### Legal Consent (BE-CONSENT) — Phase 26, aggiunta 2026-11-25
 
 - [ ] **BE-CONSENT-01**: Il login Twitch porta la versione accettata dei documenti come `termsVersion` su `GET /auth/twitch/start` (forma `^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$`), firmata nello state OAuth; versione assente o malformata allo start, o state senza versione al callback, → redirect all'app con `?error=terms_not_accepted`; nessun endpoint della versione corrente, nessuna riaccettazione (D-09, D-12, D-19)
-- [ ] **BE-CONSENT-02**: Il callback scrive versione e data dell'accettazione (orologio del BE) nell'unico upsert dell'utente: nessun utente nasce senza consenso; ogni login riscrive l'ultima accettazione; campi interni, mai sul filo; il bypass di sviluppo è esente e gli utenti di sviluppo senza consenso non rompono refresh né bypass; nessun migratore (D-09, D-11, D-19)
+- [ ] **BE-CONSENT-02**: Il callback scrive versione e data dell'accettazione (orologio del BE) nell'upsert che crea l'utente (nessun utente nasce senza consenso) e su un utente esistente solo quando la versione in arrivo è diversa da quella salvata: un login con la stessa versione lascia versione e data intatte (la data è quella dell'accettazione, non dell'ultimo login); campi interni, mai sul filo; il bypass di sviluppo è esente e gli utenti di sviluppo senza consenso non rompono refresh né bypass; nessun migratore (D-09, D-11, D-19)
 
 ## Future Requirements
 
