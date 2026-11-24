@@ -38,7 +38,10 @@ export class TwitchLoginService {
         private readonly streamerCredentials: StreamerCredentialStore,
     ) {}
 
-    async buildStartRedirectUrl(challenge: unknown): Promise<string> {
+    async buildStartRedirectUrl(
+        challenge: unknown,
+        termsVersion?: string,
+    ): Promise<string> {
         const twitch = this.config.twitch;
         if (!twitch) {
             return this.errorRedirect(
@@ -50,7 +53,7 @@ export class TwitchLoginService {
         }
         return buildTwitchAuthorizeUrl(
             twitch,
-            await this.oauthStateService.sign(challenge),
+            await this.oauthStateService.sign(challenge, termsVersion ?? ''),
         );
     }
 
@@ -66,8 +69,9 @@ export class TwitchLoginService {
                 TwitchLoginErrorCode.TWITCH_NOT_CONFIGURED,
             );
         }
-        const challenge = await this.oauthStateService.verifyChallenge(state);
-        if (challenge === null) {
+        const challenge = (await this.oauthStateService.verify(state))
+            ?.challenge;
+        if (challenge === undefined) {
             return this.errorRedirect(TwitchLoginErrorCode.INVALID_STATE);
         }
         if (error !== undefined) {

@@ -5,13 +5,21 @@ import {
     OAUTH_STATE_AUDIENCE,
     TOKEN_ISSUER,
 } from 'src/auth/token/token-audiences';
+import { isTermsVersion } from 'src/auth/twitch/terms-version';
 import { AUTH_CONFIG } from 'src/config/auth-config';
 import type { AuthConfig } from 'src/config/auth-config';
 
 const STATE_NONCE_BYTES = 16;
 
-interface OAuthStateClaims {
+interface SignedStateClaims {
     challenge?: unknown;
+    termsVersion?: unknown;
+}
+
+// termsVersion null = state senza versione valida: consenso mancante (Phase 26 D-19)
+export interface OAuthStateClaims {
+    challenge: string;
+    termsVersion: string | null;
 }
 
 // stesso JWT_SECRET dell'access token: sicuro solo perché entrambe le verify impongono la propria audience
@@ -22,10 +30,11 @@ export class OAuthStateService {
         @Inject(AUTH_CONFIG) private readonly config: AuthConfig,
     ) {}
 
-    sign(challenge: string): Promise<string> {
+    sign(challenge: string, termsVersion: string): Promise<string> {
         return this.jwtService.signAsync(
             {
                 challenge,
+                termsVersion,
                 nonce: randomBytes(STATE_NONCE_BYTES).toString('base64url'),
             },
             {
@@ -38,10 +47,10 @@ export class OAuthStateService {
         );
     }
 
-    async verifyChallenge(state: unknown): Promise<string | null> {
+    async verify(state: unknown): Promise<OAuthStateClaims | null> {
         if (typeof state !== 'string' || state === '') return null;
         try {
-            const claims = await this.jwtService.verifyAsync<OAuthStateClaims>(
+            const claims = await this.jwtService.verifyAsync<SignedStateClaims>(
                 state,
                 {
                     secret: this.config.jwtSecret,
@@ -50,9 +59,13 @@ export class OAuthStateService {
                     issuer: TOKEN_ISSUER,
                 },
             );
-            return typeof claims.challenge === 'string'
-                ? claims.challenge
-                : null;
+            if (typeof claims.challenge !== 'string') return null;
+            return {
+                challenge: claims.challenge,
+                termsVersion: isTermsVersion(claims.termsVersion)
+                    ? claims.termsVersion
+                    : null,
+            };
         } catch {
             return null;
         }

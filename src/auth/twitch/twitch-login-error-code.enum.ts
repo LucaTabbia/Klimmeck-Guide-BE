@@ -7,4 +7,5 @@ export enum TwitchLoginErrorCode {
     TWITCH_EXCHANGE_FAILED = 'twitch_exchange_failed',
     NOT_FOLLOWING = 'not_following',
     RATE_LIMITED = 'rate_limited',
+    TERMS_NOT_ACCEPTED = 'terms_not_accepted',
 }
