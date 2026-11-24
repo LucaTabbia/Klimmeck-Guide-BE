@@ -591,7 +591,7 @@ describe('CharacterCreationResolver (wire)', () => {
         it('rejects a race without a home city with STARTING_LOCATION_UNAVAILABLE', async () => {
             const body = await create({
                 ...VALID_INPUT,
-                race: 'aarakocra',
+                race: 'volucri',
                 age: 20,
             });
 
@@ -636,7 +636,7 @@ describe('CharacterCreationResolver (wire)', () => {
                 maxAge: 9999,
             });
             expect(body.data?.raceTraits).toContainEqual({
-                race: 'aarakocra',
+                race: 'volucri',
                 minAge: 3,
                 maxAge: 40,
             });

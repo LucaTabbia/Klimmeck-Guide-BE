@@ -179,7 +179,7 @@ describe('CitiesResolver size and hasShop', () => {
     }
 
     it('serves a city written at DB with one of the three new types, with its type and size (D-15, D-16)', async () => {
-        await persistWithRawType('Murnborim', 'aarakocraCapital');
+        await persistWithRawType('Murnborim', 'volucriCapital');
         await persistWithRawType('Thengran', 'dragonbornCapital');
         await persistWithRawType('Veg Faldir', 'dragonbornVillage');
 
@@ -202,7 +202,7 @@ describe('CitiesResolver size and hasShop', () => {
                 ).map(({ name, type, size }) => [name, { type, size }]),
             ),
         ).toEqual({
-            Murnborim: { type: 'aarakocraCapital', size: 'capital' },
+            Murnborim: { type: 'volucriCapital', size: 'capital' },
             Thengran: { type: 'dragonbornCapital', size: 'capital' },
             'Veg Faldir': { type: 'dragonbornVillage', size: 'village' },
         });

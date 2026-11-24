@@ -87,12 +87,12 @@ describe('allowedRaritiesOf', () => {
 
 describe('shopTierOf', () => {
     const CITY_TIER_CAPITALS: readonly CityType[] = [
-        CityType.aarakocraCapital,
+        CityType.volucriCapital,
         CityType.dragonbornCapital,
     ];
 
     it('judges the shops of the two new capitals with the city tier (D-22)', () => {
-        expect(shopTierOf(CityType.aarakocraCapital)).toBe(CitySize.city);
+        expect(shopTierOf(CityType.volucriCapital)).toBe(CitySize.city);
         expect(shopTierOf(CityType.dragonbornCapital)).toBe(CitySize.city);
     });
 

@@ -11,7 +11,7 @@ const ALL_HOME_CITY_TYPES = [
     'elfCapital',
     'motherCapital',
     'liberiaCapital',
-    'aarakocraCapital',
+    'volucriCapital',
     'dragonbornCapital',
 ];
 
@@ -37,22 +37,22 @@ describe('racesWithoutHomeCity', () => {
             'gnome',
             'halfling',
             'dwarf',
-            'tiefling',
-            'aarakocra',
+            'infernal',
+            'volucri',
         ]);
     });
 
-    it('leaves dragonborn and aarakocra homeless when only their old villages exist (D-18)', () => {
+    it('leaves dragonborn and volucri homeless when only their old villages exist (D-18)', () => {
         expect(
             racesWithoutHomeCity([
                 'elfCapital',
                 'motherCapital',
                 'liberiaCapital',
                 'drusteaCapital',
-                'aarakocraVillage',
+                'volucriVillage',
                 'mountainVillage',
             ]),
-        ).toEqual([RaceType.dragonborn, RaceType.aarakocra]);
+        ).toEqual([RaceType.dragonborn, RaceType.volucri]);
     });
 
     it('ignores city types that are no race home', () => {

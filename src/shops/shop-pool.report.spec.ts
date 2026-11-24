@@ -103,7 +103,7 @@ describe('shop pool report', () => {
         const murnborim = violationsOf(
             village(pool, {
                 name: 'Murnborim',
-                type: CityType.aarakocraCapital,
+                type: CityType.volucriCapital,
             }),
             catalogue,
         );
