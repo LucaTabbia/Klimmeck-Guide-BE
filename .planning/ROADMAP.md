@@ -384,6 +384,16 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
 
+### Phase 26: Eliminazione account e consenso
+
+**Goal:** (↔ FE Phase 25) una mutation autenticata cancella definitivamente l'account di chi la chiama: utente, personaggi (anche archiviati con soft delete), sessioni (revoca immediata), device push, ritratto su Cloudinary e tutto ciò che resta legato al Twitch ID, liberando posti in corsie e richieste come fa l'archiviazione; registro delle azioni dell'oste e backup restano ai loro TTL. Eventuale registrazione dell'accettazione di termini e privacy (versione e data) da decidere in discuss. Le pagine legali pubbliche (repo `LucaTabbia/klimmeck-guide-legal`) promettono già la cancellazione entro 30 giorni.
+**Requirements**: TBD
+**Depends on:** Phase 25
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 26 to break down)
+
 ---
 
 _Roadmap creata: 2026-07-16_ · _v1.0 Core Loop (BE) archiviata: 2026-11-10_ · _v1.1 Cura e modelli aperta: 2026-11-10_
