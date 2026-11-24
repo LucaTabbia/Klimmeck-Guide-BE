@@ -1,7 +1,7 @@
 ---
 phase: 26
 slug: eliminazione-account-e-consenso
-status: draft
+status: executing
 nyquist_compliant: false
 wave_0_complete: false
 created: 2026-11-24
@@ -38,9 +38,9 @@ created: 2026-11-24
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 26-01-01 | 01 | 1 | BE-DEL-01 | T-26-01, T-26-02 | proprietario solo `@Prop`, indice `character_user` | unit | `npx jest src/models/character/character.model.spec.ts --selectProjects unit` | ✅ | ⬜ pending |
-| 26-01-02 | 01 | 1 | BE-DEL-01 | T-26-01 | creazione scrive `user`; SDL invariato | integration | `npx jest src/characters/creation/character-creation.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 26-01-03 | 01 | 1 | BE-DEL-01 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
+| 26-01-01 | 01 | 1 | BE-DEL-01 | T-26-01, T-26-02 | proprietario solo `@Prop`, indice `character_user` | unit | `npx jest src/models/character/character.model.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 26-01-02 | 01 | 1 | BE-DEL-01 | T-26-01 | creazione scrive `user`; SDL invariato | integration | `npx jest src/characters/creation/character-creation.resolver.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 26-01-03 | 01 | 1 | BE-DEL-01 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
 | 26-02-01 | 02 | 2 | BE-CONSENT-01 | T-26-05, T-26-06 | versione firmata nello state, forma chiusa | unit | `npx jest src/auth/twitch/terms-version.spec.ts src/auth/twitch/oauth-state.service.spec.ts --selectProjects unit` ; `npx jest test/auth/http-guard.int-spec.ts test/auth/ws-auth.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 26-02-02 | 02 | 2 | BE-CONSENT-01, BE-CONSENT-02 | T-26-04, T-26-07, T-26-08 | rifiuto `terms_not_accepted`, consenso nell'upsert, bypass esente | integration | `npx jest src/auth/twitch/twitch-auth.controller.int-spec.ts test/auth/login-flow.int-spec.ts src/users/users.service.int-spec.ts src/users/user-updates.publisher.int-spec.ts src/auth/dev/dev-auth.strategy.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
 | 26-02-03 | 02 | 2 | BE-CONSENT-01 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
