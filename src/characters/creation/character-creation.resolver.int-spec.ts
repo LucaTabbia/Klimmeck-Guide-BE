@@ -630,7 +630,11 @@ describe('CharacterCreationResolver (wire)', () => {
 
             const raw = await rawCharacter(character.id);
             expect(raw?.user).toBeInstanceOf(Types.ObjectId);
-            expect((raw?.user as Types.ObjectId).equals(user._id)).toBe(true);
+            expect(
+                (raw?.user as Types.ObjectId).equals(
+                    user._id as Types.ObjectId,
+                ),
+            ).toBe(true);
         });
 
         it('serves the created character without its owner (D-24)', async () => {
