@@ -106,7 +106,7 @@ describe('Global auth guard over HTTP GraphQL and REST', () => {
         it('rejects a signed OAuth state used as bearer (token confusion)', async () => {
             const state = await harness.app
                 .get(OAuthStateService)
-                .sign(CHALLENGE);
+                .sign(CHALLENGE, '2026-11-24');
 
             expectUnauthenticated(
                 await graphqlRequest(
