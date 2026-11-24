@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import { StreamerCredentialStore } from 'src/auth/channel-access/streamer-credential.store';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
@@ -30,10 +30,14 @@ import {
     buildTestAuthConfig,
     TEST_JWT_SECRET,
 } from '../../../test/auth/test-auth-config';
+import { FixedClock } from '../../../test/auth/fixed-clock';
 import { persistUser } from '../../../test/fixtures';
 
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+const TERMS_VERSION = '2026-11-24';
+const START_QUERY = { challenge: CHALLENGE, termsVersion: TERMS_VERSION };
+const ONE_HOUR_SECONDS = 3600;
 const TICKET_REDIRECT_PATTERN =
     /^klimmeck:\/\/auth\?ticket=([A-Za-z0-9_-]{43})$/;
 
@@ -73,9 +77,10 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
         let harness: AuthTestApp;
         let users: Model<UserDocument>;
         let tickets: Model<LoginTicketDocument>;
+        const clock = new FixedClock();
 
         beforeAll(async () => {
-            harness = await createAuthTestApp();
+            harness = await createAuthTestApp({ clock });
             users = harness.connection.model<UserDocument>(User.name);
             tickets = harness.connection.model<LoginTicketDocument>(
                 LoginTicket.name,
@@ -92,9 +97,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
 
         async function startState(): Promise<string> {
             const location = locationOf(
-                await get(harness, '/auth/twitch/start', {
-                    challenge: CHALLENGE,
-                }),
+                await get(harness, '/auth/twitch/start', START_QUERY),
             );
             return new URL(location).searchParams.get('state') as string;
         }
@@ -110,9 +113,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
         describe('GET /auth/twitch/start', () => {
             it('redirects to the Twitch authorize page with an empty scope and force_verify', async () => {
                 const location = locationOf(
-                    await get(harness, '/auth/twitch/start', {
-                        challenge: CHALLENGE,
-                    }),
+                    await get(harness, '/auth/twitch/start', START_QUERY),
                 );
 
                 expect(
@@ -139,6 +140,38 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
             });
 
             it('redirects with invalid_request when the challenge is malformed', async () => {
+                expect(
+                    locationOf(
+                        await get(harness, '/auth/twitch/start', {
+                            challenge: 'abc',
+                            termsVersion: TERMS_VERSION,
+                        }),
+                    ),
+                ).toBe(errorRedirect('invalid_request'));
+            });
+
+            it('refuses the login start without an accepted terms version (D-09, D-19)', async () => {
+                expect(
+                    locationOf(
+                        await get(harness, '/auth/twitch/start', {
+                            challenge: CHALLENGE,
+                        }),
+                    ),
+                ).toBe(errorRedirect('terms_not_accepted'));
+            });
+
+            it('refuses the login start with a malformed terms version (D-19)', async () => {
+                expect(
+                    locationOf(
+                        await get(harness, '/auth/twitch/start', {
+                            challenge: CHALLENGE,
+                            termsVersion: '../x',
+                        }),
+                    ),
+                ).toBe(errorRedirect('terms_not_accepted'));
+            });
+
+            it('checks the challenge before the terms version (D-19)', async () => {
                 expect(
                     locationOf(
                         await get(harness, '/auth/twitch/start', {
@@ -211,6 +244,85 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
                     .findOne({ twitchId: FAKE_TWITCH_USER_ID })
                     .exec();
                 expect(stored?.role).toBe(RoleType.innkeeper);
+            });
+
+            it('refuses a callback whose state carries no terms version (D-19)', async () => {
+                const state = await signState(
+                    { challenge: CHALLENGE, nonce: 'n' },
+                    OAUTH_STATE_AUDIENCE,
+                );
+
+                expect(await callback({ code: 'fake-code', state })).toBe(
+                    errorRedirect('terms_not_accepted'),
+                );
+                expect(harness.twitch.exchangedCodes).toEqual([]);
+                expect(await users.countDocuments()).toBe(0);
+            });
+
+            it('records the accepted version and the BE time on a new user (D-09)', async () => {
+                const location = await callback({
+                    code: 'fake-code',
+                    state: await startState(),
+                });
+
+                expect(location).toMatch(TICKET_REDIRECT_PATTERN);
+                const created = await users
+                    .findOne({ twitchId: FAKE_TWITCH_USER_ID })
+                    .lean()
+                    .exec();
+                expect(created?.acceptedTermsVersion).toBe(TERMS_VERSION);
+                expect(created?.termsAcceptedAt).toEqual(clock.now());
+            });
+
+            it('records a new terms version on an existing user (D-09)', async () => {
+                const characterId = new Types.ObjectId();
+                await persistUser(users, {
+                    twitchId: FAKE_TWITCH_USER_ID,
+                    role: RoleType.innkeeper,
+                    twitchPoints: 70,
+                    currentCharacter: characterId,
+                    acceptedTermsVersion: 'v1',
+                    termsAcceptedAt: new Date('2026-01-01T00:00:00Z'),
+                });
+
+                const location = await callback({
+                    code: 'fake-code',
+                    state: await startState(),
+                });
+
+                expect(location).toMatch(TICKET_REDIRECT_PATTERN);
+                const stored = await users
+                    .findOne({ twitchId: FAKE_TWITCH_USER_ID })
+                    .lean()
+                    .exec();
+                expect(stored?.acceptedTermsVersion).toBe(TERMS_VERSION);
+                expect(stored?.termsAcceptedAt).toEqual(clock.now());
+                expect(stored?.twitchPoints).toBe(70);
+                expect(stored?.role).toBe(RoleType.innkeeper);
+                expect(stored?.currentCharacter).toEqual(characterId);
+            });
+
+            it('keeps the acceptance date when the same version logs in again (D-09)', async () => {
+                const acceptedAt = clock.now();
+                await persistUser(users, {
+                    twitchId: FAKE_TWITCH_USER_ID,
+                    acceptedTermsVersion: TERMS_VERSION,
+                    termsAcceptedAt: acceptedAt,
+                });
+                clock.advanceSeconds(ONE_HOUR_SECONDS);
+
+                const location = await callback({
+                    code: 'fake-code',
+                    state: await startState(),
+                });
+
+                expect(location).toMatch(TICKET_REDIRECT_PATTERN);
+                const stored = await users
+                    .findOne({ twitchId: FAKE_TWITCH_USER_ID })
+                    .lean()
+                    .exec();
+                expect(stored?.acceptedTermsVersion).toBe(TERMS_VERSION);
+                expect(stored?.termsAcceptedAt).toEqual(acceptedAt);
             });
 
             it('rejects a token issued to another client, still revoking it', async () => {
@@ -380,9 +492,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
 
         async function login(): Promise<string> {
             const start = locationOf(
-                await get(harness, '/auth/twitch/start', {
-                    challenge: CHALLENGE,
-                }),
+                await get(harness, '/auth/twitch/start', START_QUERY),
             );
             return locationOf(
                 await get(harness, '/auth/twitch/callback', {
@@ -394,9 +504,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
 
         it('asks Twitch for the follow scope at the start', async () => {
             const location = locationOf(
-                await get(harness, '/auth/twitch/start', {
-                    challenge: CHALLENGE,
-                }),
+                await get(harness, '/auth/twitch/start', START_QUERY),
             );
 
             expect(new URL(location).searchParams.get('scope')).toBe(
@@ -519,8 +627,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
         });
 
         it('redirects the third OAuth start from the same address with rate_limited (C6, D-08)', async () => {
-            const start = () =>
-                get(harness, '/auth/twitch/start', { challenge: CHALLENGE });
+            const start = () => get(harness, '/auth/twitch/start', START_QUERY);
 
             await start();
             await start();
@@ -568,9 +675,7 @@ describe('Twitch login redirect flow (harness, fake Twitch client)', () => {
         it('redirects start with twitch_not_configured', async () => {
             expect(
                 locationOf(
-                    await get(harness, '/auth/twitch/start', {
-                        challenge: CHALLENGE,
-                    }),
+                    await get(harness, '/auth/twitch/start', START_QUERY),
                 ),
             ).toBe(errorRedirect('twitch_not_configured'));
         });

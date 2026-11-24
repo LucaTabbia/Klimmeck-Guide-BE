@@ -156,10 +156,26 @@ describe('UserUpdatesPublisher (change stream on users)', () => {
     });
 
     it('publishes nothing for the no-op upserts of a login on an existing user', async () => {
-        await createPlayer(harness, { twitchId: 'twitch-pub-1' });
+        const { user } = await createPlayer(harness, {
+            twitchId: 'twitch-pub-1',
+        });
+        const consent = {
+            termsVersion: '2026-11-24',
+            acceptedAt: new Date('2026-11-24T10:00:00.000Z'),
+        };
+        await users.updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    acceptedTermsVersion: consent.termsVersion,
+                    termsAcceptedAt: consent.acceptedAt,
+                },
+            },
+        );
+        await flushUntilBarrier();
         const usersService = harness.app.get(UsersService);
 
-        await usersService.findOrCreateByTwitchId('twitch-pub-1');
+        await usersService.findOrCreateByTwitchId('twitch-pub-1', consent);
         await usersService.upsertWithRole('twitch-pub-1', RoleType.adventurer);
         await touchSentinel(1000);
 
