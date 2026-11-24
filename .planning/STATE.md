@@ -53,6 +53,7 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 - 2026-11-12: aggiunta la Phase 22 Completamento guidato delle missioni (BE-GMFLOW-01..07), gemella della FE Phase 21, dal discuss della FE; ramo impilato sulla 21.
 - 2026-11-15: aggiunta la Phase 24 Origini delle magie, quest void e shamanic, gemella della FE Phase 23: macroclasse origin → use → energy (void, magic, shamanic), quest `shamanic` e `void` come la `magic`, tipi di città nuovi, livello minimo al posto dell'xp minimo; ramo impilato sulla 23; discuss e plan da fare.
 - 2026-11-24: Phase 26 aggiunta — Eliminazione account e consenso (↔ FE Phase 25): cancellazione definitiva dell'account su richiesta del giocatore.
+- 2026-11-24: contesto della Phase 26 raccolto (discuss interattivo, congiunto con la FE Phase 25): D-01..D-16 nel `25-CONTEXT.md` del FE, parte BE in `26-CONTEXT.md`; prossimo passo `/gsd-plan-phase 26`.
 
 ### Decisions
 
