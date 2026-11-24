@@ -146,8 +146,6 @@ enum CitySize {
 }
 
 enum CityType {
-  aarakocraCapital
-  aarakocraVillage
   desertVillage
   dragonbornCapital
   dragonbornVillage
@@ -182,6 +180,8 @@ enum CityType {
   valanCity
   valanSeaCity
   valanVillage
+  volucriCapital
+  volucriVillage
 }
 
 enum ClassType {
@@ -950,7 +950,6 @@ type RaceTraits {
 }
 
 enum RaceType {
-  aarakocra
   dragonborn
   dwarf
   elf
@@ -958,7 +957,8 @@ enum RaceType {
   halfelf
   halfling
   human
-  tiefling
+  infernal
+  volucri
 }
 
 enum RarityType {

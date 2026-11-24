@@ -4,7 +4,7 @@ import { CityType } from 'src/models/enums/city-type.enum';
 // esaustiva: un CityType nuovo non compila senza taglia (D-01)
 export const CITY_SIZE_BY_TYPE = {
     drusteaVillage: CitySize.village,
-    aarakocraVillage: CitySize.village,
+    volucriVillage: CitySize.village,
     valanVillage: CitySize.village,
     mirwaVillage: CitySize.village,
     desertVillage: CitySize.village,
@@ -37,7 +37,7 @@ export const CITY_SIZE_BY_TYPE = {
     flameSouthCapital: CitySize.capital,
     motherCapital: CitySize.capital,
     liberiaCapital: CitySize.capital,
-    aarakocraCapital: CitySize.capital,
+    volucriCapital: CitySize.capital,
     dragonbornCapital: CitySize.capital,
 } as const satisfies Record<CityType, CitySize>;
 
