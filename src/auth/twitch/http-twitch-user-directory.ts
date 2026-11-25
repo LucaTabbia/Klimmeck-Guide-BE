@@ -1,6 +1,6 @@
 import type { FactoryProvider } from '@nestjs/common';
 import { Clock } from 'src/auth/clock';
-import { normalizedTwitchLoginOf } from 'src/auth/twitch/twitch-login-name';
+import type { TwitchLogin } from 'src/auth/twitch/twitch-login-name';
 import {
     TWITCH_USER_LOOKUP_FAILED_MESSAGE,
     TwitchUserDirectory,
@@ -45,9 +45,7 @@ export class HttpTwitchUserDirectory extends TwitchUserDirectory {
         super();
     }
 
-    async userIdOfLogin(rawLogin: string): Promise<string | null> {
-        const login = normalizedTwitchLoginOf(rawLogin);
-        if (login === null) return null;
+    async userIdOfLogin(login: TwitchLogin): Promise<string | null> {
         try {
             return await this.lookUp(login);
         } catch (error) {

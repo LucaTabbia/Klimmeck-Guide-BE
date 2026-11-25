@@ -11,7 +11,10 @@ import { PortraitDeletionSweeper } from 'src/account/deletion/portrait/portrait-
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
-import { normalizedTwitchLoginOf } from 'src/auth/twitch/twitch-login-name';
+import {
+    normalizedTwitchLoginOf,
+    type TwitchLogin,
+} from 'src/auth/twitch/twitch-login-name';
 import {
     TwitchUserDirectory,
     TwitchUserLookupError,
@@ -64,7 +67,7 @@ export class AccountDeletionService {
         return { twitchId };
     }
 
-    private async twitchIdOfLogin(login: string): Promise<string | null> {
+    private async twitchIdOfLogin(login: TwitchLogin): Promise<string | null> {
         try {
             return await this.directory.userIdOfLogin(login);
         } catch (error) {
