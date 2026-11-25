@@ -3,6 +3,13 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AccountDeletionResolver } from 'src/account/deletion/account-deletion.resolver';
 import { AccountDeletionService } from 'src/account/deletion/account-deletion.service';
 import { AccountEraser } from 'src/account/deletion/account-eraser';
+import {
+    PortraitDeletion,
+    PortraitDeletionSchema,
+} from 'src/account/deletion/portrait/portrait-deletion.model';
+import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
+import { PortraitDeletionSweeper } from 'src/account/deletion/portrait/portrait-deletion.sweeper';
+import { PortraitStore } from 'src/account/deletion/portrait/portrait-store';
 import { AuthModule } from 'src/auth/auth.module';
 import { Clock, SystemClock } from 'src/auth/clock';
 import { twitchUserDirectoryProvider } from 'src/auth/twitch/http-twitch-user-directory';
@@ -15,6 +22,7 @@ import {
     LoginTicketSchema,
 } from 'src/auth/login-ticket/login-ticket.model';
 import { CharacterArchiveModule } from 'src/characters/deletion/character-archive.module';
+import { questConfigProvider } from 'src/config/quest-config';
 import {
     Character,
     CharacterSchema,
@@ -30,11 +38,22 @@ import {
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { User, UserSchema } from 'src/models/user.model';
 import { PushDevice, PushDeviceSchema } from 'src/push/push-device.model';
+import { PushModule } from 'src/push/push.module';
 import {
     MissionDraft,
     MissionDraftSchema,
 } from 'src/quests/guided/mission-draft.model';
 import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.module';
+import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
+
+// la porta chiede destroy, il servizio delle immagini espone destroyPortrait (piano 11)
+const portraitStoreProvider = {
+    provide: PortraitStore,
+    inject: [CloudinaryService],
+    useFactory: (cloudinary: CloudinaryService): PortraitStore => ({
+        destroy: (publicId: string) => cloudinary.destroyPortrait(publicId),
+    }),
+};
 
 // una sola cancellazione per la via propria e per quella dell'oste (Phase 26 regola dura 1)
 @Module({
@@ -49,10 +68,12 @@ import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.
             { name: LoginTicket.name, schema: LoginTicketSchema },
             { name: PushDevice.name, schema: PushDeviceSchema },
             { name: ChannelAccessCheck.name, schema: ChannelAccessCheckSchema },
+            { name: PortraitDeletion.name, schema: PortraitDeletionSchema },
         ]),
         StartedQuestCancelModule,
         CharacterArchiveModule,
         AuthModule,
+        PushModule,
     ],
     providers: [
         AccountEraser,
@@ -60,6 +81,12 @@ import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.
         AccountDeletionResolver,
         { provide: Clock, useClass: SystemClock },
         twitchUserDirectoryProvider,
+        questConfigProvider,
+        // solo la classe: il modulo REST delle immagini porterebbe la moderazione e un secondo controller
+        CloudinaryService,
+        portraitStoreProvider,
+        PortraitDeletionService,
+        PortraitDeletionSweeper,
     ],
     exports: [AccountEraser],
 })

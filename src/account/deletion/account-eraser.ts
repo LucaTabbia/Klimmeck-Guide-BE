@@ -11,6 +11,8 @@ import {
     missionDraftCleanupOf,
     rescuedCountKeeperOf,
 } from 'src/account/deletion/account-erasure.plan';
+import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
+import { portraitPublicIdOf } from 'src/account/deletion/portrait/portrait-public-id';
 import {
     ChannelAccessCheck,
     ChannelAccessCheckDocument,
@@ -95,6 +97,10 @@ function resolvesAsToday(
     );
 }
 
+interface CharacterPortrait {
+    infos?: { imagePath?: unknown } | null;
+}
+
 interface CharacterLanes {
     quests?: Record<string, unknown> | null;
 }
@@ -124,6 +130,7 @@ export class AccountEraser {
         private readonly startedQuestCanceller: StartedQuestCanceller,
         private readonly archiver: CharacterArchiver,
         private readonly sessionRevocation: SessionRevocationService,
+        private readonly portraits: PortraitDeletionService,
     ) {}
 
     // dentro la transazione del chiamante (Phase 26 regola dura 1): una sola cancellazione per le due vie
@@ -158,6 +165,7 @@ export class AccountEraser {
         await this.deleteLaneRequestsOf(characterIds, session);
         await this.cleanMissionDraftsOf(characterIds, session);
         await this.deleteResultsOf(userId, characterIds, session);
+        await this.queuePortraitsOf(characterIds, now, session);
         await this.characterModel
             .deleteMany({ _id: { $in: characterIds } }, { session })
             .exec();
@@ -337,6 +345,50 @@ export class AccountEraser {
             keeper.filter,
             rawUpdateOf(keeper.update),
             { session, arrayFilters: keeper.arrayFilters },
+        );
+    }
+
+    // outbox nella stessa transazione, Cloudinary dopo il commit (regola dura 5): un ritratto ancora mostrato da un personaggio che resta non si tocca
+    private async queuePortraitsOf(
+        characterIds: readonly Types.ObjectId[],
+        now: Date,
+        session: ClientSession,
+    ): Promise<void> {
+        if (characterIds.length === 0) return;
+        const erased = await this.characterModel
+            .find({ _id: { $in: characterIds } }, { 'infos.imagePath': 1 })
+            .session(session)
+            .lean<CharacterPortrait[]>()
+            .exec();
+        const uploaded = new Map<string, string>();
+        for (const { infos } of erased) {
+            const imagePath = infos?.imagePath;
+            const publicId = portraitPublicIdOf(imagePath);
+            if (publicId && typeof imagePath === 'string') {
+                uploaded.set(imagePath, publicId);
+            }
+        }
+        if (uploaded.size === 0) return;
+        const stillShown = await this.characterModel
+            .find(
+                {
+                    _id: { $nin: characterIds },
+                    'infos.imagePath': { $in: [...uploaded.keys()] },
+                },
+                { 'infos.imagePath': 1 },
+            )
+            .session(session)
+            .lean<CharacterPortrait[]>()
+            .exec();
+        for (const { infos } of stillShown) {
+            if (typeof infos?.imagePath === 'string') {
+                uploaded.delete(infos.imagePath);
+            }
+        }
+        await this.portraits.enqueueWithin(
+            session,
+            [...uploaded.values()],
+            now,
         );
     }
 

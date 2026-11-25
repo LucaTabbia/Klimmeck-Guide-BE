@@ -135,6 +135,23 @@ export class PushService {
         return true; // idempotente (D-03)
     }
 
+    // token di un account cancellato fuori dal topic «in diretta» (Phase 26 D-25): best-effort, dopo il commit
+    async unsubscribeFromStreamerLive(
+        tokens: readonly string[],
+    ): Promise<void> {
+        if (tokens.length === 0) return;
+        try {
+            await this.transport.unsubscribeFromTopic(
+                [...tokens],
+                STREAMER_LIVE_TOPIC,
+            );
+        } catch (error) {
+            this.logger.warn(
+                `unsubscribe ${STREAMER_LIVE_TOPIC} failed for ${tokens.length} token(s) of a deleted account: ${describePushError(error)}`,
+            );
+        }
+    }
+
     async sendTest(
         callerId: string,
         input: SendTestPushInput,
