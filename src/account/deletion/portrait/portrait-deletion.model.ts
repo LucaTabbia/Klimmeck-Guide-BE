@@ -12,6 +12,10 @@ export class PortraitDeletion {
 
     @Prop({ type: Number, default: 0 })
     attempts: number;
+
+    // backoff dei tentativi (WR-02): nessun tentativo prima di questo istante
+    @Prop({ type: Date, default: null })
+    nextAttemptAt: Date | null;
 }
 
 export type PortraitDeletionDocument = HydratedDocument<PortraitDeletion>;

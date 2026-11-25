@@ -168,6 +168,8 @@ describe('PortraitDeletionService (replSet)', () => {
         await enqueueCommitted([SECOND_PORTRAIT], LATER);
         jest.spyOn(Logger.prototype, 'warn').mockImplementation();
         store.failNext();
+        // nessun tentativo prima dell'istante di accodamento (WR-02)
+        clock.advanceSeconds(5 * MINUTE_SECONDS);
 
         await expect(service.flush()).resolves.toBe(1);
         expect(store.destroyed).toEqual([SECOND_PORTRAIT]);
