@@ -529,15 +529,17 @@ describe('deleteMyAccount (wire)', () => {
             const entries = await auditEntries();
 
             expect(
-                entries.map(({ actor, action, target, args, outcome }) => ({
-                    actor,
-                    action,
-                    target,
-                    args,
-                    outcome,
+                entries.map((entry) => ({
+                    keys: Object.keys(entry).sort(),
+                    actor: entry.actor,
+                    action: entry.action,
+                    target: entry.target,
+                    outcome: entry.outcome,
                 })),
             ).toEqual(
+                // argomenti oscurati: l'oggetto vuoto non arriva a DB (minimize di Mongoose), nessuna chiave args
                 attempts.map(([, targetId, outcome]) => ({
+                    keys: ['_id', 'action', 'actor', 'at', 'outcome', 'target'],
                     actor: {
                         userId: String(innkeeper.user._id as Types.ObjectId),
                         twitchId: OSTE_TWITCH_ID,
@@ -545,7 +547,6 @@ describe('deleteMyAccount (wire)', () => {
                     },
                     action: 'deleteAccountByTwitchLogin',
                     target: { type: 'User', id: targetId },
-                    args: {},
                     outcome,
                 })),
             );

@@ -5,6 +5,7 @@ import { AccountDeletionService } from 'src/account/deletion/account-deletion.se
 import { AccountEraser } from 'src/account/deletion/account-eraser';
 import { AuthModule } from 'src/auth/auth.module';
 import { Clock, SystemClock } from 'src/auth/clock';
+import { twitchUserDirectoryProvider } from 'src/auth/twitch/http-twitch-user-directory';
 import {
     ChannelAccessCheck,
     ChannelAccessCheckSchema,
@@ -58,6 +59,7 @@ import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.
         AccountDeletionService,
         AccountDeletionResolver,
         { provide: Clock, useClass: SystemClock },
+        twitchUserDirectoryProvider,
     ],
     exports: [AccountEraser],
 })
