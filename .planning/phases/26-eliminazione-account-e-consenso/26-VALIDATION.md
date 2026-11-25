@@ -50,9 +50,9 @@ created: 2026-11-24
 | 26-04-01 | 04 | 4 | BE-DEL-02 | T-26-15 | spese interne, mai sul filo | unit | `npx jest src/models/pending-quest.schema.spec.ts src/travel/food/quest-travel-spending.spec.ts --selectProjects unit` | ✅ | ✅ green |
 | 26-04-02 | 04 | 4 | BE-DEL-02 | T-26-14, T-26-16 | spese nella transazione del pasto, una volta | integration | `npx jest src/travel/food/travel-food.sweep.int-spec.ts src/travel/travel-completion.int-spec.ts src/travel/ambush/ambush-resolution.int-spec.ts test/app.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 26-04-03 | 04 | 4 | BE-DEL-02 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
-| 26-05-01 | 05 | 5 | BE-DEL-03 | T-26-17 | rimborsi puri con tetti | unit | `npx jest src/quests/party/started-quest-cancel.spec.ts src/push/push-events.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
-| 26-05-02 | 05 | 5 | BE-DEL-03 | T-26-17, T-26-18, T-26-19, T-26-20 | solo quest cominciate, rimborso una volta | integration | `npx jest src/quests/party/started-quest-canceller.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 26-05-03 | 05 | 5 | BE-DEL-03 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
+| 26-05-01 | 05 | 5 | BE-DEL-03 | T-26-17 | rimborsi puri con tetti | unit | `npx jest src/quests/party/started-quest-cancel.spec.ts src/push/push-events.spec.ts --selectProjects unit` | ✅ | ✅ green |
+| 26-05-02 | 05 | 5 | BE-DEL-03 | T-26-17, T-26-18, T-26-19, T-26-20 | solo quest cominciate, rimborso una volta | integration | `npx jest src/quests/party/started-quest-canceller.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 26-05-03 | 05 | 5 | BE-DEL-03 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
 | 26-06-01 | 06 | 6 | BE-DEL-04 | T-26-21 | codici e regole pure | unit | `npx jest src/account/deletion/account-deletion.exception.spec.ts src/account/deletion/account-erasure.plan.spec.ts --selectProjects unit` | ❌ W0 | ⬜ pending |
 | 26-06-02 | 06 | 6 | BE-DEL-04 | T-26-21..T-26-25 | una transazione, quest concluse ripulite, inventario per collection | integration | `npx jest src/account/deletion/account-eraser.int-spec.ts src/characters/deletion/character-archiver.int-spec.ts src/characters/deletion/character-deletion.resolver.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
 | 26-06-03 | 06 | 6 | BE-DEL-04 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
