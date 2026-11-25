@@ -19,6 +19,10 @@ import {
 import { PortraitStore } from './portrait-store';
 import { FakePortraitStore } from '../../../../test/account/fake-portrait-store';
 import { FixedClock } from '../../../../test/auth/fixed-clock';
+import {
+    Character,
+    CharacterSchema,
+} from 'src/models/character/character.model';
 
 const NOW = new Date('2026-11-25T10:00:00.000Z');
 const LATER = new Date('2026-11-25T10:05:00.000Z');
@@ -48,6 +52,7 @@ describe('PortraitDeletionService (replSet)', () => {
                         name: PortraitDeletion.name,
                         schema: PortraitDeletionSchema,
                     },
+                    { name: Character.name, schema: CharacterSchema },
                 ]),
             ],
             providers: [
@@ -71,6 +76,7 @@ describe('PortraitDeletionService (replSet)', () => {
         store.destroyed.length = 0;
         store.failNext(0);
         await outbox.deleteMany({});
+        await connection.collection('characters').deleteMany({});
     });
 
     afterAll(async () => {
@@ -91,6 +97,53 @@ describe('PortraitDeletionService (replSet)', () => {
             await session.endSession();
         }
     }
+
+    // un personaggio che mostra il ritratto nasce dopo l'accodamento: upload preso da un altro, o riga rimasta in backoff (U-01)
+    async function characterShowing(imagePath: string): Promise<void> {
+        await connection
+            .collection('characters')
+            .insertOne({ infos: { name: 'Late Hero', imagePath } });
+    }
+
+    it('closes the row without destroying a portrait a character created after the queueing shows (U-01)', async () => {
+        await enqueueCommitted([FIRST_PORTRAIT], clock.now());
+        await characterShowing(
+            `https://res.cloudinary.com/demo-cloud/image/upload/v1731/${FIRST_PORTRAIT}.jpg`,
+        );
+
+        await expect(service.flush()).resolves.toBe(1);
+
+        expect(store.destroyed).toEqual([]);
+        expect(await outbox.countDocuments({})).toBe(0);
+    });
+
+    it('rechecks a row that sat in backoff before destroying it (U-01)', async () => {
+        await enqueueCommitted([FIRST_PORTRAIT], clock.now());
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+        store.failNext();
+        await service.flush();
+        await characterShowing(
+            `https://res.cloudinary.com/demo-cloud/image/upload/c_fill,w_200/${FIRST_PORTRAIT}.png`,
+        );
+        clock.advanceSeconds(MINUTE_SECONDS);
+
+        await expect(service.flush()).resolves.toBe(1);
+
+        expect(store.destroyed).toEqual([]);
+        expect(await outbox.countDocuments({})).toBe(0);
+    });
+
+    it('still destroys a portrait no character shows (U-01)', async () => {
+        await enqueueCommitted([FIRST_PORTRAIT], clock.now());
+        await characterShowing(
+            `https://res.cloudinary.com/demo-cloud/image/upload/${FIRST_PORTRAIT}-copy.jpg`,
+        );
+
+        await expect(service.flush()).resolves.toBe(1);
+
+        expect(store.destroyed).toEqual([FIRST_PORTRAIT]);
+        expect(await outbox.countDocuments({})).toBe(0);
+    });
 
     it('queues portraits inside the caller transaction without duplicates (portrait default)', async () => {
         await enqueueCommitted([FIRST_PORTRAIT, FIRST_PORTRAIT], NOW);
