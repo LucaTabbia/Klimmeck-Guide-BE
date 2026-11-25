@@ -549,33 +549,68 @@ describe('StartedQuestCanceller.cancelStartedQuestWithin (replSet)', () => {
         );
     });
 
-    it('leaves a travelling companion intact with a warning (D-26)', async () => {
+    it('frees the lane of a travelling companion without moving him (D-26, WR-05)', async () => {
         const warnSpy = jest
             .spyOn(Logger.prototype, 'warn')
             .mockImplementation(() => undefined);
         const scene = await persistScene();
+        await pendingQuests.collection.updateOne(
+            { _id: scene.b.pendingQuestId },
+            {
+                $set: {
+                    travelFoodSpent: [{ item: scene.ration, quantity: 1 }],
+                    travelHungerLifeLost: 4,
+                },
+            },
+        );
         await characters.collection.updateOne(
             { _id: scene.b.characterId },
-            { $set: { 'status.activeTravel': { kind: 'quest' } } },
+            {
+                $set: {
+                    'status.activeTravel': { kind: 'quest' },
+                    'status.currentLifePoints': 50,
+                    'status.maxLifePoints': 100,
+                },
+            },
         );
-        const before = await rawCharacter(scene.b.characterId);
 
         const cancelled = await cancelInTransaction(scene);
 
-        expect(await rawCharacter(scene.b.characterId)).toEqual(before);
+        const b = await rawCharacter(scene.b.characterId);
+        expect(b?.quests.pendingQuest).toBeNull();
+        expect(b?.status.location).toEqual(scene.questMarker);
+        expect(b?.status.activeTravel).toEqual({ kind: 'quest' });
+        expect(b?.status.currentLifePoints).toBe(54);
+        expect(b?.assets.ownedItems).toEqual([
+            { itemType: 'LootItem', item: scene.ration, quantity: 1 },
+        ]);
         expect(
             await pendingQuests.collection.findOne({
                 _id: scene.b.pendingQuestId,
             }),
-        ).not.toBeNull();
-        expect((await rawUser(scene.b.userId))?.twitchPoints).toBe(100);
+        ).toBeNull();
+        expect((await rawUser(scene.b.userId))?.twitchPoints).toBe(110);
         expect(hexes(cancelled?.characterIds ?? [])).toEqual(
             hexes([scene.a.characterId]),
         );
         expect(warnSpy).toHaveBeenCalledWith(
             expect.stringContaining(scene.b.characterId.toHexString()),
         );
+        await expectNoLaneOnTheQuest(scene);
     });
+
+    // nessun personaggio resta con la corsia su una missione da cui è stato tolto (WR-05)
+    async function expectNoLaneOnTheQuest(scene: Scene): Promise<void> {
+        const requests = await pendingQuests.collection
+            .find({ quest: { $in: [scene.questId, String(scene.questId)] } })
+            .toArray();
+        const requestIds = requests.flatMap(({ _id }) => [_id, String(_id)]);
+        expect(
+            await characters.collection.countDocuments({
+                'quests.pendingQuest': { $in: requestIds },
+            }),
+        ).toBe(0);
+    }
 
     it('writes nothing when the caller transaction aborts (D-26)', async () => {
         const scene = await persistScene();
