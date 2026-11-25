@@ -122,7 +122,7 @@ Dentro la transazione della cancellazione ogni sessione attiva dell'utente ricev
   - **`pointsSpent`** (punti spesi per accettare la quest) accreditati dal `WalletService` al **saldo dell'utente** che gioca il compagno (`User.twitchPoints`): arrivano all'app con **`userUpdated`**.
 - **Quest:** `startedAt` nullo e `registeredAdventurers` vuoto (`startedQuestResetOf`): **di nuovo sul tabellone**, libera per un gruppo nuovo. Le `PendingQuest` di quella quest dei personaggi cancellati e dei segnaposto archiviati spariscono senza rientro né rimborso.
 - **Ciò che riceve l'app di ogni compagno rientrato:**
-  - push `questCancelled` (data-only) con `id` = quest e il testo di `startedQuestCancelled` in `src/push/push-events.ts`: titolo «Missione annullata», corpo **«Un compagno ha lasciato il mondo: la missione è annullata e sei tornato in città, con cibo, punti e vita restituiti.»**, TTL 1 h;
+  - push `questCancelled` (data-only) con `id` = quest e il testo di `startedQuestCancelled` in `src/push/push-events.ts`: titolo «Missione annullata», corpo **«Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.»**, TTL 1 h;
   - `characterUpdated` (posizione in città, `quests.pendingQuest` nullo, borsa e vita aggiornate) e `userUpdated` (saldo) dai change stream di oggi;
   - `questUpdated(questId)` con `registeredAdventurers: []`. **`startedAt` non è nello SDL**: la FE non lo vede e non deve cercarlo; la quest «non avviata» si riconosce dalle registrazioni vuote.
 - **Terzi:** un giocatore che non è nel gruppo e ha il tabellone aperto vede la quest tornata **alla prossima rilettura** di `quests` (non esiste una subscription del tabellone), o subito se è iscritto a `questUpdated` di quella quest.
@@ -358,7 +358,7 @@ Push FCM data-only a ogni proprietario di un compagno rientrato:
   "type": "questCancelled",
   "id": "<questId>",
   "title": "Missione annullata",
-  "body": "Un compagno ha lasciato il mondo: la missione è annullata e sei tornato in città, con cibo, punti e vita restituiti.",
+  "body": "Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.",
   "sentAt": "2026-11-25T10:00:00.000Z"
 }
 ```
@@ -532,7 +532,7 @@ Diagnosi a DB coi soli nomi di collection e campi: `users` (`acceptedTermsVersio
 
 Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare:
 
-- **Testo del push dell'annullamento** — «Un compagno ha lasciato il mondo: la missione è annullata e sei tornato in città, con cibo, punti e vita restituiti.»; provvisorio, vive solo in `startedQuestCancelled` (`src/push/push-events.ts`).
+- **Testo del push dell'annullamento** — «Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.»; dettato dall'utente nella UAT della FE Phase 25 (2026-11-25), vive solo in `startedQuestCancelled` (`src/push/push-events.ts`).
 - **Tetto del rimborso del cibo** — il cibo restituito che porterebbe una riga della borsa oltre `MAX_ITEM_QUANTITY` si ferma al tetto (l'eccedenza si perde) invece di far fallire la cancellazione.
 - **Id anonimo nei `rescuedCharacters` altrui** — al posto del cancellato invece di toglierlo: il foglio altrui conserva «avete salvato N» senza riferire il cancellato.
 - **Nome utente oltre 64 caratteri** — risponde `TWITCH_USER_NOT_FOUND`, nessun `BAD_USER_INPUT` (la D-20 elenca quattro codici).
