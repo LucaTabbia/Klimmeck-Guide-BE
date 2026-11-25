@@ -6,4 +6,5 @@ export enum SessionRevokeReason {
     reuseDetected = 'reuseDetected',
     userLogout = 'userLogout',
     accessLost = 'accessLost',
+    accountDeleted = 'accountDeleted',
 }

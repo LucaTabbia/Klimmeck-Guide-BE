@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import {
@@ -144,6 +144,46 @@ export class SessionService {
             },
             reason,
         );
+    }
+
+    // dentro la transazione del chiamante (Phase 26 D-18): revoca le attive con accountDeleted e accorcia
+    // ogni sessione dell'utente alla vita dell'access token, mai allungandola; un conflitto di scrittura
+    // ritenta l'intera transazione, quindi gli id letti sono quelli revocati
+    async revokeAllForAccountDeletionWithin(
+        userId: string,
+        session: ClientSession,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId)) return [];
+        const owner = new Types.ObjectId(userId);
+        const now = this.clock.now();
+        const active = await this.sessionModel
+            .find({ userId: owner, ...this.activeFilter(now) }, { _id: 1 })
+            .session(session)
+            .lean<{ _id: Types.ObjectId }[]>()
+            .exec();
+        const ids = active.map(({ _id }) => _id.toHexString());
+        if (ids.length > 0) {
+            await this.sessionModel
+                .updateMany(
+                    { _id: { $in: ids }, revokedAt: null },
+                    {
+                        $set: {
+                            revokedAt: now,
+                            revokeReason: SessionRevokeReason.accountDeleted,
+                        },
+                    },
+                    { session },
+                )
+                .exec();
+        }
+        await this.sessionModel
+            .updateMany(
+                { userId: owner },
+                { $min: { expiresAt: this.accessTokenExpiresAtFrom(now) } },
+                { session },
+            )
+            .exec();
+        return ids;
     }
 
     // una lettura per connessione WS (D-03): solo revokedAt non nullo chiude, una sessione assente resta accettata
@@ -382,6 +422,13 @@ export class SessionService {
         return new Date(
             now.getTime() -
                 this.config.refreshTokenGraceSeconds * MILLISECONDS_PER_SECOND,
+        );
+    }
+
+    private accessTokenExpiresAtFrom(now: Date): Date {
+        return new Date(
+            now.getTime() +
+                this.config.accessTokenTtlSeconds * MILLISECONDS_PER_SECOND,
         );
     }
 
