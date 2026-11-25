@@ -58,15 +58,31 @@ export class SessionRevocationService {
         return this.sessions.revokeAllForAccountDeletionWithin(userId, session);
     }
 
-    // ...i socket e il registro degli access token ancora vivi solo dopo il commit (D-03, D-18)
-    closeDeletedAccountSessions(
+    // ...i socket e il registro degli access token ancora vivi solo dopo il commit (D-03, D-18);
+    // il segno precede la seconda passata: un login che la manca trova già il registro (WR-03)
+    async closeDeletedAccountSessions(
         userId: string,
         sessionIds: readonly string[],
-    ): void {
-        this.registry.closeSessions(
-            sessionIds,
-            SessionRevokeReason.accountDeleted,
-        );
+    ): Promise<void> {
         this.deletedAccounts.mark(userId);
+        let late: string[] = [];
+        try {
+            late = await this.revokeRemainingOfDeletedAccount(userId);
+        } finally {
+            // anche se la seconda passata fallisce, i socket già revocati si chiudono
+            this.registry.closeSessions(
+                [...new Set([...sessionIds, ...late])],
+                SessionRevokeReason.accountDeleted,
+            );
+        }
+    }
+
+    isAccountDeleted(userId: string): boolean {
+        return this.deletedAccounts.isDeleted(userId);
+    }
+
+    // sessioni nate dopo lo snapshot della cancellazione (WR-03)
+    revokeRemainingOfDeletedAccount(userId: string): Promise<string[]> {
+        return this.sessions.revokeRemainingForAccountDeletion(userId);
     }
 }

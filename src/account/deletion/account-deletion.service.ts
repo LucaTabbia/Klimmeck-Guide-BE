@@ -104,7 +104,7 @@ export class AccountDeletionService {
 
     // ordine fisso (D-13, D-25, N6): socket, compagni rientrati, soccorritori liberati, topic, ritratti
     private async afterCommit(report: ErasureReport): Promise<void> {
-        this.closeSessions(report);
+        await this.closeSessions(report);
         for (const { questId, characterIds } of report.cancelled) {
             await notifyQuestCancelled(
                 this.users,
@@ -128,10 +128,10 @@ export class AccountDeletionService {
         await this.portraits.flush();
     }
 
-    // un errore qui non deve fermare push, topic e ritratti
-    private closeSessions(report: ErasureReport): void {
+    // un errore qui non deve fermare push, topic e ritratti; le sessioni nate da un login in gara si revocano qui (WR-03)
+    private async closeSessions(report: ErasureReport): Promise<void> {
         try {
-            this.revocation.closeDeletedAccountSessions(
+            await this.revocation.closeDeletedAccountSessions(
                 String(report.userId),
                 report.revokedSessionIds,
             );
