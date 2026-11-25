@@ -9,6 +9,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { LootItem } from 'src/models/loot-item.model';
+import { PendingQuest } from 'src/models/pending-quest.model';
 import { PushTransport } from 'src/push/transport/push-transport';
 import { QUEST_RESOLUTION_QUEUE } from 'src/quests/outcomes/scheduling/quest-resolution-job';
 import { TRAVEL_QUEUE } from '../travel-job';
@@ -47,6 +48,7 @@ describe('TravelFoodSweep (replSet)', () => {
     let harness: AuthTestApp;
     let characters: Model<CharacterDocument>;
     let lootItems: Model<LootItem>;
+    let pendingQuests: Model<PendingQuest>;
     let pantry: TravelPantryReader;
     let clock: FixedClock;
     let seq = 0;
@@ -74,9 +76,16 @@ describe('TravelFoodSweep (replSet)', () => {
         lootItems = harness.app.get<Model<LootItem>>(
             getModelToken(LootItem.name),
         );
+        pendingQuests = harness.app.get<Model<PendingQuest>>(
+            getModelToken(PendingQuest.name),
+        );
         pantry = harness.app.get(TravelPantryReader);
         // collection pronte prima delle transazioni multi-documento (Pitfall 5)
-        await Promise.all([characters.init(), lootItems.init()]);
+        await Promise.all([
+            characters.init(),
+            lootItems.init(),
+            pendingQuests.init(),
+        ]);
     });
 
     beforeEach(async () => {
@@ -110,6 +119,7 @@ describe('TravelFoodSweep (replSet)', () => {
         ownedItems = [] as unknown[],
         food = {} as Record<string, unknown> | null,
         travel = {} as Record<string, unknown>,
+        pendingQuest = null as Types.ObjectId | null,
     } = {}): Promise<Types.ObjectId> {
         seq += 1;
         const character = await persistCharacter(characters, {
@@ -122,8 +132,25 @@ describe('TravelFoodSweep (replSet)', () => {
                 maxLifePoints,
             },
             assets: { ...buildCharacter().assets, ownedItems },
+            quests: { ...buildCharacter().quests, pendingQuest },
         });
         return character._id as Types.ObjectId;
+    }
+
+    // documento di oggi, senza le spese del tragitto (D-11, D-26)
+    async function travellingPendingQuest(): Promise<Types.ObjectId> {
+        const { insertedId } = await pendingQuests.collection.insertOne({
+            startDate: null,
+            arrivedAt: null,
+            waitingTime: 0,
+            pointsSpent: 30,
+            quest: new Types.ObjectId(),
+        });
+        return insertedId;
+    }
+
+    function rawPendingQuest(id: Types.ObjectId) {
+        return pendingQuests.collection.findOne({ _id: id });
     }
 
     async function tenFoodUnits() {
@@ -418,6 +445,69 @@ describe('TravelFoodSweep (replSet)', () => {
             foodStack(potion, 1),
         ]);
         expect(read.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('records the meal of a quest trip on its pending quest (D-26)', async () => {
+        const pendingQuest = await travellingPendingQuest();
+        const [stack] = await tenFoodUnits();
+        await foodTraveller({
+            ownedItems: [stack],
+            travel: { kind: 'quest' },
+            pendingQuest,
+        });
+
+        await expect(sweep('08:30')).resolves.toBe(1);
+
+        const raw = await rawPendingQuest(pendingQuest);
+        expect(raw?.travelFoodSpent).toEqual([
+            { item: stack.item, quantity: 10 },
+        ]);
+        expect(raw?.travelHungerLifeLost ?? 0).toBe(0);
+    });
+
+    it('records the hunger of a quest trip on its pending quest (D-13)', async () => {
+        const pendingQuest = await travellingPendingQuest();
+        const id = await foodTraveller({
+            food: AFTER_MEAL,
+            travel: { kind: 'quest' },
+            pendingQuest,
+        });
+
+        await expect(sweep('08:33')).resolves.toBe(1);
+
+        expect((await rawCharacter(id))?.status.currentLifePoints).toBe(999);
+        const raw = await rawPendingQuest(pendingQuest);
+        expect(raw?.travelHungerLifeLost).toBe(1);
+        expect(raw?.travelFoodSpent ?? []).toEqual([]);
+    });
+
+    it('adds up the hunger of successive sweeps (D-13)', async () => {
+        const pendingQuest = await travellingPendingQuest();
+        const id = await foodTraveller({
+            food: AFTER_MEAL,
+            travel: { kind: 'quest' },
+            pendingQuest,
+        });
+
+        await sweep('08:33');
+        await sweep('08:39');
+
+        expect((await rawCharacter(id))?.status.currentLifePoints).toBe(994);
+        expect(
+            (await rawPendingQuest(pendingQuest))?.travelHungerLifeLost,
+        ).toBe(6);
+    });
+
+    it('records nothing for a free trip (D-26)', async () => {
+        const othersPendingQuest = await travellingPendingQuest();
+        const before = await rawPendingQuest(othersPendingQuest);
+        const id = await foodTraveller({ food: AFTER_MEAL });
+
+        await expect(sweep('08:39')).resolves.toBe(1);
+
+        expect((await rawCharacter(id))?.status.currentLifePoints).toBe(994);
+        expect(await pendingQuests.collection.countDocuments()).toBe(1);
+        expect(await rawPendingQuest(othersPendingQuest)).toEqual(before);
     });
 
     it('settles the hunger from the travel sweep (D-15)', async () => {
