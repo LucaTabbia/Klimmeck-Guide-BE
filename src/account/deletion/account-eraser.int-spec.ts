@@ -1,5 +1,5 @@
 import { BSON, Db, Document } from 'mongodb';
-import { Model, Types } from 'mongoose';
+import { Model, Schema, Types } from 'mongoose';
 import { AccountDeletionModule } from 'src/account/deletion/account-deletion.module';
 import {
     AccountEraser,
@@ -10,6 +10,8 @@ import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicket } from 'src/auth/login-ticket/login-ticket.model';
 import { Session } from 'src/auth/session/session.model';
 import { Character } from 'src/models/character/character.model';
+import { City, CitySchema } from 'src/models/city.model';
+import { Lore, LoreSchema } from 'src/models/lore.model';
 import { PendingQuest } from 'src/models/pending-quest.model';
 import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Quest } from 'src/models/quest/quest.model';
@@ -26,6 +28,8 @@ import {
     buildCharacter,
     buildQuest,
     persistCharacter,
+    persistCity,
+    persistLore,
     persistQuest,
     persistSession,
     persistUser,
@@ -86,6 +90,8 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
     let tickets: AnyModel;
     let devices: AnyModel;
     let accessChecks: AnyModel;
+    let cities: AnyModel;
+    let lores: AnyModel;
 
     beforeAll(async () => {
         harness = await createAuthTestApp({
@@ -105,6 +111,12 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         tickets = model(LoginTicket.name);
         devices = model(PushDevice.name);
         accessChecks = model(ChannelAccessCheck.name);
+        // geografia del rientro: registrata qui se il modulo non la porta
+        const registered = (name: string, schema: Schema): AnyModel =>
+            harness.connection.models[name] ??
+            harness.connection.model(name, schema);
+        cities = registered(City.name, CitySchema);
+        lores = registered(Lore.name, LoreSchema);
         // collection pronte prima delle transazioni (Pitfall 9)
         await Promise.all(
             [
@@ -118,6 +130,8 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
                 tickets,
                 devices,
                 accessChecks,
+                cities,
+                lores,
             ].map((each) => each.init()),
         );
     });
@@ -493,15 +507,21 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
     it('leaves nothing tied to the deleted account in any collection (D-04, D-14)', async () => {
         const world = await persistWorld();
         const keptBefore = await keptDocumentsOf(world);
+
+        await eraseInTransaction(world.userId);
+
+        await expectNothingLeftOf(world);
+        expect(await keptDocumentsOf(world)).toEqual(keptBefore);
+    });
+
+    // inventario per collection: nessun documento nomina l'utente, i suoi personaggi o il suo Twitch ID (regola dura 4)
+    async function expectNothingLeftOf(world: World): Promise<void> {
         const needles = [
             world.userId.toHexString(),
             world.current.toHexString(),
             world.archived.toHexString(),
             ERASED_TWITCH_ID,
         ];
-
-        await eraseInTransaction(world.userId);
-
         const dump = await dumpDatabase();
         expect(Object.keys(dump)).toEqual(
             expect.arrayContaining([
@@ -538,8 +558,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
                 world.userId.equals(session.userId),
             ),
         ).toHaveLength(2);
-        expect(await keptDocumentsOf(world)).toEqual(keptBefore);
-    });
+    }
 
     function isRevokedInWindow(session: Document, world: World): boolean {
         return (
@@ -791,5 +810,287 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             await rawDb().collection('admin_audit_logs').deleteMany({});
             await rawDb().collection('eventsub_messages').deleteMany({});
         }
+    });
+
+    interface Companion {
+        characterId: Types.ObjectId;
+        userId: Types.ObjectId;
+        pendingQuestId: Types.ObjectId;
+    }
+
+    interface StartedScene {
+        questId: Types.ObjectId;
+        cityMarker: Types.ObjectId;
+        ration: Types.ObjectId;
+        a: Companion;
+        b: Companion;
+    }
+
+    interface StartedSceneOptions {
+        seats: { character: Types.ObjectId; archivedAt?: Date }[];
+        label?: string;
+        type?: 'boss' | 'enemy' | 'aid';
+        rescue?: { characters: Types.ObjectId[]; failedQuest: Types.ObjectId };
+    }
+
+    interface CompanionSeed {
+        name: string;
+        twitchId: string;
+        status?: Record<string, unknown>;
+        ownedItems?: Record<string, unknown>[];
+        pendingQuest: Record<string, unknown>;
+    }
+
+    async function persistCompanion(
+        questId: Types.ObjectId,
+        questMarker: Types.ObjectId,
+        seed: CompanionSeed,
+    ): Promise<Companion> {
+        const characterId = new Types.ObjectId();
+        const pendingQuestId = new Types.ObjectId();
+        const base = buildCharacter();
+        await persistCharacter(characters, {
+            _id: characterId,
+            infos: { ...base.infos, name: seed.name },
+            status: { ...base.status, location: questMarker, ...seed.status },
+            quests: { ...base.quests, pendingQuest: pendingQuestId },
+            assets: { ...base.assets, ownedItems: seed.ownedItems ?? [] },
+        });
+        await pendingQuests.collection.insertOne({
+            _id: pendingQuestId,
+            quest: questId,
+            startDate: STARTED_AT,
+            arrivedAt: STARTED_AT,
+            waitingTime: 0,
+            ...seed.pendingQuest,
+        });
+        const user = await persistUser(users, {
+            twitchId: seed.twitchId,
+            twitchPoints: 100,
+            currentCharacter: characterId,
+        });
+        return {
+            characterId,
+            userId: user._id as Types.ObjectId,
+            pendingQuestId,
+        };
+    }
+
+    // quest avviata sul marker di una città, con i posti dati e due compagni di altri utenti arrivati col cibo e i punti annotati
+    async function persistStartedScene(
+        options: StartedSceneOptions,
+    ): Promise<StartedScene> {
+        const label = options.label ?? 'scene';
+        const cityMarker = new Types.ObjectId();
+        const questMarker = new Types.ObjectId();
+        const ration = new Types.ObjectId();
+        const lore = await persistLore(lores);
+        await persistCity(cities, {
+            markerLocation: cityMarker,
+            pointsOfInterest: [questMarker],
+            relatedLore: lore._id,
+        });
+        const questId = new Types.ObjectId();
+        const a = await persistCompanion(questId, questMarker, {
+            name: `${label} Companion A`,
+            twitchId: `tw-${label}-a`,
+            status: { currentLifePoints: 40, maxLifePoints: 100 },
+            ownedItems: [{ itemType: 'LootItem', item: ration, quantity: 1 }],
+            pendingQuest: {
+                pointsSpent: 30,
+                travelFoodSpent: [{ item: ration, quantity: 2 }],
+                travelHungerLifeLost: 6,
+            },
+        });
+        const b = await persistCompanion(questId, questMarker, {
+            name: `${label} Companion B`,
+            twitchId: `tw-${label}-b`,
+            pendingQuest: { pointsSpent: 10 },
+        });
+        await persistQuest(quests, {
+            _id: questId,
+            infos: {
+                ...buildQuest().infos,
+                type: options.type ?? 'boss',
+                markerLocation: questMarker,
+            },
+            registeredAdventurers: [
+                ...options.seats.map((seat) => ({ ...seat, title: 'rookie' })),
+                { character: a.characterId, title: 'rookie' },
+                { character: b.characterId, title: 'rookie' },
+            ],
+            startedAt: STARTED_AT,
+            concludedAt: null,
+            ...(options.rescue ? { rescue: options.rescue } : {}),
+        });
+        return { questId, cityMarker, ration, a, b };
+    }
+
+    const hexes = (ids: readonly unknown[]) => ids.map(String).sort();
+
+    async function expectSentBack(scene: StartedScene): Promise<void> {
+        for (const companion of [scene.a, scene.b]) {
+            const raw = await characters.collection.findOne({
+                _id: companion.characterId,
+            });
+            expect(raw?.status.location).toEqual(scene.cityMarker);
+            expect(raw?.quests.pendingQuest).toBeNull();
+            expect(
+                await pendingQuests.collection.findOne({
+                    _id: companion.pendingQuestId,
+                }),
+            ).toBeNull();
+        }
+    }
+
+    async function expectBackOnTheBoard(scene: StartedScene): Promise<void> {
+        const quest = await rawQuest(scene.questId);
+        expect(quest?.startedAt).toBeNull();
+        expect(quest?.concludedAt ?? null).toBeNull();
+        expect(quest?.registeredAdventurers).toEqual([]);
+    }
+
+    describe('started quests (D-13)', () => {
+        it('cancels a started boss quest of the deleted character before archiving it (D-13, D-26)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.current }],
+            });
+
+            await eraseInTransaction(world.userId);
+
+            await expectSentBack(scene);
+            const a = await characters.collection.findOne({
+                _id: scene.a.characterId,
+            });
+            expect(a?.assets.ownedItems).toEqual([
+                { itemType: 'LootItem', item: scene.ration, quantity: 3 },
+            ]);
+            expect(a?.status.currentLifePoints).toBe(46);
+            expect(
+                (await users.collection.findOne({ _id: scene.a.userId }))
+                    ?.twitchPoints,
+            ).toBe(130);
+            expect(
+                (await users.collection.findOne({ _id: scene.b.userId }))
+                    ?.twitchPoints,
+            ).toBe(110);
+            await expectBackOnTheBoard(scene);
+            expect(
+                await quests.collection.countDocuments({
+                    'registeredAdventurers.archivedAt': { $exists: true },
+                }),
+            ).toBe(0);
+        });
+
+        it('cancels a started enemy quest the same way (D-26)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.current }],
+                type: 'enemy',
+            });
+
+            await eraseInTransaction(world.userId);
+
+            await expectSentBack(scene);
+            await expectBackOnTheBoard(scene);
+        });
+
+        it('cancels a started aid where the deleted character was a rescuer, keeping the wounded (D-13)', async () => {
+            const world = await persistWorld();
+            const wounded = new Types.ObjectId();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.current }],
+                type: 'aid',
+                rescue: {
+                    characters: [wounded],
+                    failedQuest: new Types.ObjectId(),
+                },
+            });
+
+            await eraseInTransaction(world.userId);
+
+            await expectSentBack(scene);
+            await expectBackOnTheBoard(scene);
+            expect((await rawQuest(scene.questId))?.rescue.characters).toEqual([
+                wounded,
+            ]);
+        });
+
+        it('cancels a started quest held by an archived character of the account (D-26)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.archived, archivedAt: STARTED_AT }],
+            });
+
+            await eraseInTransaction(world.userId);
+
+            await expectSentBack(scene);
+            await expectBackOnTheBoard(scene);
+        });
+
+        it('reports the companions sent back for each cancelled quest (D-26)', async () => {
+            const world = await persistWorld();
+            const held = await persistStartedScene({
+                seats: [{ character: world.current }],
+                label: 'held',
+            });
+            const haunted = await persistStartedScene({
+                seats: [{ character: world.archived, archivedAt: STARTED_AT }],
+                label: 'haunted',
+                type: 'enemy',
+            });
+
+            const report = await eraseInTransaction(world.userId);
+
+            // campo nuovo del contratto: letto senza tipo finché il report non lo porta
+            const cancelled =
+                (
+                    report as unknown as {
+                        cancelled?: {
+                            questId: Types.ObjectId;
+                            characterIds: Types.ObjectId[];
+                        }[];
+                    } | null
+                )?.cancelled ?? [];
+            const reported = cancelled
+                .map(({ questId, characterIds }) => ({
+                    questId: String(questId),
+                    characterIds: hexes(characterIds),
+                }))
+                .sort((left, right) =>
+                    left.questId.localeCompare(right.questId),
+                );
+            const expected = [held, haunted]
+                .map((scene) => ({
+                    questId: String(scene.questId),
+                    characterIds: hexes([
+                        scene.a.characterId,
+                        scene.b.characterId,
+                    ]),
+                }))
+                .sort((left, right) =>
+                    left.questId.localeCompare(right.questId),
+                );
+            expect(reported).toEqual(expected);
+        });
+
+        it('leaves nothing behind after cancelling a started quest (D-04, D-13)', async () => {
+            const world = await persistWorld();
+            await persistStartedScene({
+                seats: [{ character: world.current }],
+                label: 'held',
+            });
+            await persistStartedScene({
+                seats: [{ character: world.archived, archivedAt: STARTED_AT }],
+                label: 'haunted',
+            });
+            const keptBefore = await keptDocumentsOf(world);
+
+            await eraseInTransaction(world.userId);
+
+            await expectNothingLeftOf(world);
+            expect(await keptDocumentsOf(world)).toEqual(keptBefore);
+        });
     });
 });
