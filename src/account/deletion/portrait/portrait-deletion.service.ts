@@ -6,6 +6,7 @@ import {
     PortraitDeletion,
     PortraitDeletionDocument,
 } from './portrait-deletion.model';
+import { portraitPublicIdOf } from './portrait-public-id';
 import { PortraitStore } from './portrait-store';
 
 interface QueuedPortrait {
@@ -23,6 +24,11 @@ export class PortraitDeletionService {
         private readonly outbox: Model<PortraitDeletionDocument>,
         private readonly store: PortraitStore,
     ) {}
+
+    // solo i ritratti del cloud su cui agisce lo store (CR-01)
+    publicIdOf(imagePath: unknown): string | null {
+        return portraitPublicIdOf(imagePath, this.store.cloudName);
+    }
 
     // in serie: una sessione transazionale non regge operazioni concorrenti
     async enqueueWithin(

@@ -27,9 +27,13 @@ function rethrowProviderError(rejection: unknown): never {
 
 @Injectable()
 export class CloudinaryService {
+    // il cloud dell'app: solo i suoi ritratti si possono distruggere (Phase 26 CR-01)
+    readonly cloudName: string | null;
+
     constructor(config: ConfigService) {
+        this.cloudName = config.get<string>('CLOUDINARY_CLOUD_NAME') || null;
         cloudinary.config({
-            cloud_name: config.get<string>('CLOUDINARY_CLOUD_NAME'),
+            cloud_name: this.cloudName ?? undefined,
             api_key: config.get<string>('CLOUDINARY_API_KEY'),
             api_secret: config.get<string>('CLOUDINARY_API_SECRET'),
         });

@@ -46,11 +46,12 @@ import {
 import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.module';
 import { CloudinaryService } from 'src/rest/cloudinary/cloudinary.service';
 
-// la porta chiede destroy, il servizio delle immagini espone destroyPortrait (piano 11)
+// la porta chiede destroy, il servizio delle immagini espone destroyPortrait (piano 11) e il cloud della sua config (CR-01)
 const portraitStoreProvider = {
     provide: PortraitStore,
     inject: [CloudinaryService],
     useFactory: (cloudinary: CloudinaryService): PortraitStore => ({
+        cloudName: cloudinary.cloudName,
         destroy: (publicId: string) => cloudinary.destroyPortrait(publicId),
     }),
 };

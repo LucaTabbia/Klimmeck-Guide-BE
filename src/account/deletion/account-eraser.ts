@@ -12,7 +12,7 @@ import {
     rescuedCountKeeperOf,
 } from 'src/account/deletion/account-erasure.plan';
 import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
-import { portraitPublicIdOf } from 'src/account/deletion/portrait/portrait-public-id';
+import { portraitReferencePatternOf } from 'src/account/deletion/portrait/portrait-public-id';
 import {
     ChannelAccessCheck,
     ChannelAccessCheckDocument,
@@ -348,7 +348,8 @@ export class AccountEraser {
         );
     }
 
-    // outbox nella stessa transazione, Cloudinary dopo il commit (regola dura 5): un ritratto ancora mostrato da un personaggio che resta non si tocca
+    // outbox nella stessa transazione, Cloudinary dopo il commit (regola dura 5): un public id ancora mostrato da un personaggio che resta,
+    // archiviato o no e sotto qualunque grafia, non si tocca (CR-01)
     private async queuePortraitsOf(
         characterIds: readonly Types.ObjectId[],
         now: Date,
@@ -360,36 +361,46 @@ export class AccountEraser {
             .session(session)
             .lean<CharacterPortrait[]>()
             .exec();
-        const uploaded = new Map<string, string>();
-        for (const { infos } of erased) {
-            const imagePath = infos?.imagePath;
-            const publicId = portraitPublicIdOf(imagePath);
-            if (publicId && typeof imagePath === 'string') {
-                uploaded.set(imagePath, publicId);
-            }
-        }
-        if (uploaded.size === 0) return;
-        const stillShown = await this.characterModel
-            .find(
-                {
-                    _id: { $nin: characterIds },
-                    'infos.imagePath': { $in: [...uploaded.keys()] },
-                },
-                { 'infos.imagePath': 1 },
-            )
-            .session(session)
-            .lean<CharacterPortrait[]>()
-            .exec();
-        for (const { infos } of stillShown) {
-            if (typeof infos?.imagePath === 'string') {
-                uploaded.delete(infos.imagePath);
-            }
-        }
-        await this.portraits.enqueueWithin(
-            session,
-            [...uploaded.values()],
-            now,
+        const uploaded = new Set(
+            erased
+                .map(({ infos }) => this.portraits.publicIdOf(infos?.imagePath))
+                .filter((publicId): publicId is string => publicId !== null),
         );
+        if (uploaded.size === 0) return;
+        for (const shown of await this.publicIdsStillShown(
+            [...uploaded],
+            characterIds,
+            session,
+        )) {
+            uploaded.delete(shown);
+        }
+        await this.portraits.enqueueWithin(session, [...uploaded], now);
+    }
+
+    // driver nativo: nessun filtro implicito sugli archiviati, la regex vede ogni grafia dell'URL
+    private async publicIdsStillShown(
+        publicIds: readonly string[],
+        characterIds: readonly Types.ObjectId[],
+        session: ClientSession,
+    ): Promise<string[]> {
+        const survivors = await this.characterModel.collection
+            .find<CharacterPortrait>(
+                {
+                    _id: { $nin: [...characterIds] },
+                    'infos.imagePath': {
+                        $regex: portraitReferencePatternOf(publicIds),
+                    },
+                },
+                { projection: { 'infos.imagePath': 1 }, session },
+            )
+            .toArray();
+        const paths = survivors
+            .map(({ infos }) => infos?.imagePath)
+            .filter((path): path is string => typeof path === 'string');
+        return publicIds.filter((publicId) => {
+            const pattern = portraitReferencePatternOf([publicId]);
+            return paths.some((path) => pattern.test(path));
+        });
     }
 
     // i token servono dopo il commit per la disiscrizione dal topic (D-25)
