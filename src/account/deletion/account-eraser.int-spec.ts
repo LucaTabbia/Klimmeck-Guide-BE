@@ -5,10 +5,13 @@ import {
     AccountEraser,
     ErasureReport,
 } from 'src/account/deletion/account-eraser';
+import { PortraitStore } from 'src/account/deletion/portrait/portrait-store';
 import { ChannelAccessCheck } from 'src/auth/channel-access/channel-access-check.model';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicket } from 'src/auth/login-ticket/login-ticket.model';
 import { Session } from 'src/auth/session/session.model';
+import { PUSH_CONFIG } from 'src/config/push-config';
+import { QUEST_CONFIG } from 'src/config/quest-config';
 import { Character } from 'src/models/character/character.model';
 import { City, CitySchema } from 'src/models/city.model';
 import { Lore, LoreSchema } from 'src/models/lore.model';
@@ -17,8 +20,10 @@ import { QuestResult } from 'src/models/quest-result/quest-result.model';
 import { Quest } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
 import { PushDevice } from 'src/push/push-device.model';
+import { PushTransport } from 'src/push/transport/push-transport';
 import { MissionDraft } from 'src/quests/guided/mission-draft.model';
 import { UsersService } from 'src/users/users.service';
+import { FakePortraitStore } from '../../../test/account/fake-portrait-store';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -34,6 +39,7 @@ import {
     persistSession,
     persistUser,
 } from '../../../test/fixtures';
+import { FakePushTransport } from '../../../test/push/fake-push-transport';
 import { buildQuestResult } from '../../../test/quests/quest-result.fixture';
 
 // ora reale al secondo: le sessioni revocate scadono a NOW + 900 s e il monitor TTL di Mongo non deve toglierle a metà caso
@@ -46,6 +52,7 @@ const ERASED_TWITCH_ID = 'tw-erased-account';
 const KEPT_TWITCH_ID = 'tw-kept-account';
 const ALLOWED_COLLECTIONS = ['admin_audit_logs', 'eventsub_messages'];
 const CONCURRENT_ITERATIONS = 3;
+const UPLOAD_BASE = 'https://res.cloudinary.com/demo-cloud/image/upload';
 
 type AnyModel = Model<any>;
 
@@ -95,9 +102,16 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
     let lores: AnyModel;
 
     beforeAll(async () => {
+        // nessuna rete: push e Cloudinary finti, nessuno sweep periodico dei ritratti
         harness = await createAuthTestApp({
             imports: [AccountDeletionModule],
             clock: new FixedClock(NOW),
+            overrides: [
+                { token: PushTransport, useValue: new FakePushTransport() },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+                { token: PortraitStore, useValue: new FakePortraitStore() },
+                { token: QUEST_CONFIG, useValue: { sweepIntervalMs: 0 } },
+            ],
         });
         eraser = harness.app.get(AccountEraser);
         const model = (name: string): AnyModel =>
@@ -570,6 +584,92 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             session.expiresAt.getTime() <= NOW.getTime() + ACCESS_TOKEN_TTL_MS
         );
     }
+
+    describe('portraits (portrait default)', () => {
+        function portraitOf(id: Types.ObjectId, imagePath: string) {
+            return characters.collection.updateOne(
+                { _id: id },
+                { $set: { 'infos.imagePath': imagePath } },
+            );
+        }
+
+        function queuedPortraits(): Promise<Document[]> {
+            return rawDb()
+                .collection('portrait_deletions')
+                .find({}, { projection: { _id: 0 } })
+                .sort({ publicId: 1 })
+                .toArray();
+        }
+
+        it('queues the uploaded portraits of every character of the account inside the transaction (portrait default)', async () => {
+            const world = await persistWorld();
+            await portraitOf(
+                world.current,
+                `${UPLOAD_BASE}/v1731000000/characters_profile/erased-hero.jpg`,
+            );
+            await portraitOf(
+                world.archived,
+                `${UPLOAD_BASE}/characters_profile/erased-ghost.png`,
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([
+                {
+                    publicId: 'characters_profile/erased-ghost',
+                    queuedAt: NOW,
+                    attempts: 0,
+                },
+                {
+                    publicId: 'characters_profile/erased-hero',
+                    queuedAt: NOW,
+                    attempts: 0,
+                },
+            ]);
+            await expectNothingLeftOf(world);
+        });
+
+        it('queues no preset or foreign image (portrait default)', async () => {
+            const world = await persistWorld();
+            await portraitOf(
+                world.current,
+                `${UPLOAD_BASE}/v1/presets/hero.jpg`,
+            );
+            await portraitOf(
+                world.archived,
+                'https://evil.example.com/demo-cloud/image/upload/v1/characters_profile/ghost.jpg',
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([]);
+        });
+
+        it('queues no portrait still used by a surviving character (portrait default)', async () => {
+            const world = await persistWorld();
+            const shared = `${UPLOAD_BASE}/v7/characters_profile/shared.jpg`;
+            await portraitOf(world.current, shared);
+            await portraitOf(world.kept.character, shared);
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([]);
+        });
+
+        it('leaves no outbox row when the erasure is refused (D-16)', async () => {
+            const world = await persistWorld('innkeeper');
+            await portraitOf(
+                world.current,
+                `${UPLOAD_BASE}/v1/characters_profile/innkeeper.jpg`,
+            );
+
+            await expect(
+                eraseInTransaction(world.userId),
+            ).rejects.toMatchObject({ code: 'INNKEEPER_ACCOUNT_PROTECTED' });
+
+            expect(await queuedPortraits()).toEqual([]);
+        });
+    });
 
     it('finds an archived character with no result through its owner (D-24)', async () => {
         const userId = new Types.ObjectId();

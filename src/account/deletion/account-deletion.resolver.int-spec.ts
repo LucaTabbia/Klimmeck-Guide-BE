@@ -2,17 +2,22 @@ import { Logger } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import WebSocket from 'ws';
 import { AccountDeletionModule } from 'src/account/deletion/account-deletion.module';
+import { PortraitStore } from 'src/account/deletion/portrait/portrait-store';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { TwitchUserDirectory } from 'src/auth/twitch/twitch-user-directory';
 import { AdminAuditLog } from 'src/authz/audit/admin-audit-log.model';
 import { AuthzModule } from 'src/authz/authz.module';
+import { PUSH_CONFIG } from 'src/config/push-config';
+import { QUEST_CONFIG } from 'src/config/quest-config';
 import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
+import { PushTransport } from 'src/push/transport/push-transport';
+import { FakePortraitStore } from '../../../test/account/fake-portrait-store';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -31,6 +36,7 @@ import {
     openAcknowledgedSocket,
 } from '../../../test/auth/ws-test-client';
 import { createPlayer } from '../../../test/authz/player-fixture';
+import { FakePushTransport } from '../../../test/push/fake-push-transport';
 
 // ora reale al secondo: le sessioni revocate scadono a NOW + 900 s e il monitor TTL di Mongo non deve toglierle a metà caso
 const NOW = new Date(Math.floor(new Date().getTime() / 1000) * 1000);
@@ -54,6 +60,8 @@ interface WireBody {
 
 describe('deleteMyAccount (wire)', () => {
     const directory = new FakeTwitchUserDirectory();
+    const push = new FakePushTransport();
+    const portraits = new FakePortraitStore();
     let harness: AuthTestApp;
     let users: Model<UserDocument>;
     let characters: Model<CharacterDocument>;
@@ -61,11 +69,17 @@ describe('deleteMyAccount (wire)', () => {
     let audits: Model<AdminAuditLog>;
 
     beforeAll(async () => {
-        // AuthzModule porta l'interceptor del registro dell'oste; nessuna chiamata di rete a Twitch
+        // AuthzModule porta l'interceptor del registro dell'oste; nessuna chiamata di rete a Twitch, FCM o Cloudinary
         harness = await createAuthTestApp({
             imports: [AccountDeletionModule, AuthzModule],
             clock: new FixedClock(NOW),
-            overrides: [{ token: TwitchUserDirectory, useValue: directory }],
+            overrides: [
+                { token: TwitchUserDirectory, useValue: directory },
+                { token: PushTransport, useValue: push },
+                { token: PUSH_CONFIG, useValue: { serviceAccount: null } },
+                { token: PortraitStore, useValue: portraits },
+                { token: QUEST_CONFIG, useValue: { sweepIntervalMs: 0 } },
+            ],
         });
         users = harness.connection.model<UserDocument>(User.name);
         audits = harness.connection.model<AdminAuditLog>(AdminAuditLog.name);
@@ -84,6 +98,7 @@ describe('deleteMyAccount (wire)', () => {
     afterEach(async () => {
         await harness.clearDatabase();
         directory.reset();
+        push.reset();
     });
 
     afterAll(async () => {
