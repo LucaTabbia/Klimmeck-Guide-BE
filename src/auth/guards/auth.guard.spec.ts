@@ -6,7 +6,10 @@ import type { AuthIdentity } from 'src/auth/auth-identity';
 import type { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { RoleType } from 'src/models/enums/role-type.enum';
+import { FixedClock } from '../../../test/auth/fixed-clock';
+import { buildTestAuthConfig } from '../../../test/auth/test-auth-config';
 
 const NOW = new Date('2026-10-06T12:00:00.000Z').getTime();
 const BEARER = 'Bearer access-token';
@@ -71,6 +74,7 @@ function graphqlContext(
 
 describe('AuthGuard', () => {
     let identityResolver: { resolveBearer: jest.Mock };
+    let deletedAccounts: DeletedAccountRegistry;
     let guard: AuthGuard;
 
     beforeEach(() => {
@@ -79,9 +83,14 @@ describe('AuthGuard', () => {
         identityResolver = {
             resolveBearer: jest.fn().mockResolvedValue(buildIdentity()),
         };
+        deletedAccounts = new DeletedAccountRegistry(
+            buildTestAuthConfig(),
+            new FixedClock(new Date(NOW)),
+        );
         guard = new AuthGuard(
             new Reflector(),
             identityResolver as unknown as AuthIdentityResolver,
+            deletedAccounts,
         );
     });
 
@@ -178,6 +187,40 @@ describe('AuthGuard', () => {
             ),
         ).resolves.toBe(true);
         expect(request.user).toBe(identity);
+    });
+
+    it('rejects the HTTP identity of a deleted account (D-18)', async () => {
+        deletedAccounts.mark(buildIdentity().userId);
+
+        await expect(
+            guard.canActivate(httpContext(buildRequest(BEARER))),
+        ).rejects.toMatchObject({ code: AuthErrorCode.UNAUTHENTICATED });
+        await expect(
+            guard.canActivate(graphqlContext({ req: buildRequest(BEARER) })),
+        ).rejects.toMatchObject({ code: AuthErrorCode.UNAUTHENTICATED });
+    });
+
+    it('does not consult the registry for a WS identity already resolved (D-18)', async () => {
+        const identity = buildIdentity();
+        deletedAccounts.mark(identity.userId);
+        const request = buildRequest(BEARER);
+
+        await expect(
+            guard.canActivate(
+                graphqlContext({ req: request, extra: { identity } }),
+            ),
+        ).resolves.toBe(true);
+        expect(request.user).toBe(identity);
+    });
+
+    it('keeps serving the other users while an account is marked deleted (D-18)', async () => {
+        deletedAccounts.mark('user-2');
+        const request = buildRequest(BEARER);
+
+        await expect(guard.canActivate(httpContext(request))).resolves.toBe(
+            true,
+        );
+        expect(request.user?.userId).toBe('user-1');
     });
 
     it('rejects a graphql operation without a request in its context', async () => {

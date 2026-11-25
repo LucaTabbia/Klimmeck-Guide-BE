@@ -1,9 +1,11 @@
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
 import { Session } from 'src/auth/session/session.model';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { AuthProbeResolver } from './auth-probe.resolver';
+import { FixedClock } from './fixed-clock';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -321,6 +323,86 @@ describe('Global auth guard over HTTP GraphQL and REST', () => {
             );
             expect(bodyOf(logout).data?.logout).toBe(true);
         });
+    });
+});
+
+describe('Global auth guard for a deleted account', () => {
+    const ACCESS_TOKEN_TTL_SECONDS = 900;
+    let harness: AuthTestApp;
+    let clock: FixedClock;
+
+    beforeAll(async () => {
+        clock = new FixedClock();
+        harness = await createAuthTestApp({
+            clock,
+            providers: [AuthProbeResolver],
+        });
+    });
+
+    afterEach(async () => {
+        await harness.clearDatabase();
+    });
+
+    afterAll(async () => {
+        await harness.close();
+    });
+
+    // il segno come lo lascia la cancellazione dopo il commit (nessuna sessione viva da chiudere qui)
+    function markDeleted(userId: string): void {
+        harness.app
+            .get(SessionRevocationService)
+            .closeDeletedAccountSessions(userId, []);
+    }
+
+    function whoAmI(bearer: string): Promise<request.Response> {
+        return graphqlRequest(harness.app, WHO_AM_I, undefined, bearer);
+    }
+
+    function getUrls(bearer: string): Promise<request.Response> {
+        return postRest(harness, '/cloudinary/getUrls', bearer).send({
+            folder: 'x',
+        });
+    }
+
+    it('rejects a still valid access token of a deleted account on GraphQL and REST (D-18)', async () => {
+        const { user, bearer } = await createAuthenticatedUser(harness);
+
+        markDeleted(String(user._id));
+
+        expectUnauthenticated(await whoAmI(bearer));
+        const rest = await getUrls(bearer);
+        expect(rest.status).toBe(401);
+        expect(rest.body).toMatchObject({
+            code: AuthErrorCode.UNAUTHENTICATED,
+        });
+        expect(harness.cloudinary.listResources).not.toHaveBeenCalled();
+    });
+
+    it('keeps serving the other users while an account is marked deleted (D-18)', async () => {
+        const deleted = await createAuthenticatedUser(harness);
+        const other = await createAuthenticatedUser(harness, {
+            twitchId: 'twitch-http-other',
+        });
+
+        markDeleted(String(deleted.user._id));
+
+        const body = bodyOf(await whoAmI(other.bearer));
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.whoAmI).toBe('twitch-http-other');
+        expect((await getUrls(other.bearer)).status).toBe(201);
+    });
+
+    it('serves again a token-holder once the window is over (D-18)', async () => {
+        const { user, bearer } = await createAuthenticatedUser(harness);
+        markDeleted(String(user._id));
+        clock.advanceSeconds(ACCESS_TOKEN_TTL_SECONDS - 1);
+        expectUnauthenticated(await whoAmI(bearer));
+
+        clock.advanceSeconds(1);
+
+        const body = bodyOf(await whoAmI(bearer));
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.whoAmI).toBe('twitch-http-1');
     });
 });
 
