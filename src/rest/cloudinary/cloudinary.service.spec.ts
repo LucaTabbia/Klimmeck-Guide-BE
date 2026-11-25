@@ -7,6 +7,7 @@ const PORTRAIT = {
     buffer: Buffer.from([0xff, 0xd8, 0xff]),
 } as Express.Multer.File;
 const PROVIDER_MESSAGE = 'Invalid api_key fake-key';
+const PORTRAIT_PUBLIC_ID = 'characters_profile/abc_DEF-123';
 
 function service(): CloudinaryService {
     return new CloudinaryService({
@@ -55,6 +56,43 @@ describe('CloudinaryService', () => {
         const error = await rejectionOf(service().listResources('portraits'));
 
         expect(describeError(error)).toBe('CloudinaryError, code 420');
+        expect((error as Error).message).toBe('Errore del provider Cloudinary');
+    });
+
+    it('destroys a portrait by public id with cache invalidation (portrait default)', async () => {
+        const destroy = jest
+            .spyOn(cloudinary.uploader, 'destroy')
+            .mockResolvedValue({ result: 'ok' });
+
+        await service().destroyPortrait(PORTRAIT_PUBLIC_ID);
+
+        expect(destroy.mock.calls).toEqual([
+            [PORTRAIT_PUBLIC_ID, { resource_type: 'image', invalidate: true }],
+        ]);
+    });
+
+    it('treats a missing portrait as done (portrait default)', async () => {
+        jest.spyOn(cloudinary.uploader, 'destroy').mockResolvedValue({
+            result: 'not found',
+        });
+
+        await expect(
+            service().destroyPortrait(PORTRAIT_PUBLIC_ID),
+        ).resolves.toBeUndefined();
+    });
+
+    it('turns a destroy failure into an Error with only the provider name and http code (portrait default)', async () => {
+        jest.spyOn(cloudinary.uploader, 'destroy').mockRejectedValue({
+            message: PROVIDER_MESSAGE,
+            http_code: 500,
+        });
+
+        const error = await rejectionOf(
+            service().destroyPortrait(PORTRAIT_PUBLIC_ID),
+        );
+
+        expect(error).toBeInstanceOf(Error);
+        expect(describeError(error)).toBe('CloudinaryError, code 500');
         expect((error as Error).message).toBe('Errore del provider Cloudinary');
     });
 });
