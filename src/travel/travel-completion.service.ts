@@ -37,6 +37,10 @@ import {
     settlementSetOf,
 } from './food/travel-food-settlement';
 import { TravelPantryReader } from './food/travel-pantry.reader';
+import {
+    questTravelSpendingOf,
+    recordQuestTravelSpendingWithin,
+} from './food/quest-travel-spending';
 import { travelJobId } from './travel-job';
 import {
     COMPLETION_PROJECTION,
@@ -185,6 +189,14 @@ export class TravelCompletionService {
         if (written.matchedCount !== 1) {
             throw new Error('arrival food settlement lost its guards');
         }
+        // spese del tragitto nella transazione del pasto (Phase 26 D-13, D-26)
+        await recordQuestTravelSpendingWithin(
+            this.pendingQuestModel,
+            before.status?.activeTravel,
+            before.quests?.pendingQuest,
+            questTravelSpendingOf(settlement, pantry.hpBefore),
+            session,
+        );
     }
 
     // la meta si conosce solo dal before: secondo update nello stesso callback, la pipeline del completamento resta intatta (Phase 16 D-05, C-4)

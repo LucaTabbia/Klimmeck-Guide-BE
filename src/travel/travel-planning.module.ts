@@ -9,6 +9,10 @@ import {
 } from 'src/models/character/character.model';
 import { City, CitySchema } from 'src/models/city.model';
 import { LootItem, LootItemSchema } from 'src/models/loot-item.model';
+import {
+    PendingQuest,
+    PendingQuestSchema,
+} from 'src/models/pending-quest.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import {
     PointOfInterest,
@@ -34,7 +38,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
     name: TRAVEL_QUEUE,
 });
 
-// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14); sorteggio delle imboscate alla partenza (Phase 15); passo «fame» dello sweep, servito a TravelSweeper (Phase 20 D-15)
+// planner + scheduler condivisi da viaggio libero e accettazione quest (D-21); senza il modulo push (C6); e dispensa del viaggio (Phase 14); sorteggio delle imboscate alla partenza (Phase 15); passo «fame» dello sweep, servito a TravelSweeper (Phase 20 D-15), che annota le spese del tragitto sulla PendingQuest (Phase 26 D-26)
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -43,6 +47,7 @@ const TRAVEL_QUEUE_REGISTRATION = BullModule.registerQueue({
             { name: PointOfInterest.name, schema: PointOfInterestSchema },
             { name: City.name, schema: CitySchema },
             { name: LootItem.name, schema: LootItemSchema },
+            { name: PendingQuest.name, schema: PendingQuestSchema },
         ]),
         RoadsModule,
         TRAVEL_QUEUE_REGISTRATION,

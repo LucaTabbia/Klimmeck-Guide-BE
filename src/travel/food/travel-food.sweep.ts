@@ -5,12 +5,20 @@ import {
     Character,
     CharacterDocument,
 } from 'src/models/character/character.model';
+import {
+    PendingQuest,
+    PendingQuestDocument,
+} from 'src/models/pending-quest.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
     curveChangeMessageOf,
     curveChangeOf,
     type FoodCurveChange,
 } from './food-curve-change';
+import {
+    questTravelSpendingOf,
+    recordQuestTravelSpendingWithin,
+} from './quest-travel-spending';
 import {
     FOOD_LEG_PROJECTION,
     foodLegOf,
@@ -36,8 +44,10 @@ interface FoodTraveller {
             road: { distance: number };
             ambush?: { km?: unknown } | null;
             food?: unknown;
+            kind?: unknown;
         };
     };
+    quests?: { pendingQuest?: unknown } | null;
 }
 
 interface SettleOutcome {
@@ -46,6 +56,13 @@ interface SettleOutcome {
 }
 
 const NOTHING_SETTLED: SettleOutcome = { settled: false, curve: null };
+
+// la lettura in sessione sa anche se il viaggio porta a una quest (Phase 26 D-26); FOOD_LEG_PROJECTION resta quella del teleport
+const SETTLE_PROJECTION = {
+    ...FOOD_LEG_PROJECTION,
+    'status.activeTravel.kind': 1,
+    'quests.pendingQuest': 1,
+} as const;
 
 // memoria limitata dei viaggi già segnalati: oltre il tetto si svuota e un viaggio può essere segnalato di nuovo (D-15)
 export const MALFORMED_PLAN_WARNINGS_KEPT = 1_000;
@@ -66,6 +83,8 @@ export class TravelFoodSweep {
         @InjectConnection() private readonly connection: Connection,
         @InjectModel(Character.name)
         private readonly characterModel: Model<CharacterDocument>,
+        @InjectModel(PendingQuest.name)
+        private readonly pendingQuestModel: Model<PendingQuestDocument>,
         private readonly pantry: TravelPantryReader,
     ) {}
 
@@ -134,7 +153,7 @@ export class TravelFoodSweep {
             traveller.status.activeTravel.startTime,
         );
         const current = await this.characterModel
-            .findOne(filter, FOOD_LEG_PROJECTION)
+            .findOne(filter, SETTLE_PROJECTION)
             .session(session)
             .lean<FoodTraveller | null>()
             .exec();
@@ -168,6 +187,16 @@ export class TravelFoodSweep {
             )
             .exec();
         const settled = written.matchedCount === 1;
+        // spese del tragitto nella transazione del pasto, solo a pasto scritto (Phase 26 D-13, D-26)
+        if (settled) {
+            await recordQuestTravelSpendingWithin(
+                this.pendingQuestModel,
+                travel,
+                current?.quests?.pendingQuest,
+                questTravelSpendingOf(settlement, pantry.hpBefore),
+                session,
+            );
+        }
         return {
             settled,
             curve: settled ? curveChangeOf(leg.food, settlement) : null,

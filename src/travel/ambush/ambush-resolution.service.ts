@@ -54,6 +54,10 @@ import {
     curveChangeOf,
     type FoodCurveChange,
 } from '../food/food-curve-change';
+import {
+    questTravelSpendingOf,
+    recordQuestTravelSpendingWithin,
+} from '../food/quest-travel-spending';
 import { TravelPantryReader } from '../food/travel-pantry.reader';
 import { TravelPlanner } from '../travel-planner.service';
 import { TravelScheduler } from '../travel-scheduler.service';
@@ -498,6 +502,18 @@ export class AmbushResolutionService {
                 // la deviazione per fame lascia la quest come una sconfitta (D-16)
                 if (battle.verdict === 'failure' || plan.redirected) {
                     await this.abandonLane(inSession, session);
+                } else {
+                    // spese del tragitto fino al km dell'imboscata, nella stessa transazione (Phase 26 D-13, D-26)
+                    await recordQuestTravelSpendingWithin(
+                        this.pendingQuestModel,
+                        inSession.status.activeTravel,
+                        inSession.quests?.pendingQuest,
+                        questTravelSpendingOf(
+                            food?.progress ?? null,
+                            statusFactsOf(inSession).currentLifePoints,
+                        ),
+                        session,
+                    );
                 }
                 // il risultato nasce all'istante dell'imboscata; questResultReceived parte dal change stream dopo il commit (D-15, D-28)
                 await this.writer.writeResult(
