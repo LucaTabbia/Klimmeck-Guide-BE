@@ -1135,6 +1135,107 @@ describe('SessionService (replSet)', () => {
         });
     });
 
+    describe('revokeAllForAccountDeletionWithin', () => {
+        const ACCESS_TOKEN_TTL_MS = 900 * 1000;
+
+        function revokeWithinTransaction(userId: string): Promise<string[]> {
+            return SessionModel.db.transaction((session) =>
+                service.revokeAllForAccountDeletionWithin(userId, session),
+            );
+        }
+
+        it('revokes every active session of the user with accountDeleted inside the caller transaction (D-18)', async () => {
+            const a = await service.create(USER_ID);
+            const b = await service.create(USER_ID);
+            const other = await service.create(OTHER_USER_ID);
+
+            const revoked = await revokeWithinTransaction(USER_ID);
+
+            expect([...revoked].sort()).toEqual(
+                [a.sessionId, b.sessionId].sort(),
+            );
+            for (const sessionId of [a.sessionId, b.sessionId]) {
+                const stored = await readSession(sessionId);
+                expect(stored?.revokeReason).toBe('accountDeleted');
+                expect(stored?.revokedAt).toEqual(clock.now());
+            }
+            const untouched = await readSession(other.sessionId);
+            expect(untouched?.revokedAt).toBeNull();
+            expect(untouched?.revokeReason).toBeNull();
+            expect(untouched?.expiresAt).toEqual(
+                new Date(clock.now().getTime() + REFRESH_TOKEN_TTL_MS),
+            );
+        });
+
+        it('shortens every session of the user to the access token lifetime, never lengthens (D-18)', async () => {
+            const farAway = await service.create(USER_ID);
+            await service.revoke(
+                farAway.sessionId,
+                SessionRevokeReason.newLogin,
+            );
+            const revokedAt = clock.now();
+            clock.advanceSeconds(60);
+            const soonExpiresAt = new Date(clock.now().getTime() + 300 * 1000);
+            const soon = await persistSession(SessionModel, {
+                userId: new Types.ObjectId(USER_ID),
+                refreshTokenHash: sha256Hex('expiring-soon-token'),
+                expiresAt: soonExpiresAt,
+            });
+
+            await revokeWithinTransaction(USER_ID);
+
+            const shortened = await readSession(farAway.sessionId);
+            expect(shortened?.expiresAt).toEqual(
+                new Date(clock.now().getTime() + ACCESS_TOKEN_TTL_MS),
+            );
+            expect(shortened?.revokeReason).toBe('newLogin');
+            expect(shortened?.revokedAt).toEqual(revokedAt);
+            const unchanged = await readSession(soon._id.toString());
+            expect(unchanged?.expiresAt).toEqual(soonExpiresAt);
+        });
+
+        it('writes nothing when the caller transaction aborts (D-18)', async () => {
+            const a = await service.create(USER_ID);
+            const before = await readSession(a.sessionId);
+
+            await expect(
+                SessionModel.db.transaction(async (session) => {
+                    await service.revokeAllForAccountDeletionWithin(
+                        USER_ID,
+                        session,
+                    );
+                    throw new Error('abort the deletion');
+                }),
+            ).rejects.toThrow('abort the deletion');
+
+            expect(await readSession(a.sessionId)).toEqual(before);
+        });
+
+        it('answers the refresh of a deleted account with SESSION_REVOKED and accountDeleted (D-18)', async () => {
+            const a = await service.create(USER_ID);
+            await revokeWithinTransaction(USER_ID);
+
+            const error = await rejectionOf(service.rotate(a.refreshToken));
+
+            expect(error.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'accountDeleted',
+            });
+        });
+
+        it('falls back to SESSION_EXPIRED once the TTL removed the session (D-18)', async () => {
+            const a = await service.create(USER_ID);
+            await revokeWithinTransaction(USER_ID);
+            await SessionModel.collection.deleteOne({
+                _id: new Types.ObjectId(a.sessionId),
+            });
+
+            const error = await rejectionOf(service.rotate(a.refreshToken));
+
+            expect(error.extensions).toEqual({ code: 'SESSION_EXPIRED' });
+        });
+    });
+
     describe('schema', () => {
         it('declares a TTL index on expiresAt and a unique index on refreshTokenHash', () => {
             const indexes = SessionModel.schema.indexes();

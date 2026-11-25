@@ -321,6 +321,22 @@ describe('formatDomainError', () => {
         });
     });
 
+    it('lets the accountDeleted reason out with SESSION_REVOKED (D-18)', () => {
+        const result = formatDomainError(
+            buildFormatted({ code: 'BAD_REQUEST' }),
+            wrapAsResolverError(
+                AuthException.sessionRevoked(
+                    SessionRevokeReason.accountDeleted,
+                ),
+            ),
+        );
+
+        expect(result.extensions).toEqual({
+            code: 'SESSION_REVOKED',
+            reason: 'accountDeleted',
+        });
+    });
+
     it('drops a reason that is not a string (D-13)', () => {
         const result = formatDomainError(
             buildFormatted({ code: 'BAD_REQUEST' }),
