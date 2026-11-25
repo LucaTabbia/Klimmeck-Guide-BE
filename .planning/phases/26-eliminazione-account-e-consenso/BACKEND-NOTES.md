@@ -566,3 +566,12 @@ Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare:
 - **13:** forme stringa legacy nel canceller corrette (ordine dell'orchestratore); due pin di contratto (`TwitchLoginErrorCode`, `SessionRevokeReason`) aggiornati al gate.
 - **Verdi al primo colpo (guardie di assenza o di non-regressione):** campi interni fuori da GraphQL (01, 04), refresh e bypass senza consenso (02), guard sul ramo WS (03), nessuna spesa su viaggio libero, gruppo sciolto o imboscata persa (04), aid del solo ferito e quest non cominciata (07), i cinque casi della revoca sul filo (08), pubblicazioni dai change stream (12), flusso intero (13).
 - Nessun `npm run build`, nessun riavvio del BE, nessun accesso al DB reale né lettura di `.env` in tutta la fase.
+
+## 8. Boot reale dal ramo (orchestratore, 2026-11-25)
+
+- **Ramo e commit:** `feat/26-eliminazione-account-e-consenso` a `df22b017`, `npm run build` verde, avvio con `PORT=3001 node dist/main.js`; «Nest application successfully started», 0 righe ERROR. Avvisi attesi e non della fase: Redis non raggiungibile (gli sweep coprono), `NODE_ENV` vuoto, bypass di sviluppo attivo, EventSub in modalità locale.
+- **Inventario prima del boot (sola lettura):** 2 utenti (oste e un avventuriero) senza consenso registrato; 7 personaggi di cui 4 archiviati, nessuno col campo `user`; 0 quest cominciate, 0 viaggi, 0 `pendingquests`; nessun id in forma stringa su registrazioni, feriti, corsie, `PendingQuest.quest`, `User.currentCharacter`.
+- **Dati di sviluppo senza proprietario (D-24):** su ordine dell'utente («Cancellali tutti») i 5 personaggi non puntati da nessun utente (4 archiviati e 1 attivo) e i loro 10 esiti sono stati cancellati, dopo una copia EJSON in `~/Downloads/klimmeck-backup-2026-11-25-orphan-characters/`. Restano 2 personaggi, entrambi `currentCharacter` di un utente: la cancellazione dell'account li raggiunge anche senza il campo `user`.
+- **Indici nati al boot:** `character_user` su `characters`; `publicId_1` e `queuedAt_1` su `portrait_deletions` (collection creata, 0 righe).
+- **Sonda:** `deleteMyAccount` senza token risponde `UNAUTHENTICATED`.
+- **Ancora da provare sull'ambiente vero:** Cloudinary, topic FCM e suo permesso IAM, Helix con le credenziali del login, scadenza TTL delle sessioni revocate; tutto nella UAT su device della FE Phase 25.
