@@ -1043,17 +1043,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
 
             const report = await eraseInTransaction(world.userId);
 
-            // campo nuovo del contratto: letto senza tipo finché il report non lo porta
-            const cancelled =
-                (
-                    report as unknown as {
-                        cancelled?: {
-                            questId: Types.ObjectId;
-                            characterIds: Types.ObjectId[];
-                        }[];
-                    } | null
-                )?.cancelled ?? [];
-            const reported = cancelled
+            const reported = (report?.cancelled ?? [])
                 .map(({ questId, characterIds }) => ({
                     questId: String(questId),
                     characterIds: hexes(characterIds),

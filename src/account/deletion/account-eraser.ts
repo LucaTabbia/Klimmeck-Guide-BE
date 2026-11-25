@@ -46,12 +46,19 @@ import {
     MissionDraft,
     MissionDraftRecord,
 } from 'src/quests/guided/mission-draft.model';
+import { startedQuestsWithFilter } from 'src/quests/party/started-quest-cancel';
+import {
+    CancelledStartedQuest,
+    StartedQuestCanceller,
+} from 'src/quests/party/started-quest-canceller';
 
 export interface ErasureReport {
     userId: Types.ObjectId;
     twitchId: string;
     // dall'archivio: push dopo il commit (piano 12)
     released: ReleasedRescuers[];
+    // compagni rientrati per quest annullata: push dopo il commit (piano 12)
+    cancelled: CancelledStartedQuest[];
     // socket da chiudere dopo il commit (piano 08)
     revokedSessionIds: string[];
     // da disiscrivere dal topic dopo il commit (piano 12)
@@ -67,6 +74,10 @@ interface ErasedUser {
 // i tipi del driver non descrivono un $pull su un documento generico: l'update resta quello del piano puro
 const rawUpdateOf = (update: object): UpdateFilter<RawDocument> =>
     update as UpdateFilter<RawDocument>;
+
+interface QuestId {
+    _id: Types.ObjectId;
+}
 
 interface CharacterLanes {
     quests?: Record<string, unknown> | null;
@@ -94,6 +105,7 @@ export class AccountEraser {
         private readonly pushDeviceModel: Model<PushDeviceDocument>,
         @InjectModel(ChannelAccessCheck.name)
         private readonly channelAccessCheckModel: Model<ChannelAccessCheckDocument>,
+        private readonly startedQuestCanceller: StartedQuestCanceller,
         private readonly archiver: CharacterArchiver,
         private readonly sessionRevocation: SessionRevocationService,
     ) {}
@@ -115,6 +127,11 @@ export class AccountEraser {
             throw AccountDeletionException.innkeeperProtected();
         }
         const characterIds = await this.characterIdsOf(userId, user, session);
+        const cancelled = await this.cancelStartedQuestsOf(
+            characterIds,
+            now,
+            session,
+        );
         const released = await this.archiveCurrentOf(
             userId,
             user.currentCharacter,
@@ -146,6 +163,7 @@ export class AccountEraser {
             userId,
             twitchId: user.twitchId,
             released,
+            cancelled,
             revokedSessionIds,
             pushTokens,
         };
@@ -163,6 +181,34 @@ export class AccountEraser {
             .lean<{ _id: Types.ObjectId }[]>()
             .exec();
         return erasedCharacterIdsOf(user.currentCharacter, owned);
+    }
+
+    // prima di ogni rilascio dell'archivio (D-26): la quest cominciata si annulla per tutti e non lascia segnaposto (D-13)
+    private async cancelStartedQuestsOf(
+        characterIds: readonly Types.ObjectId[],
+        now: Date,
+        session: ClientSession,
+    ): Promise<CancelledStartedQuest[]> {
+        if (characterIds.length === 0) return [];
+        // driver nativo: anche la registrazione con l'id in forma stringa conta (04 Pitfall 1)
+        const started = await this.questModel.collection
+            .find<QuestId>(startedQuestsWithFilter(characterIds), {
+                projection: { _id: 1 },
+                session,
+            })
+            .toArray();
+        const cancelled: CancelledStartedQuest[] = [];
+        for (const { _id } of started) {
+            const outcome =
+                await this.startedQuestCanceller.cancelStartedQuestWithin(
+                    session,
+                    _id,
+                    characterIds,
+                    now,
+                );
+            if (outcome) cancelled.push(outcome);
+        }
+        return cancelled;
     }
 
     // posti non avviati, richieste GM, ferito e soccorritori come l'archivio (D-14, regola dura 3)

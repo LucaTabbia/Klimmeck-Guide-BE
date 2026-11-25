@@ -30,6 +30,7 @@ import {
     MissionDraft,
     MissionDraftSchema,
 } from 'src/quests/guided/mission-draft.model';
+import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.module';
 
 // una sola cancellazione per la via propria e per quella dell'oste (Phase 26 regola dura 1)
 @Module({
@@ -45,6 +46,7 @@ import {
             { name: PushDevice.name, schema: PushDeviceSchema },
             { name: ChannelAccessCheck.name, schema: ChannelAccessCheckSchema },
         ]),
+        StartedQuestCancelModule,
         CharacterArchiveModule,
         AuthModule,
     ],
