@@ -279,8 +279,110 @@ All in the foreground. Integration runs used `--runInBand` and a 600000 ms timeo
   - "Punti aperti": the "no retry cap" and "no rate limit" points are replaced by their resolution;
   - new open points: the CR-01 residual risk with the proposed uploader-registry follow-up, IN-08, IN-04, and the role-from-JWT half of IN-06.
 
+## Secondo giro — audit di sicurezza
+
+**Source:** `26-SECURITY.md` (rilievi U-01..U-10, HEAD dell'audit `572585dd`). **Base:** `b983831a`. Rulings from the orchestrator: fix U-01 (both parts), U-02 and U-04. U-03 and U-05..U-10 are accepted and not touched; U-03 is now listed among the accepted risks in `BACKEND-NOTES.md` §7. Same method as the first round: each finding was checked in the code first, then a failing test was committed (RED), then the fix (GREEN). `src/characters/deletion/` was not touched.
+
+| Finding | Outcome | RED | GREEN |
+|---------|---------|-----|-------|
+| U-01 (a) the image lists exposed uploaded portraits | fixed | `b22c54f2` | `75f6379d` |
+| U-01 (b) no recheck before the portrait destroy | fixed | `d9cad9b8` | `be1f17d4` |
+| U-02 a push device registered in the deletion race survived | fixed | `b01d9c2b` | `dc728e6a` |
+| U-04 WS connect accepted when the late session pass failed | fixed (residual with restart documented) | `4daee384` | `70c57a64` |
+| U-03 deletion by name has no confirm step | accepted (one line in §7) | — | — |
+| U-05..U-10 (Info) | accepted, not touched | — | — |
+
+### U-01 (a): image lists
+
+**Files modified:** `src/rest/cloudinary/portrait-folder.ts` (new), `cloudinary-folder.request.ts`, `cloudinary.service.ts`, `src/account/deletion/portrait/portrait-public-id.ts`
+**Applied fix:**
+- `PORTRAIT_FOLDER` now lives in `src/rest/cloudinary/portrait-folder.ts`. It is the single source used by the upload (it was a duplicated literal), by the portrait parser, and by the lists.
+- `CloudinaryFolderRequest.folder` gains a `ValidateBy` rule (`isListableFolder`). It refuses the root (empty, or slashes only) and the uploads folder: any case, any edge slash, any sub-path. The answer is the controller's existing `BAD_USER_INPUT` (`folder`), and the service is never called.
+- `listResources` and `listSubfoldersResources` drop every resource whose `public_id` or `asset_folder` is under the uploads folder. A subfolder under it is skipped without being queried.
+- Boy Scout: the two URL mappings now share one helper. The old `any` warnings of the file went from 22 to 14, and none were added.
+
+**Tests:**
+- Wire: eight spellings (`characters_profile`, `Characters_Profile`, `/characters_profile/`, `characters_profile/sub`, `CHARACTERS_PROFILE//deeper/still`, `''`, `/`, `//`) are refused on both endpoints without calling the service (RED: 201).
+- Wire regression guard: the splash folder `main` and a look-alike `characters_profile_presets` still work.
+- Unit: the filter on `resources`, the skipped subfolder and the stray resource (RED: the portraits were returned).
+
+**FE compatibility:** the app calls only `getSubfoldersUrls`, from `SplashCubit.getImages('main')` (`lib/screens/auth/authenticated_shell.dart:355` → `splash_cubit.dart:75` → `rest.dart:19`), with `folder: "main"`. That folder is still accepted and returns the same preset URLs, because the uploads folder sits at the root and never under `main`. `getUrls` (`fetchCloudinaryFolderUrls`) is defined but never called. The app needs no uploaded portrait from these endpoints.
+
+### U-01 (b): recheck before destroy
+
+**Files modified:** `src/account/deletion/portrait/portrait-deletion.service.ts`, `src/account/deletion/account-eraser.ts`
+**Applied fix:**
+- The CR-01 "still shown" query moved from the eraser into `PortraitDeletionService.publicIdsShown(publicIds, { excluding, session })`. It is the same native-driver regex and the same per-id check. The eraser calls it in the transaction, excluding the erased characters.
+- `closeSafely` calls it, with no exclusions and no session, right before `destroy`. If a character shows the public id, the row is deleted without destroying.
+- If the recheck itself fails, the error goes down the existing failure path: WARN, counted attempt, backoff. In doubt, nothing is destroyed.
+
+**Tests:** `portrait-deletion.service.int-spec.ts` (the Character schema is now registered in the test module):
+- a character created after the queueing keeps the portrait and the row is closed (RED: destroyed);
+- a row that sat in backoff is rechecked (RED: destroyed);
+- an unreferenced image is still destroyed, even next to a look-alike public id (guard).
+
+### U-02: device registered in the deletion race
+
+**Files modified:** `src/push/push-device.registry.ts`, `src/push/push.service.ts`, `src/account/deletion/account-deletion.service.ts`
+**Applied fix:**
+- `PushDeviceRegistry.removeAllOf(userId)` reads the user's rows, deletes only those `_id`s and returns their tokens. `PushService.removeDevicesOf` exposes it.
+- In `afterCommit`, right after the late session pass, `removeLateDevices` runs. Its tokens are merged, without duplicates, with the transaction's tokens into the single `unsubscribeFromStreamerLive` call.
+- A failure is caught and logged at WARN with the internal user id and the error name and code, never a token. A pass that finds rows logs only their count.
+
+**Tests:** `account-deletion.resolver.int-spec.ts`, with a spy on `connection.transaction` that inserts the device right after the commit:
+- the row is gone and the late token is unsubscribed in the same call (RED: one row left);
+- when the sweep fails, the deletion still answers `true`, the transaction's tokens are still unsubscribed, and there is one WARN with the user id and no token.
+- **Deviation:** the second test's RED failed because `removeAllOf` did not exist yet (`jest.spyOn` on a missing method), not on an assertion.
+
+### U-04: WS connect of a deleted account
+
+**Files modified:** `src/auth/ws/ws-connection-authenticator.ts`
+**Applied fix:**
+- `WsConnectionAuthenticator` receives `DeletedAccountRegistry`, which was already provided by `AuthModule`.
+- In `onConnect` it is consulted after the session read and after the "socket already closed" check. A live session of an id in the registry, or a dev bypass identity of one, is closed with 4409 `accountDeleted` and refused.
+- Nothing changes for revoked sessions: they keep their stored reason, `accountDeleted` for those revoked by the deletion. Nothing changes for any user who is not in the registry. `resolveBearer` still does not consult the registry, because a refusal there would give 4403.
+- The change is a handful of lines in one class, so it was fixed rather than documented.
+
+**Residual (documented in §2c):** if the late pass failed **and** the BE restarts within the window, that session's `connection_init` is accepted until the token expires (≤ 15 minutes).
+**Tests:**
+- unit: a live session in the registry gets 4409 `accountDeleted` (RED: accepted); a dev identity in the registry gets the same (RED: accepted); a revoked session keeps `newLogin` over the registry (guard);
+- wire (`test/auth/session-revocation.int-spec.ts`): the registry is marked with the session still active, and the `connection_init` closes with 4409 `accountDeleted` while the session stays unrevoked (RED: socket accepted, timeout).
+
+### Final verification (second round)
+
+All in the foreground. Integration runs used `--runInBand` and a 600000 ms timeout. Results are from HEAD `70c57a64`:
+
+| Run | Suites | Tests |
+|-----|--------|-------|
+| unit `src/rest src/account src/push src/auth` | 49 | 583 |
+| integration `src/account` + `test/account` | 4 | 86 |
+| integration `src/push` | 2 | 35 |
+| integration `src/auth` + `test/auth` | 19 | 425 |
+| integration `src/rest` | 1 | 20 |
+| integration `test/app.int-spec.ts` | 1 | 109 |
+| integration `test/authz` | 2 | 151 |
+
+- `npx tsc --noEmit`: exit 0.
+- `git diff 9a084248 -- src/schema.gql`: only the five added lines plus the blank separator.
+- `git diff --stat 9a084248 -- src/characters/deletion`: empty.
+- Targeted `npx eslint` on every touched file: no errors. The only warnings are the old `any` ones in `cloudinary.service.ts`, down from 22 to 14.
+- `pgrep -fl 'bin/jest'`: empty.
+
+**`BACKEND-NOTES.md`:**
+- header;
+- §2c: WS and registry, the U-04 row and its residual;
+- §2f: the `push_devices` row;
+- §2g: device pass in step 1 and its tokens in step 4, the flush recheck, the image lists;
+- §3: 4409 from the registry, `BAD_USER_INPUT` on the lists;
+- §5: FE compatibility of the lists;
+- §6: entries for U-01, U-02, U-04;
+- §7: the CR-01 residual rewritten after U-01, the bypass point, U-03 among the accepted risks.
+
+`26-SECURITY.md`: one dated line each under U-01, U-02, U-04.
+
 ---
 
 _Fixed: 2026-11-25T03:05:16Z_
 _Fixer: Claude (gsd-code-fixer)_
 _Iteration: 1_
+_Second round (security audit): 2026-11-25_

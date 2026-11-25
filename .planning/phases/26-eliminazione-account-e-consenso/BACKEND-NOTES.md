@@ -9,6 +9,7 @@
 - **Nessuna** variabile d'ambiente nuova, dipendenza nuova, migratore o file di contenuto. **Due** handler GraphQL nuovi (`deleteMyAccount` per ogni utente autenticato, `deleteAccountByTwitchLogin` solo oste, una riga in `test/authz/expected-handlers.ts`). Nuove collection: solo `portrait_deletions` (outbox interno dei ritratti, nessun legame con l'utente).
 - **Fonte:** nomi, percorsi, testi e titoli dei casi copiati da `src/schema.gql`, dal codice e dai SUMMARY 26-01..26-13. **Il codice vince su questo documento.**
 - **Aggiornato dopo la code review (2026-11-25):** correzioni di `26-REVIEW-FIX.md` (CR-01, WR-01..05, IN-02, IN-03, IN-05, IN-06 e il publisher di `userUpdated`) riportate in §2a, §2b, §2c, §2e, §2f, §2g, §6 e §7. SDL invariato (sempre le cinque righe).
+- **Aggiornato dopo l'audit di sicurezza (2026-11-25):** U-01 (elenchi delle immagini senza ritratti caricati, ricontrollo prima della distruzione), U-02 (device registrati in gara) e U-04 (`onConnect` consulta il registro) riportati in §2c, §2f, §2g, §3, §5, §6 e §7; U-03 fra i rischi accettati (§7). SDL invariato.
 
 ---
 
@@ -82,13 +83,15 @@ Le cinque righe di `git diff 9a084248 -- src/schema.gql`:
 
 Dentro la transazione della cancellazione ogni sessione attiva dell'utente riceve `revokedAt` e `revokeReason: accountDeleted`, e **ogni** sessione dell'utente ha `expiresAt` accorciato ad adesso + 900 s con l'operatore `$min` (mai allungato). La revoca usa la stessa ora di ogni altro passo della cancellazione (IN-05). Dopo il commit l'id utente entra in un **registro in memoria** di 15 minuti (`DeletedAccountRegistry`, finestra = vita dell'access token, solo id utente, mai Twitch ID); subito dopo una **seconda passata** fuori transazione revoca con `accountDeleted` e la stessa scadenza accorciata ogni sessione dell'utente ancora non revocata (quella di un login in gara con la cancellazione, nata dopo lo snapshot), e i socket di tutte queste sessioni si chiudono insieme con 4409 `accountDeleted` (WR-03).
 
+**WS e registro (U-04):** `WsConnectionAuthenticator.onConnect` consulta il registro **dopo** la lettura della sessione: una sessione revocata conserva il suo motivo (4409 col motivo salvato, `accountDeleted` per quelle revocate dalla cancellazione), una sessione ancora attiva di un id nel registro (seconda passata fallita, oppure identità del bypass di sviluppo) è chiusa con 4409 `accountDeleted`. Per ogni altro utente nulla cambia; `resolveBearer` resta senza registro (un rifiuto lì darebbe 4403). Resta un solo caso: seconda passata fallita **e** riavvio del BE nella finestra, dove la `connection_init` di quella sessione è accettata fino alla scadenza del token (≤ 15 minuti) e il refresh risponde `SESSION_REVOKED` senza `accountDeleted` (riavvio già fra i ripieghi qui sotto).
+
 **Login in gara (WR-03):** lo scambio del ticket non crea una sessione per un id utente che il registro contiene (`LOGIN_TICKET_INVALID`), e se la cancellazione finisce fra quel controllo e l'inserimento la sessione appena creata è revocata con `accountDeleted` e il login rifiutato allo stesso modo. Con un solo processo BE nessuna sessione viva sopravvive alla cancellazione. Resta un ticket di login emesso dopo lo snapshot: vive al più 60 s (TTL di `login_tickets`) e non è riscattabile, perché l'utente non esiste più.
 
 | Canale | Nella finestra di 15 minuti | Dopo la finestra |
 |--------|-----------------------------|------------------|
 | `refreshSession` | `SESSION_REVOKED` con `extensions.reason = "accountDeleted"` | `SESSION_EXPIRED` (sessione tolta dal TTL di Mongo), senza reason |
 | Socket vivo | close **4409**, reason `accountDeleted` (subito dopo il commit) | — (già chiuso) |
-| Riconnessione WS | close **4409** `accountDeleted` (la sessione revocata è letta a DB) | access token scaduto: bearer rifiutato in `onConnect` → close 4403 |
+| Riconnessione WS | close **4409** `accountDeleted` (la sessione revocata è letta a DB; se la sessione è ancora attiva perché la seconda passata è fallita, `onConnect` trova l'id nel registro in memoria e chiude allo stesso modo: U-04) | access token scaduto: bearer rifiutato in `onConnect` → close 4403 |
 | HTTP (GraphQL e REST) con access token ancora vivo | `UNAUTHENTICATED` (registro in memoria) | access token scaduto → `UNAUTHENTICATED` di oggi |
 
 **Ripieghi dichiarati:**
@@ -144,7 +147,7 @@ Una sola transazione Mongo (`AccountEraser.eraseWithin`), nell'ordine:
 | `questresults` | esiti con `user` = utente o `character` fra i suoi personaggi; nei fogli altrui `rescuedCharacters` conserva la lunghezza: ogni id cancellato diventa un **id anonimo** nuovo (uno per cancellazione) |
 | `sessions` | **revocate**, non cancellate, con scadenza accorciata a 15 minuti (§2c); poi le toglie il TTL |
 | `login_tickets` | cancellati |
-| `push_devices` | cancellati (token letti prima, per la disiscrizione dopo il commit) |
+| `push_devices` | cancellati (token letti prima, per la disiscrizione dopo il commit); dopo il commit una passata tolge anche le righe dell'id cancellato registrate in gara con la transazione (U-02, §2g) |
 | `channel_access_checks` | cancellate per Twitch ID |
 | `portrait_deletions` | una riga per ogni ritratto caricato dall'app dei personaggi cancellati (§2g) |
 
@@ -156,17 +159,19 @@ Un test d'integrazione scorre **ogni** collection con `listCollections` e cerca 
 
 `erase` → `connection.transaction(eraseWithin)` → `afterCommitSafely(report)`, in ordine fisso:
 
-1. segno nel registro in memoria, seconda passata di revoca sulle sessioni nate nel frattempo (§2c) e chiusura dei socket con 4409 `accountDeleted` (try/catch suo);
+1. segno nel registro in memoria, seconda passata di revoca sulle sessioni nate nel frattempo (§2c) e chiusura dei socket con 4409 `accountDeleted` (try/catch suo); subito dopo, **passata sui device** (U-02): le righe `push_devices` dell'id cancellato ancora presenti (un `registerPushDevice` che ha superato il controllo dell'utente prima del commit e ha inserito dopo) sono cancellate, solo quelle lette, e i loro token si aggiungono a quelli della transazione; un errore lascia un WARN con l'id interno e nessun token (try/catch suo), un successo con righe trovate un WARN col solo conteggio;
 2. push `startedQuestCancelled` ai compagni rientrati, quest per quest;
 3. push `questCancelled` di oggi ai soccorritori liberati dall'archivio;
-4. disiscrizione dei token dell'utente dal topic FCM **`streamer-live`** con una sola chiamata (cancellare le righe non basta: il topic vive su Firebase);
+4. disiscrizione dal topic FCM **`streamer-live`** dei token della transazione e di quelli della passata sui device, con una sola chiamata (cancellare le righe non basta: il topic vive su Firebase);
 5. **spinta non attesa** allo sweeper dei ritratti (`PortraitDeletionSweeper.kick`, WR-01): la risposta non aspetta Cloudinary; un giro già in corso ne lancia un altro alla fine, gli errori li registra lo sweeper (mai un rigetto non gestito).
 
 Ogni passo è best-effort e isolato: un errore lascia un WARN (mai un token, un public id o un nome utente nel messaggio) e **non** annulla la cancellazione né cambia la risposta della mutation o l'esito del registro dell'oste.
 
 **Ritratti:** si accodano solo i ritratti caricati dall'app **nel cloud dell'app** (`https://res.cloudinary.com/<cloud>/image/upload/[v<cifre>/]characters_profile/<id>.<ext>`, URL identico alla sua forma normalizzata, `<cloud>` uguale al cloud name configurato, letto da `CloudinaryService` tramite la porta `PortraitStore`, mai dall'ambiente diretto né nei log; senza cloud configurato nessun ritratto è accodato), mai un'immagine di preset o estranea (CR-01). Un public id **ancora mostrato** da un personaggio che resta non si accoda: la guardia confronta i **public id**, non gli URL, su **ogni** personaggio non cancellato, archiviati compresi, nella stessa transazione, e conta ogni grafia dello stesso public id (con o senza versione, altra estensione, trasformazioni, altro cloud, query): nel dubbio il ritratto resta (CR-01).
 
-L'outbox `portrait_deletions` porta solo `publicId` (unico), `queuedAt`, `attempts` e `nextAttemptAt`: nessun legame con l'utente. La riga si chiude a ogni risposta di Cloudinary senza errore (anche «not found»). Un errore incrementa `attempts` e sposta `nextAttemptAt` avanti di 1, 2, 4… minuti (al massimo 6 ore); lo **sweeper** (al boot, a ogni `QUEST_CONFIG.sweepIntervalMs`, default 60 s, e alla spinta di ogni cancellazione) prova solo le righe scadute. Dopo **10 tentativi** la riga non si ritenta più: un solo ERROR con l'id della riga (mai il public id) e la riga resta per la pulizia a mano (WR-02).
+L'outbox `portrait_deletions` porta solo `publicId` (unico), `queuedAt`, `attempts` e `nextAttemptAt`: nessun legame con l'utente. La riga si chiude a ogni risposta di Cloudinary senza errore (anche «not found»). Un errore incrementa `attempts` e sposta `nextAttemptAt` avanti di 1, 2, 4… minuti (al massimo 6 ore); lo **sweeper** (al boot, a ogni `QUEST_CONFIG.sweepIntervalMs`, default 60 s, e alla spinta di ogni cancellazione) prova solo le righe scadute. **Subito prima di distruggere** il `flush` rilegge se un personaggio esistente mostra quel public id, con lo stesso confronto della guardia dell'accodamento (`PortraitDeletionService.publicIdsShown`, condiviso con l'eraser); se sì chiude la riga **senza** distruggere: copre il personaggio creato dopo l'accodamento con un ritratto caricato da un altro e la riga rimasta in backoff (U-01).
+
+**Elenchi delle immagini (U-01):** `POST /cloudinary/getUrls` e `POST /cloudinary/getSubfoldersUrls` rifiutano con `BAD_USER_INPUT` (`folder`) la radice (vuota o di sole barre) e la cartella dei ritratti caricati `characters_profile` (qualunque maiuscola, barre ai bordi, qualunque sottocartella), e dai risultati tolgono ogni risorsa il cui public id o asset folder sta sotto quella cartella (anche se si elencano le sottocartelle di un genitore, che vengono saltate senza interrogarle). Il nome della cartella ha una sola fonte, `PORTRAIT_FOLDER` in `src/rest/cloudinary/portrait-folder.ts`, usata dall'upload, dal riconoscimento dei ritratti e dagli elenchi. Dopo **10 tentativi** la riga non si ritenta più: un solo ERROR con l'id della riga (mai il public id) e la riga resta per la pulizia a mano (WR-02).
 
 **L'app non fa unregister** del device alla cancellazione (con la sessione morta la mutation fallirebbe) e non deve fallire se non può farlo.
 
@@ -185,7 +190,8 @@ L'outbox `portrait_deletions` porta solo `publicId` (unico), `queuedAt`, `attemp
 | `FORBIDDEN` | `deleteAccountByTwitchLogin` | chi chiama non è oste (guard dei ruoli, prima di tutto) | `{ code }` |
 | `SESSION_REVOKED` | `refreshSession` | sessione revocata dalla cancellazione, nei 15 minuti (D-18) | `{ code, reason: "accountDeleted" }`, «Session revoked, sign in again» |
 | `SESSION_EXPIRED` | `refreshSession` | dopo la finestra (sessione tolta dal TTL) | `{ code }`, «Session expired, sign in again» |
-| close 4409 | WS | socket vivo alla cancellazione o riconnessione nei 15 minuti | reason `accountDeleted` |
+| close 4409 | WS | socket vivo alla cancellazione o riconnessione nei 15 minuti (anche con la sessione rimasta attiva, dal registro: U-04) | reason `accountDeleted` |
+| `BAD_USER_INPUT` (400) | `POST /cloudinary/getUrls`, `POST /cloudinary/getSubfoldersUrls` | cartella radice o dei ritratti caricati (U-01) | `{ code }`, «Input non valido: folder» |
 | redirect `terms_not_accepted` | `GET /auth/twitch/start`, callback | versione assente o malformata allo start; state senza versione al callback (D-19) | query `?error=terms_not_accepted` |
 
 Esempi in §4 per ciascuno, tranne `FORBIDDEN` e `UNAUTHENTICATED` da bearer assente (forma di oggi, invariata).
@@ -391,6 +397,7 @@ Le scritture della transazione arrivano in raffica: la FE legge fino all'evento 
 
 - **Tutto additivo:** la FE di oggi funziona contro il BE nuovo, nessun riavvio coordinato. I piani FE che selezionano `deleteMyAccount` e `deleteAccountByTwitchLogin` sono gated **solo sul merge** di questa fase (registro dei documenti della FE 55 → 57) e sul riavvio del BE dal ramo per la UAT.
 - **Da cambiare nella FE:** il login manda `termsVersion` su `/auth/twitch/start` (altrimenti, col BE nuovo, **ogni login Twitch è rifiutato** con `terms_not_accepted`: il cambio della FE va consegnato insieme al riavvio del BE); la mappa dei codici del redirect riceve `terms_not_accepted`; la mappa dei motivi di revoca riceve `accountDeleted` (refresh e 4409).
+- **Elenchi delle immagini (U-01):** l'app chiama solo `getSubfoldersUrls` con `folder: "main"` dallo splash (`SplashCubit.getImages('main')`, `lib/screens/auth/authenticated_shell.dart`): continua a funzionare e riceve gli stessi URL di preset (i ritratti caricati stanno in `characters_profile`, alla radice, mai sotto `main`). `getUrls` non è chiamato. Nessun cambio nella FE.
 
 ### Risposte al handoff della FE
 
@@ -446,6 +453,7 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Revoca in transazione, scadenza accorciata con `$min`, id non valido ignorato (D-18) — `src/auth/session/session.service.int-spec.ts`.
 - Registro di 15 minuti col `Clock`, nuova finestra a ogni segno (D-18) — `src/auth/session/deleted-account.registry.spec.ts`.
 - Guard HTTP che consulta il registro, mai sul ramo WS (D-18) — `src/auth/guards/auth.guard.spec.ts`, `test/auth/http-guard.int-spec.ts`.
+- `onConnect` che consulta il registro dopo la sessione: 4409 `accountDeleted` per una sessione ancora attiva di un account cancellato e per l'identità del bypass, motivo salvato per una sessione revocata (D-18, U-04) — `src/auth/ws/ws-connection-authenticator.spec.ts`, `test/auth/session-revocation.int-spec.ts`.
 - Socket 4409, refresh `SESSION_REVOKED` + `accountDeleted`, ripiego `SESSION_EXPIRED` dopo il TTL (D-03, D-18) — `test/auth/session-revocation.int-spec.ts`, `src/auth/session/session-revocation.service.int-spec.ts`.
 - Pin dei motivi di revoca del contratto — `src/auth/session/session.model.spec.ts`.
 - Sul filo dopo `deleteMyAccount`: socket, refresh, HTTP, riconnessione, altri utenti intatti (D-18) — `src/account/deletion/account-deletion.resolver.int-spec.ts`.
@@ -469,6 +477,9 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 - Forme stringa su quest non avviate e aid aperte, inventario compreso (WR-04) — `src/account/deletion/account-eraser.int-spec.ts` (`describe('open quests with string ids (WR-04)')`).
 - Compagno in viaggio: corsia liberata coi rimborsi, nessun rientro (WR-05) — `src/quests/party/started-quest-canceller.int-spec.ts`.
 - Nessun ERROR del publisher di `userUpdated` per un utente cancellato — `src/users/user-updates.publisher.spec.ts`.
+- Elenchi delle immagini senza ritratti caricati: radice e cartella dei ritratti rifiutate in ogni grafia, risorse e sottocartelle dei ritratti tolte dai risultati, cartella dello splash dell'app servita (U-01) — `src/rest/cloudinary/cloudinary.controller.int-spec.ts`, `src/rest/cloudinary/cloudinary.service.spec.ts`.
+- Ricontrollo prima della distruzione: personaggio nato dopo l'accodamento e riga rimasta in backoff chiuse senza distruggere, immagine non mostrata distrutta (U-01) — `src/account/deletion/portrait/portrait-deletion.service.int-spec.ts`.
+- Device registrato in gara tolto e disiscritto dopo il commit; passata fallita registrata senza token e senza fermare la disiscrizione (U-02) — `src/account/deletion/account-deletion.resolver.int-spec.ts`.
 - Push ai compagni e ai soccorritori, disiscrizione, ritratto, fallimenti isolati, pubblicazioni `characterUpdated` e `questUpdated`, via dell'oste (D-13, D-14, D-15, D-25, D-26) — `src/account/deletion/account-deletion.resolver.int-spec.ts` (`describe('after the commit (D-25)')`).
 
 **BE-DEL-09 — SDL additivo, gate e handoff**
@@ -534,12 +545,13 @@ Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare:
 
 - **Id legacy nell'archivio del personaggio:** la cancellazione dell'account gestisce registrazioni, corsie e `PendingQuest` salvate con l'id in forma stringa (driver nativo); l'archivio di «Elimina personaggio» e della morte (`src/characters/deletion/`, invariato per regola dura 3) usa filtri del modello e **non** vede una registrazione legacy in stringa. Limite di prima della fase, da valutare in una fase futura o al boot reale (compito 4).
 - **Riavvio del BE dentro la finestra:** HTTP con access token vivo arriva ai resolver (`me` → `NOT_FOUND`), §2c.
-- **Bypass di sviluppo:** l'identità del bypass è tenuta in memoria dopo il primo uso e non ha una sessione: se l'utente del bypass si cancella, il suo socket non riceve 4409 e, finita la finestra, il bypass continua a puntare all'id cancellato (`me` → `NOT_FOUND`) fino al riavvio del BE. Solo sviluppo.
-- **Ritratto caricato e non usato da nessun personaggio (rischio residuo di CR-01):** la guardia per public id protegge ogni immagine mostrata da un personaggio, ma l'upload non registra chi carica: un'immagine caricata nel cloud dell'app che nessun personaggio riferisce, e il cui public id un attaccante conosce, resta distruggibile (basta metterne l'URL nel proprio personaggio e cancellare l'account). **Seguito proposto:** all'upload (`POST /cloudinary/uploadImage`) registrare il caricatore, in una collection interna `{ publicId, uploadedBy }` o nel `context` dell'asset su Cloudinary, e accodare alla cancellazione solo i public id caricati dall'account cancellato; poi ripulire quel registro con l'account.
+- **Bypass di sviluppo:** l'identità del bypass è tenuta in memoria dopo il primo uso e non ha una sessione: se l'utente del bypass si cancella, il suo socket vivo non riceve 4409 (una riconnessione nella finestra sì, dal registro: U-04) e, finita la finestra, il bypass continua a puntare all'id cancellato (`me` → `NOT_FOUND`) fino al riavvio del BE. Solo sviluppo.
+- **Ritratto caricato e non usato da nessun personaggio (rischio residuo di CR-01, dopo U-01):** gli elenchi delle immagini non restituiscono più alcun ritratto caricato e il `flush` ricontrolla subito prima di distruggere, quindi un'immagine mostrata da un personaggio esistente in quel momento non si distrugge più, nemmeno se il personaggio è nato dopo l'accodamento o la riga era in backoff. Resta vero solo questo: un'immagine caricata nel cloud dell'app che **nessun** personaggio riferisce, il cui public id un attaccante conosce **per altre vie** (per esempio dall'URL che la vittima gli mostra o condivide, non più dagli elenchi), può essere distrutta mettendone l'URL nel proprio personaggio e cancellando l'account, nella finestra fra l'upload della vittima e la creazione del suo personaggio, e solo se il ricontrollo del `flush` precede quella creazione. **Seguito proposto:** all'upload (`POST /cloudinary/uploadImage`) registrare il caricatore, in una collection interna `{ publicId, uploadedBy }` o nel `context` dell'asset su Cloudinary, e accodare alla cancellazione solo i public id caricati dall'account cancellato; poi ripulire quel registro con l'account.
 - **Due account con lo stesso ritratto cancellati insieme (IN-08):** ciascuna transazione vede il personaggio dell'altra come sopravvissuto e nessuna accoda il ritratto, che resta orfano su Cloudinary. Caso raro, accettato; si chiude col seguito qui sopra o con uno sweep dei ritratti senza più personaggi.
 - **Intervallo dello sweeper dei ritratti legato a `QUEST_CONFIG.sweepIntervalMs` (IN-04):** spegnere lo sweep delle missioni (`0`) spegne anche il ritentativo periodico dei ritratti (restano il giro al boot e la spinta di ogni cancellazione); `CloudinaryService` ha una seconda istanza nel modulo della cancellazione (stessa config, innocuo). Rimandato: i test spengono il giro periodico proprio tramite `QUEST_CONFIG`.
 - **Ruolo dell'oste letto dal JWT (IN-06):** un oste retrocesso può chiamare `deleteAccountByTwitchLogin` per la vita del suo access token (fino a 15 minuti), come per ogni mutation dell'oste; il bersaglio invece è letto dal DB. Rimandato a una revisione comune delle mutation dell'oste.
 - **`userUpdated` dei punti restituiti:** viene dal publisher di oggi (change stream su ogni update dell'utente); la fase prova l'accredito a DB, non l'evento sul filo.
+- **Cancellazione per nome senza passo di conferma (U-03, rischio accettato):** `deleteAccountByTwitchLogin` è irreversibile e il Twitch ID torna all'oste a cose fatte; un nome scritto male o riassegnato cancella l'account sbagliato, e la verifica del richiedente è una procedura dell'oste, non del codice.
 - **Limite di frequenza:** le due mutation sono `@Throttled()` col bucket di default (IN-06), elencate in `EXPECTED_THROTTLED_HANDLERS` di `test/app.int-spec.ts`.
 
 ### Deviazioni dai piani e casi verdi al primo colpo
