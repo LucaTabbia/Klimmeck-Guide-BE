@@ -194,7 +194,45 @@ describe('SessionRevocationService (replSet)', () => {
         expect(deletedAccounts.isDeleted(USER_ID)).toBe(false);
     });
 
-    it('closes the live sockets with 4409 accountDeleted and marks the account after the commit (D-03, D-18)', () => {
+    it('revokes and closes a session born after the transaction of the deletion (WR-03)', async () => {
+        const [foreign] = await createSessions(OTHER_USER_ID, 1);
+        const [a, b] = await createSessions(USER_ID, 2);
+        const revoked = await SessionModel.db.transaction((session) =>
+            revocation.revokeForAccountDeletionWithin(USER_ID, session),
+        );
+        const [late] = await createSessions(USER_ID, 1);
+
+        await revocation.closeDeletedAccountSessions(USER_ID, revoked);
+
+        const stored = await readSession(late);
+        expect(stored?.revokeReason).toBe('accountDeleted');
+        expect(stored?.revokedAt).toBeInstanceOf(Date);
+        expect(stored?.expiresAt.getTime()).toBeLessThanOrEqual(
+            (stored?.revokedAt as Date).getTime() + 900 * 1000,
+        );
+        expect(events).toEqual([
+            ['sockets', [a, b, late].sort(), 'accountDeleted'],
+        ]);
+        expect((await readSession(foreign))?.revokedAt).toBeNull();
+        expect(deletedAccounts.isDeleted(USER_ID)).toBe(true);
+    });
+
+    it('marks the account before the late revocation so no login slips between them (WR-03)', async () => {
+        const marked: boolean[] = [];
+        jest.spyOn(
+            sessions,
+            'revokeRemainingForAccountDeletion' as never,
+        ).mockImplementation((() => {
+            marked.push(deletedAccounts.isDeleted(USER_ID));
+            return Promise.resolve([]);
+        }) as never);
+
+        await revocation.closeDeletedAccountSessions(USER_ID, []);
+
+        expect(marked).toEqual([true]);
+    });
+
+    it('closes the live sockets with 4409 accountDeleted and marks the account after the commit (D-03, D-18)', async () => {
         const sockets = [{ close: jest.fn() }, { close: jest.fn() }];
         const registry = new WsSessionRegistry();
         registry.register('session-a', sockets[0]);
@@ -205,7 +243,10 @@ describe('SessionRevocationService (replSet)', () => {
             deletedAccounts,
         );
 
-        facade.closeDeletedAccountSessions(USER_ID, ['session-a', 'session-b']);
+        await facade.closeDeletedAccountSessions(USER_ID, [
+            'session-a',
+            'session-b',
+        ]);
 
         for (const socket of sockets) {
             expect(socket.close).toHaveBeenCalledWith(4409, 'accountDeleted');

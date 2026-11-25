@@ -5,7 +5,9 @@ import { AccountDeletionModule } from 'src/account/deletion/account-deletion.mod
 import { PortraitStore } from 'src/account/deletion/portrait/portrait-store';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
+import { SessionService } from 'src/auth/session/session.service';
 import { TwitchUserDirectory } from 'src/auth/twitch/twitch-user-directory';
+import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import { AdminAuditLog } from 'src/authz/audit/admin-audit-log.model';
 import { PUSH_CONFIG } from 'src/config/push-config';
 import { QUEST_CONFIG } from 'src/config/quest-config';
@@ -77,6 +79,7 @@ const SESSION_REVOKED_CLOSE_CODE = 4409;
 const SILENCE_MS = 300;
 const HOUR_MS = 60 * 60 * 1000;
 const STARTED_AT = new Date(NOW.getTime() - 2 * HOUR_MS);
+const ACCESS_TOKEN_TTL_MS = 900 * 1000;
 
 type AnyModel = Model<any>;
 
@@ -394,6 +397,47 @@ describe('deleteMyAccount (wire)', () => {
                 reason: 'accountDeleted',
                 acknowledged: false,
             });
+        });
+
+        it('revokes and closes a session born between the commit and the steps after it (WR-03)', async () => {
+            const caller = await login('tw-rev-late');
+            const closed = jest.spyOn(
+                WsSessionRegistry.prototype,
+                'closeSessions',
+            );
+            const transaction = harness.connection.transaction.bind(
+                harness.connection,
+            );
+            const late: string[] = [];
+            // il login rivale inserisce la sua sessione appena dopo il commit della cancellazione
+            jest.spyOn(
+                harness.connection,
+                'transaction',
+            ).mockImplementationOnce((async (work: never, options: never) => {
+                const result: unknown = await transaction(work, options);
+                const rival = await harness.app
+                    .get(SessionService)
+                    .create(String(caller.user._id));
+                late.push(rival.sessionId);
+                return result;
+            }) as never);
+
+            await deleteOwnAccount(caller.bearer);
+
+            expect(late).toHaveLength(1);
+            const stored = await sessions.collection.findOne({
+                _id: new Types.ObjectId(late[0]),
+            });
+            expect(stored?.revokeReason).toBe('accountDeleted');
+            expect(stored?.revokedAt).toBeInstanceOf(Date);
+            expect(stored?.expiresAt.getTime()).toBeLessThanOrEqual(
+                NOW.getTime() + ACCESS_TOKEN_TTL_MS,
+            );
+            const closedAsDeleted = closed.mock.calls
+                .filter(([, reason]) => reason === 'accountDeleted')
+                .flatMap(([ids]) => [...ids]);
+            expect(closedAsDeleted).toContain(late[0]);
+            jest.restoreAllMocks();
         });
 
         it('leaves the sessions of other users alone (D-18)', async () => {

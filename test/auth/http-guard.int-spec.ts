@@ -348,8 +348,8 @@ describe('Global auth guard for a deleted account', () => {
     });
 
     // il segno come lo lascia la cancellazione dopo il commit (nessuna sessione viva da chiudere qui)
-    function markDeleted(userId: string): void {
-        harness.app
+    async function markDeleted(userId: string): Promise<void> {
+        await harness.app
             .get(SessionRevocationService)
             .closeDeletedAccountSessions(userId, []);
     }
@@ -367,7 +367,7 @@ describe('Global auth guard for a deleted account', () => {
     it('rejects a still valid access token of a deleted account on GraphQL and REST (D-18)', async () => {
         const { user, bearer } = await createAuthenticatedUser(harness);
 
-        markDeleted(String(user._id));
+        await markDeleted(String(user._id));
 
         expectUnauthenticated(await whoAmI(bearer));
         const rest = await getUrls(bearer);
@@ -384,7 +384,7 @@ describe('Global auth guard for a deleted account', () => {
             twitchId: 'twitch-http-other',
         });
 
-        markDeleted(String(deleted.user._id));
+        await markDeleted(String(deleted.user._id));
 
         const body = bodyOf(await whoAmI(other.bearer));
         expect(body.errors).toBeUndefined();
@@ -394,7 +394,7 @@ describe('Global auth guard for a deleted account', () => {
 
     it('serves again a token-holder once the window is over (D-18)', async () => {
         const { user, bearer } = await createAuthenticatedUser(harness);
-        markDeleted(String(user._id));
+        await markDeleted(String(user._id));
         clock.advanceSeconds(ACCESS_TOKEN_TTL_SECONDS - 1);
         expectUnauthenticated(await whoAmI(bearer));
 

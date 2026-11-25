@@ -281,7 +281,7 @@ describe('last login wins (wire)', () => {
             const revoked = await harness.connection.transaction((session) =>
                 revocation.revokeForAccountDeletionWithin(userId, session),
             );
-            revocation.closeDeletedAccountSessions(userId, revoked);
+            await revocation.closeDeletedAccountSessions(userId, revoked);
         }
 
         it('closes the live socket of a deleted account with 4409 accountDeleted (D-03, D-18)', async () => {

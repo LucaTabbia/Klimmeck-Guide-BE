@@ -6,6 +6,7 @@ import { AuthSessionService } from 'src/auth/auth-session.service';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { s256Challenge, sha256Hex } from 'src/auth/crypto/token-crypto';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
 import { SessionService } from 'src/auth/session/session.service';
@@ -229,6 +230,54 @@ describe('AuthSessionService (harness)', () => {
                 reason: { code: AuthErrorCode.LOGIN_TICKET_INVALID },
             });
             await expect(sessions.countDocuments()).resolves.toBe(1);
+        });
+
+        it('refuses to open a session for an account deleted moments ago (WR-03)', async () => {
+            const ticket = await harness.app
+                .get(LoginTicketService)
+                .issue(String(user._id), s256Challenge(VERIFIER));
+            harness.app.get(DeletedAccountRegistry).mark(String(user._id));
+
+            await expect(
+                service.exchangeLoginTicket(ticket, VERIFIER),
+            ).rejects.toMatchObject({
+                code: AuthErrorCode.LOGIN_TICKET_INVALID,
+            });
+
+            await expect(sessions.countDocuments()).resolves.toBe(0);
+        });
+
+        it('revokes the session it opened when the account is deleted during the login (WR-03)', async () => {
+            const ticket = await harness.app
+                .get(LoginTicketService)
+                .issue(String(user._id), s256Challenge(VERIFIER));
+            const sessionService = harness.app.get(SessionService);
+            const create = sessionService.create.bind(sessionService);
+            // la cancellazione finisce fra il controllo del registro e l'inserimento della sessione
+            jest.spyOn(sessionService, 'create').mockImplementationOnce(
+                async (userId: string) => {
+                    const issued = await create(userId);
+                    harness.app.get(DeletedAccountRegistry).mark(userId);
+                    return issued;
+                },
+            );
+
+            await expect(
+                service.exchangeLoginTicket(ticket, VERIFIER),
+            ).rejects.toMatchObject({
+                code: AuthErrorCode.LOGIN_TICKET_INVALID,
+            });
+
+            const stored = await sessions
+                .find({ userId: user._id })
+                .lean()
+                .exec();
+            expect(stored).toHaveLength(1);
+            expect(stored[0].revokeReason).toBe('accountDeleted');
+            expect(stored[0].expiresAt.getTime()).toBeLessThanOrEqual(
+                clock.now().getTime() + ACCESS_TOKEN_TTL_MS,
+            );
+            jest.restoreAllMocks();
         });
 
         it('rejects a valid ticket whose user no longer exists', async () => {
