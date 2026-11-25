@@ -1,5 +1,10 @@
 import type { EventSubConfig } from 'src/config/eventsub-config';
-import { TwitchAppTokenCache } from 'src/eventsub/helix/twitch-app-token.cache';
+import {
+    NOT_MANAGED_MESSAGE,
+    TwitchAppTokenCache,
+    twitchAppTokenCacheProvider,
+} from 'src/eventsub/helix/twitch-app-token.cache';
+import type { TwitchAppCredentials } from 'src/eventsub/helix/twitch-app-token.cache';
 import { TwitchHelixError } from 'src/eventsub/helix/twitch-helix.client';
 import { FixedClock } from '../../../test/auth/fixed-clock';
 import {
@@ -10,6 +15,10 @@ import {
 const START = new Date('2026-10-19T12:00:00.000Z');
 const EXPIRES_IN_SECONDS = 5011271;
 const REFRESH_MARGIN_SECONDS = 300;
+const EVENTSUB_CREDENTIALS: TwitchAppCredentials = {
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+};
 
 function jsonResponse(status: number, body: unknown): Response {
     return new Response(JSON.stringify(body), {
@@ -42,9 +51,21 @@ describe('TwitchAppTokenCache', () => {
     });
 
     function buildCache(
-        config: EventSubConfig = buildTestEventSubConfig(),
+        credentials: TwitchAppCredentials | null = EVENTSUB_CREDENTIALS,
     ): TwitchAppTokenCache {
-        return new TwitchAppTokenCache(config, clock);
+        return new TwitchAppTokenCache(credentials, clock);
+    }
+
+    function buildEventSubCache(config: EventSubConfig): TwitchAppTokenCache {
+        return twitchAppTokenCacheProvider.useFactory(
+            config,
+            clock,
+        ) as TwitchAppTokenCache;
+    }
+
+    function tokenFormOfCall(index: number): URLSearchParams {
+        const [, init] = fetchSpy.mock.calls[index];
+        return new URLSearchParams(init?.body as string);
     }
 
     async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
@@ -59,7 +80,9 @@ describe('TwitchAppTokenCache', () => {
     it('requests a client credentials token with the EventSub credentials', async () => {
         fetchSpy.mockResolvedValueOnce(tokenResponse('app-token-1'));
 
-        await expect(buildCache().getToken()).resolves.toBe('app-token-1');
+        await expect(
+            buildEventSubCache(buildTestEventSubConfig()).getToken(),
+        ).resolves.toBe('app-token-1');
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         const [url, init] = fetchSpy.mock.calls[0];
@@ -215,15 +238,75 @@ describe('TwitchAppTokenCache', () => {
         );
     });
 
-    it.each<[string, EventSubConfig]>([
-        ['local', buildLocalEventSubConfig()],
-        ['disabled', { mode: 'disabled' }],
-    ])('refuses to request a token in %s mode', async (_label, config) => {
-        await expect(buildCache(config).getToken()).rejects.toThrow(
+    it('refuses a token without credentials (D-20)', async () => {
+        await expect(buildCache(null).getToken()).rejects.toThrow(
             new TwitchHelixError(
                 'EventSub subscriptions are not managed in this environment',
             ),
         );
         expect(fetchSpy).not.toHaveBeenCalled();
     });
+
+    it('refuses a token without credentials with the message it was built with (D-20)', async () => {
+        const cache = new TwitchAppTokenCache(
+            null,
+            clock,
+            'Twitch user lookup is not configured',
+        );
+
+        await expect(cache.getToken()).rejects.toThrow(
+            new TwitchHelixError('Twitch user lookup is not configured'),
+        );
+        expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('fetches a token with the credentials it was built with (D-20)', async () => {
+        fetchSpy.mockResolvedValueOnce(tokenResponse('app-token-1'));
+
+        await expect(
+            buildCache({
+                clientId: 'login-client-id',
+                clientSecret: 'login-client-secret',
+            }).getToken(),
+        ).resolves.toBe('app-token-1');
+
+        const form = tokenFormOfCall(0);
+        expect(form.get('client_id')).toBe('login-client-id');
+        expect(form.get('client_secret')).toBe('login-client-secret');
+        expect(form.get('grant_type')).toBe('client_credentials');
+    });
+
+    it('builds the EventSub cache only from a managed config (D-20)', async () => {
+        fetchSpy.mockResolvedValueOnce(tokenResponse('app-token-1'));
+
+        await expect(
+            buildEventSubCache(buildLocalEventSubConfig()).getToken(),
+        ).rejects.toBeInstanceOf(TwitchHelixError);
+        expect(fetchSpy).not.toHaveBeenCalled();
+
+        await expect(
+            buildEventSubCache(
+                buildTestEventSubConfig({
+                    clientId: 'managed-client-id',
+                    clientSecret: 'managed-client-secret',
+                }),
+            ).getToken(),
+        ).resolves.toBe('app-token-1');
+        const form = tokenFormOfCall(0);
+        expect(form.get('client_id')).toBe('managed-client-id');
+        expect(form.get('client_secret')).toBe('managed-client-secret');
+    });
+
+    it.each<[string, EventSubConfig]>([
+        ['local', buildLocalEventSubConfig()],
+        ['disabled', { mode: 'disabled' }],
+    ])(
+        'refuses a token for a %s EventSub config with the not-managed message (D-20)',
+        async (_label, config) => {
+            await expect(buildEventSubCache(config).getToken()).rejects.toThrow(
+                new TwitchHelixError(NOT_MANAGED_MESSAGE),
+            );
+            expect(fetchSpy).not.toHaveBeenCalled();
+        },
+    );
 });
