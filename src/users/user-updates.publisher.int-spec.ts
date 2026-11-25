@@ -172,7 +172,7 @@ describe('UserUpdatesPublisher (change stream on users)', () => {
                 },
             },
         );
-        await flushUntilBarrier();
+        expect(documentIdOf(await nextEvent())).toBe(String(user._id));
         const usersService = harness.app.get(UsersService);
 
         await usersService.findOrCreateByTwitchId('twitch-pub-1', consent);

@@ -20,6 +20,11 @@ const CURRENT_CHARACTER_POPULATE = {
     match: CURRENT_CHARACTER_LINK_FILTER,
 } as const;
 
+export interface LegalConsent {
+    termsVersion: string;
+    acceptedAt: Date;
+}
+
 interface TwitchIdGroup {
     _id: string;
     count: number;
@@ -48,8 +53,12 @@ export class UsersService {
         return user;
     }
 
-    async findOrCreateByTwitchId(twitchId: string): Promise<UserDocument> {
-        return this.retryOnDuplicateKey(() =>
+    // termsAcceptedAt è la data dell'accettazione (Phase 26 D-09): la stessa versione non la riscrive
+    async findOrCreateByTwitchId(
+        twitchId: string,
+        { termsVersion, acceptedAt }: LegalConsent,
+    ): Promise<UserDocument> {
+        const user = await this.retryOnDuplicateKey(() =>
             this.userModel
                 .findOneAndUpdate(
                     { twitchId },
@@ -58,12 +67,27 @@ export class UsersService {
                             twitchPoints: 0,
                             role: RoleType.adventurer,
                             currentCharacter: null,
+                            acceptedTermsVersion: termsVersion,
+                            termsAcceptedAt: acceptedAt,
                         },
                     },
                     { upsert: true, new: true },
                 )
                 .exec(),
         );
+        const reaccepted = await this.userModel
+            .findOneAndUpdate(
+                { twitchId, acceptedTermsVersion: { $ne: termsVersion } },
+                {
+                    $set: {
+                        acceptedTermsVersion: termsVersion,
+                        termsAcceptedAt: acceptedAt,
+                    },
+                },
+                { new: true },
+            )
+            .exec();
+        return reaccepted ?? user;
     }
 
     async upsertWithRole(

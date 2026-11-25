@@ -29,6 +29,13 @@ export class User {
         default: null,
     })
     currentCharacter: Character | null;
+
+    // consenso ai documenti (Phase 26 D-09): mai sul filo
+    @Prop({ type: String, default: null })
+    acceptedTermsVersion: string | null;
+
+    @Prop({ type: Date, default: null })
+    termsAcceptedAt: Date | null;
 }
 
 export type UserDocument = User & Document;

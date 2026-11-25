@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { StreamerCredentialStore } from 'src/auth/channel-access/streamer-credential.store';
+import { Clock } from 'src/auth/clock';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
 import { CODE_CHALLENGE_PATTERN } from 'src/auth/crypto/token-crypto';
 import {
@@ -7,6 +8,7 @@ import {
     buildAppTicketRedirect,
 } from 'src/auth/twitch/app-redirect-url';
 import { OAuthStateService } from 'src/auth/twitch/oauth-state.service';
+import { isTermsVersion } from 'src/auth/twitch/terms-version';
 import { buildTwitchAuthorizeUrl } from 'src/auth/twitch/twitch-authorize-url';
 import { TwitchLoginErrorCode } from 'src/auth/twitch/twitch-login-error-code.enum';
 import { TwitchOAuthClient } from 'src/auth/twitch/twitch-oauth.client';
@@ -17,6 +19,11 @@ import type {
 import { AUTH_CONFIG, STREAMER_FOLLOWERS_SCOPE } from 'src/config/auth-config';
 import type { AuthConfig, TwitchOAuthConfig } from 'src/config/auth-config';
 import { UsersService } from 'src/users/users.service';
+
+interface AcceptedLoginState {
+    challenge: string;
+    termsVersion: string;
+}
 
 export interface TwitchCallbackQuery {
     code?: string;
@@ -36,11 +43,12 @@ export class TwitchLoginService {
         private readonly usersService: UsersService,
         private readonly loginTicketService: LoginTicketService,
         private readonly streamerCredentials: StreamerCredentialStore,
+        private readonly clock: Clock,
     ) {}
 
     async buildStartRedirectUrl(
         challenge: unknown,
-        termsVersion?: string,
+        termsVersion: unknown,
     ): Promise<string> {
         const twitch = this.config.twitch;
         if (!twitch) {
@@ -51,13 +59,16 @@ export class TwitchLoginService {
         if (!isCodeChallenge(challenge)) {
             return this.errorRedirect(TwitchLoginErrorCode.INVALID_REQUEST);
         }
+        if (!isTermsVersion(termsVersion)) {
+            return this.errorRedirect(TwitchLoginErrorCode.TERMS_NOT_ACCEPTED);
+        }
         return buildTwitchAuthorizeUrl(
             twitch,
-            await this.oauthStateService.sign(challenge, termsVersion ?? ''),
+            await this.oauthStateService.sign(challenge, termsVersion),
         );
     }
 
-    // lo state è verificato prima di qualsiasi altra azione (anti-CSRF)
+    // lo state è verificato prima di qualsiasi altra azione (anti-CSRF); la versione accettata si legge solo dallo state firmato (D-19)
     async handleCallback({
         code,
         state,
@@ -69,10 +80,13 @@ export class TwitchLoginService {
                 TwitchLoginErrorCode.TWITCH_NOT_CONFIGURED,
             );
         }
-        const challenge = (await this.oauthStateService.verify(state))
-            ?.challenge;
-        if (challenge === undefined) {
+        const claims = await this.oauthStateService.verify(state);
+        if (claims === null) {
             return this.errorRedirect(TwitchLoginErrorCode.INVALID_STATE);
+        }
+        const { challenge, termsVersion } = claims;
+        if (termsVersion === null) {
+            return this.errorRedirect(TwitchLoginErrorCode.TERMS_NOT_ACCEPTED);
         }
         if (error !== undefined) {
             return this.errorRedirect(TwitchLoginErrorCode.ACCESS_DENIED);
@@ -81,7 +95,11 @@ export class TwitchLoginService {
             return this.errorRedirect(TwitchLoginErrorCode.INVALID_REQUEST);
         }
         try {
-            return await this.completeLogin(code, challenge, twitch);
+            return await this.completeLogin(
+                code,
+                { challenge, termsVersion },
+                twitch,
+            );
         } catch (failure) {
             // solo il nome dell'errore: il message potrebbe contenere dati sensibili
             this.logger.warn(
@@ -97,7 +115,7 @@ export class TwitchLoginService {
     // streamer che concede moderator:read:followers, tenuto per riverificare chi segue il canale
     private async completeLogin(
         code: string,
-        challenge: string,
+        { challenge, termsVersion }: AcceptedLoginState,
         twitch: TwitchOAuthConfig,
     ): Promise<string> {
         const tokens = await this.twitchOAuthClient.exchangeCode(code);
@@ -127,6 +145,7 @@ export class TwitchLoginService {
             );
             const user = await this.usersService.findOrCreateByTwitchId(
                 tokenInfo.userId,
+                { termsVersion, acceptedAt: this.clock.now() },
             );
             const ticket = await this.loginTicketService.issue(
                 String(user._id),
