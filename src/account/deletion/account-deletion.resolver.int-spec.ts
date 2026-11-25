@@ -23,6 +23,7 @@ import { PendingQuest } from 'src/models/pending-quest.model';
 import { PointOfInterest } from 'src/models/point-of-interest.model';
 import { Quest } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
+import { PushDeviceRegistry } from 'src/push/push-device.registry';
 import { questCancelled, startedQuestCancelled } from 'src/push/push-events';
 import { PushMessage } from 'src/push/push-message';
 import { PushPlatform } from 'src/push/push-platform.enum';
@@ -1067,6 +1068,71 @@ describe('deleteMyAccount (wire)', () => {
 
             expect(sortedUnsubscriptions()).toEqual(liveSocketUnsubscription());
             expect(push.observed).toEqual([0]);
+        });
+
+        // il device registrato in gara entra appena dopo il commit della cancellazione (U-02)
+        function registerDeviceRightAfterCommit(
+            userId: unknown,
+            token: string,
+        ): void {
+            const transaction = harness.connection.transaction.bind(
+                harness.connection,
+            );
+            jest.spyOn(
+                harness.connection,
+                'transaction',
+            ).mockImplementationOnce((async (work: never, options: never) => {
+                const result: unknown = await transaction(work, options);
+                await registerDevice(userId, token);
+                return result;
+            }) as never);
+        }
+
+        it('removes and unsubscribes a device registered between the commit and the steps after it (U-02)', async () => {
+            const leaving = await leavingPlayer('tw-after-late-device');
+            registerDeviceRightAfterCommit(leaving.user._id, 'tok-late');
+
+            await expectDeletedOwnAccount(leaving);
+
+            expect(
+                await harness.connection
+                    .collection('push_devices')
+                    .countDocuments({ userId: leaving.user._id }),
+            ).toBe(0);
+            expect(sortedUnsubscriptions()).toEqual([
+                {
+                    tokens: [...LEAVING_TOKENS, 'tok-late'].sort(),
+                    topic: 'streamer-live',
+                },
+            ]);
+            jest.restoreAllMocks();
+        });
+
+        it('keeps the deletion and unsubscribes the collected tokens when the late device sweep fails (U-02)', async () => {
+            const warned: string[] = [];
+            jest.spyOn(Logger.prototype, 'warn').mockImplementation(
+                (message: unknown) => {
+                    warned.push(String(message));
+                },
+            );
+            const leaving = await leavingPlayer('tw-after-late-device');
+            registerDeviceRightAfterCommit(leaving.user._id, 'tok-late');
+            jest.spyOn(
+                PushDeviceRegistry.prototype,
+                'removeAllOf',
+            ).mockRejectedValueOnce(new Error('fake sweep failure'));
+
+            await expectDeletedOwnAccount(leaving);
+
+            expect(sortedUnsubscriptions()).toEqual(liveSocketUnsubscription());
+            const sweepWarnings = warned.filter((line) =>
+                line.includes('device'),
+            );
+            expect(sweepWarnings).toHaveLength(1);
+            expect(sweepWarnings[0]).toContain(String(leaving.user._id));
+            expect(warned.filter((line) => line.includes('tok-'))).toEqual([]);
+            expect(warned.join('\n')).not.toContain('fake sweep failure');
+            jest.restoreAllMocks();
         });
 
         it('destroys the uploaded portrait right after the commit (portrait default)', async () => {
