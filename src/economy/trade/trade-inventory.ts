@@ -1,3 +1,4 @@
+import type { Types } from 'mongoose';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { idForms, sameId } from 'src/mongo/document-id';
@@ -77,26 +78,27 @@ function applyLines(
     return inventory;
 }
 
-// equipaggiato implica posseduto (04 D-12): uno slot che indossa un equipaggiamento venduto fino a zero si svuota
+const remainingCopiesOf = (
+    ownedEquipments: readonly InventoryEntry[],
+    itemId: Types.ObjectId,
+) => ownedEquipments.find((entry) => sameId(entry.item, itemId))?.quantity ?? 0;
+
+// equipaggiato implica posseduto (04 D-12): ogni slot che indossa un equipaggiamento venduto oltre le copie rimaste si svuota, gli ultimi per primi
 function slotsWearingSoldOut(
     snapshot: InventorySnapshot,
     lines: readonly TradeLine[],
     ownedEquipments: readonly InventoryEntry[],
 ): SlotType[] {
-    const soldOut = lines
+    const soldEquipments = lines
         .filter(
             (line) =>
                 line.direction === 'sell' && line.kind === 'EquipmentItem',
         )
-        .map((line) => line.itemId)
-        .filter(
-            (itemId) =>
-                !ownedEquipments.some((entry) => sameId(entry.item, itemId)),
-        );
-    return Object.values(SlotType).filter((slot) =>
-        soldOut.some((itemId) =>
-            sameId(snapshot.wornEquipment?.[slot], itemId),
-        ),
+        .map((line) => line.itemId);
+    return soldEquipments.flatMap((itemId) =>
+        Object.values(SlotType)
+            .filter((slot) => sameId(snapshot.wornEquipment?.[slot], itemId))
+            .slice(remainingCopiesOf(ownedEquipments, itemId)),
     );
 }
 

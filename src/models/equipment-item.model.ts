@@ -3,6 +3,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 import { AssetItem } from './interfaces/asset-item.model';
 import { EquipType } from './enums/equip-type.enum';
+import { EquipSubType } from './enums/equip-sub-type.enum';
 import { AccessoryUseType } from './enums/accessory-use-type.enum';
 import { Spell } from './spell.model';
 import { DamagesSchema, Damages, DamagesInput } from './common/damages.model';
@@ -14,6 +15,15 @@ export class EquipmentItem extends AssetItem {
     @Field(() => String)
     @Prop({ type: String, enum: Object.values(EquipType) })
     equipType: EquipType;
+
+    // solo armi: assente finché la cura a DB non lo scrive, null sul filo
+    @Field(() => EquipSubType, { nullable: true })
+    @Prop({
+        type: String,
+        enum: Object.values(EquipSubType),
+        default: undefined,
+    })
+    equipSubType?: EquipSubType | null;
 
     // solo anelli e collane (D-24): assente finché la migrazione o la cura a DB non lo scrive, null sul filo
     @Field(() => [AccessoryUseType], { nullable: true })
@@ -62,6 +72,9 @@ export class EquipmentItemInput {
 
     @Field(() => EquipType)
     equipType: EquipType;
+
+    @Field(() => EquipSubType, { nullable: true })
+    equipSubType?: EquipSubType | null;
 
     @Field(() => [AccessoryUseType], { nullable: true })
     accessoryUseTypes?: AccessoryUseType[] | null;

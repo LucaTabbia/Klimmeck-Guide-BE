@@ -174,6 +174,31 @@ describe('trade inventory', () => {
             expect(outcome.vacatedSlots).toEqual([]);
         });
 
+        it('vacates only the worn slots left without a copy when one of two is sold', () => {
+            const outcome = applyTradeToInventory(
+                {
+                    ownedEquipments: [equipment(sword, 2)],
+                    wornEquipment: { leftHand: sword, rightHand: sword },
+                },
+                [line('sell', 'EquipmentItem', sword, 1)],
+            );
+
+            expect(outcome.ownedEquipments).toEqual([equipment(sword, 1)]);
+            expect(outcome.vacatedSlots).toEqual(['rightHand']);
+        });
+
+        it('keeps both hands while two copies remain after a sale', () => {
+            const outcome = applyTradeToInventory(
+                {
+                    ownedEquipments: [equipment(sword, 3)],
+                    wornEquipment: { leftHand: sword, rightHand: sword },
+                },
+                [line('sell', 'EquipmentItem', sword, 1)],
+            );
+
+            expect(outcome.vacatedSlots).toEqual([]);
+        });
+
         it('rejects selling an item not owned with ITEM_NOT_OWNED', () => {
             expect(
                 codeThrownBy(() =>

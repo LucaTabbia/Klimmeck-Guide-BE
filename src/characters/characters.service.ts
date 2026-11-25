@@ -15,7 +15,11 @@ import {
 } from 'src/models/character/character.model';
 import { Equipment } from 'src/models/common/equipment.model';
 import { CommonResponse } from 'src/models/common/common-response.model';
-import { EquipmentItem } from 'src/models/equipment-item.model';
+import {
+    EquipmentItem,
+    EquipmentItemDocument,
+} from 'src/models/equipment-item.model';
+import { isTwoHanded } from 'src/models/enums/equip-sub-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { EquipPetRequest } from 'src/models/request/equip-pet-request.model';
 import { UnequipPetRequest } from 'src/models/request/unequip-pet-request.model';
@@ -36,7 +40,9 @@ import {
     classifyEquipItemFailure,
     equipItemFilter,
     equipItemUpdate,
+    ownsEquipmentFilter,
 } from './equipment/equip-item.updates';
+import { handsFreedBy, otherHandOf } from './equipment/hand-rule';
 import {
     PET_SLOT_PROJECTION,
     PetCatalogFacts,
@@ -112,6 +118,8 @@ export class CharactersService {
         private characterModel: Model<CharacterDocument>,
         @InjectModel(Spell.name) private spellModel: Model<SpellDocument>,
         @InjectModel(Pet.name) private readonly petModel: Model<PetDocument>,
+        @InjectModel(EquipmentItem.name)
+        private readonly equipmentItemModel: Model<EquipmentItemDocument>,
         @InjectConnection() private readonly connection: Connection,
         @InjectQueue(SPELL_RECOVERY_QUEUE)
         private spellRecoveryQueue: Queue<SpellRecoveryJobData>,
@@ -206,6 +214,53 @@ export class CharactersService {
         return character.assets.wornEquipment;
     }
 
+    private async matchesCharacter(
+        filter: Record<string, unknown>,
+    ): Promise<boolean> {
+        return (await this.characterModel.exists(filter).exec()) !== null;
+    }
+
+    private async twoHandedAmong(
+        itemIds: readonly Types.ObjectId[],
+    ): Promise<Set<string>> {
+        const items = await this.equipmentItemModel
+            .find({ _id: { $in: itemIds } }, { equipSubType: 1 })
+            .lean()
+            .exec();
+        return new Set(
+            items
+                .filter((item) => isTwoHanded(item.equipSubType))
+                .map((item) => (item._id as Types.ObjectId).toHexString()),
+        );
+    }
+
+    // svestire una mano non tocca l'altra: con un'arma a due mani indossata l'altra mano è già vuota
+    private async handsFreedByEquip(
+        characterId: Types.ObjectId,
+        slot: SlotType,
+        itemId: Types.ObjectId | null,
+    ): Promise<SlotType[]> {
+        const otherHand = otherHandOf(slot);
+        if (!otherHand || !itemId) return [];
+        const worn = await this.characterModel
+            .findOne(activeCharacterById(characterId), {
+                [`assets.wornEquipment.${otherHand}`]: 1,
+            })
+            .lean()
+            .exec();
+        const otherItemId = refIdOf(worn?.assets?.wornEquipment?.[otherHand]);
+        const twoHanded = await this.twoHandedAmong(
+            otherItemId ? [itemId, otherItemId] : [itemId],
+        );
+        return handsFreedBy({
+            slot,
+            itemTwoHanded: twoHanded.has(itemId.toHexString()),
+            otherHandTwoHanded:
+                otherItemId !== null &&
+                twoHanded.has(otherItemId.toHexString()),
+        });
+    }
+
     async equipItem(request: EquipItemRequest): Promise<CommonResponse> {
         const characterId = requireCharacterObjectId(request.id);
         await this.missionLock.assertFree(characterId);
@@ -214,18 +269,28 @@ export class CharactersService {
         if (request.itemId != null && !itemId)
             throw GameRuleException.itemNotOwned();
 
+        const freedHands = await this.handsFreedByEquip(
+            characterId,
+            request.slotType,
+            itemId,
+        );
         const equipped = await this.characterModel
             .updateOne(
-                equipItemFilter(characterId, itemId),
-                equipItemUpdate(request.slotType, itemId),
+                equipItemFilter(characterId, itemId, [
+                    request.slotType,
+                    ...freedHands,
+                ]),
+                equipItemUpdate(request.slotType, itemId, freedHands),
             )
             .exec();
         if (equipped.matchedCount === 0) {
-            const characterExists =
-                (await this.characterModel
-                    .exists(activeCharacterById(characterId))
-                    .exec()) !== null;
-            throw classifyEquipItemFailure(characterExists);
+            throw classifyEquipItemFailure(
+                await this.matchesCharacter(activeCharacterById(characterId)),
+                itemId !== null &&
+                    (await this.matchesCharacter(
+                        ownsEquipmentFilter(characterId, itemId),
+                    )),
+            );
         }
         return {
             response: 'Equipaggiamento cambiato con successo',

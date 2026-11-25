@@ -294,6 +294,181 @@ describe('equipItem (wire)', () => {
         expect(await rawCharacter(player)).toEqual(before);
     });
 
+    it('wields two copies of the same weapon, one per hand', async () => {
+        const player = await playerWith('twitch-item-dual-copies', {
+            ownedEquipments: [
+                { itemType: 'EquipmentItem', item: sword, quantity: 2 },
+            ],
+            wornEquipment: { leftHand: sword },
+        });
+
+        const body = await equip(player, {
+            slotType: 'rightHand',
+            itemId: sword.toHexString(),
+        });
+
+        expect(body.errors).toBeUndefined();
+        expect(body.data?.equipItem).toEqual(EQUIPPED);
+        const worn = (await rawCharacter(player)).assets.wornEquipment;
+        expect(worn.leftHand).toEqual(sword);
+        expect(worn.rightHand).toEqual(sword);
+    });
+
+    it('wields two different shields, one per hand', async () => {
+        const buckler = new Types.ObjectId();
+        const tower = new Types.ObjectId();
+        const player = await playerWith('twitch-item-dual-shields', {
+            ownedEquipments: [
+                { itemType: 'EquipmentItem', item: buckler, quantity: 1 },
+                { itemType: 'EquipmentItem', item: tower, quantity: 1 },
+            ],
+            wornEquipment: { leftHand: buckler },
+        });
+
+        const body = await equip(player, {
+            slotType: 'rightHand',
+            itemId: tower.toHexString(),
+        });
+
+        expect(body.data?.equipItem).toEqual(EQUIPPED);
+        const worn = (await rawCharacter(player)).assets.wornEquipment;
+        expect(worn.leftHand).toEqual(buckler);
+        expect(worn.rightHand).toEqual(tower);
+    });
+
+    it('rejects a second hand for a single copy with INSUFFICIENT_ITEM_QUANTITY', async () => {
+        const player = await ownerOfSword('twitch-item-dual-single', {
+            leftHand: sword,
+        });
+        const before = await rawCharacter(player);
+
+        const body = await equip(player, {
+            slotType: 'rightHand',
+            itemId: sword.toHexString(),
+        });
+
+        expect(codeOf(body)).toBe('INSUFFICIENT_ITEM_QUANTITY');
+        expect(await rawCharacter(player)).toEqual(before);
+    });
+
+    it('re-equips a single copy in the slot that already wears it', async () => {
+        const player = await ownerOfSword('twitch-item-dual-same-slot', {
+            leftHand: sword,
+        });
+
+        const body = await equip(player, {
+            slotType: 'leftHand',
+            itemId: sword.toHexString(),
+        });
+
+        expect(body.data?.equipItem).toEqual(EQUIPPED);
+    });
+
+    describe('two-handed weapons', () => {
+        async function weapon(equipSubType: string): Promise<Types.ObjectId> {
+            const equipment = harness.connection.model<EquipmentItemDocument>(
+                EquipmentItem.name,
+            );
+            const item = await persistEquipmentItem(equipment, {
+                name: equipSubType,
+                equipType: 'weapon',
+                equipSubType,
+            });
+            return item._id as Types.ObjectId;
+        }
+
+        function ownerOf(
+            twitchId: string,
+            items: Types.ObjectId[],
+            wornEquipment: Record<string, unknown>,
+        ): Promise<TestPlayer> {
+            return playerWith(twitchId, {
+                ownedEquipments: items.map((item) => ({
+                    itemType: 'EquipmentItem',
+                    item,
+                    quantity: 1,
+                })),
+                wornEquipment,
+            });
+        }
+
+        it('empties the other hand when a two-handed weapon is equipped', async () => {
+            const greatsword = await weapon('greatsword');
+            const dagger = await weapon('dagger');
+            const player = await ownerOf(
+                'twitch-two-handed-equip',
+                [greatsword, dagger],
+                { rightHand: dagger },
+            );
+
+            const body = await equip(player, {
+                slotType: 'leftHand',
+                itemId: greatsword.toHexString(),
+            });
+
+            expect(body.data?.equipItem).toEqual(EQUIPPED);
+            const worn = (await rawCharacter(player)).assets.wornEquipment;
+            expect(worn.leftHand).toEqual(greatsword);
+            expect(worn.rightHand).toBeNull();
+        });
+
+        it('takes the two-handed weapon off when the other hand is filled', async () => {
+            const bow = await weapon('bow');
+            const dagger = await weapon('dagger');
+            const player = await ownerOf(
+                'twitch-two-handed-replace',
+                [bow, dagger],
+                { leftHand: bow },
+            );
+
+            const body = await equip(player, {
+                slotType: 'rightHand',
+                itemId: dagger.toHexString(),
+            });
+
+            expect(body.data?.equipItem).toEqual(EQUIPPED);
+            const worn = (await rawCharacter(player)).assets.wornEquipment;
+            expect(worn.leftHand).toBeNull();
+            expect(worn.rightHand).toEqual(dagger);
+        });
+
+        it('moves a single two-handed weapon to the other hand', async () => {
+            const spear = await weapon('spear');
+            const player = await ownerOf('twitch-two-handed-move', [spear], {
+                leftHand: spear,
+            });
+
+            const body = await equip(player, {
+                slotType: 'rightHand',
+                itemId: spear.toHexString(),
+            });
+
+            expect(body.data?.equipItem).toEqual(EQUIPPED);
+            const worn = (await rawCharacter(player)).assets.wornEquipment;
+            expect(worn.leftHand).toBeNull();
+            expect(worn.rightHand).toEqual(spear);
+        });
+
+        it('keeps two one-handed weapons side by side', async () => {
+            const grimoire = await weapon('grimoire');
+            const wand = await weapon('wand');
+            const player = await ownerOf(
+                'twitch-one-handed-pair',
+                [grimoire, wand],
+                { leftHand: grimoire },
+            );
+
+            await equip(player, {
+                slotType: 'rightHand',
+                itemId: wand.toHexString(),
+            });
+
+            const worn = (await rawCharacter(player)).assets.wornEquipment;
+            expect(worn.leftHand).toEqual(grimoire);
+            expect(worn.rightHand).toEqual(wand);
+        });
+    });
+
     it('does not equip an item owned only as loot', async () => {
         const player = await playerWith('twitch-item-loot', {
             ownedItems: [{ itemType: 'LootItem', item: sword, quantity: 1 }],
