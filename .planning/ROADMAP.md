@@ -403,6 +403,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 **Unblocks (FE)**: FE Phase 25 (selezioni delle due mutation gated sul merge).
 **Branch**: `feat/26-eliminazione-account-e-consenso` da `develop`.
 **Plans**: 14 plans
+**Stato (2026-11-25)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §7, da eseguire) a cura dell'orchestratore
 
 Plans:
 - [x] 26-01-PLAN.md — Proprietario del personaggio (`Character.user`) scritto alla creazione

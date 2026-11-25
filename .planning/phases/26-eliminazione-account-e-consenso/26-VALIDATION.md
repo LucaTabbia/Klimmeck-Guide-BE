@@ -1,9 +1,9 @@
 ---
 phase: 26
 slug: eliminazione-account-e-consenso
-status: executing
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-11-24
 ---
 
@@ -77,8 +77,8 @@ created: 2026-11-24
 | 26-13-01 | 13 | 13 | tutti | T-26-54 | flusso completo sul filo | integration | `npx jest test/account/account-deletion-flow.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 26-13-02 | 13 | 13 | tutti | T-26-52..T-26-55 | gate: tsc, suite, SDL +5, inventario, coverage, invarianti | gate | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit` + blocchi integration + `npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 26-13-03 | 13 | 13 | tutti | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
-| 26-14-01 | 14 | 14 | BE-DEL-09 | T-26-56, T-26-57 | handoff senza segreti né id reali | doc | grep di struttura e segreti su `BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
-| 26-14-02 | 14 | 14 | tutti | T-26-58 | requisiti chiusi solo dopo il gate | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
+| 26-14-01 | 14 | 14 | BE-DEL-09 | T-26-56, T-26-57 | handoff senza segreti né id reali | doc | grep di struttura e segreti su `BACKEND-NOTES.md` | ✅ | ✅ green |
+| 26-14-02 | 14 | 14 | tutti | T-26-58 | requisiti chiusi solo dopo il gate | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky* — «File Exists» = `✅` se la spec esiste già e riceve casi nuovi, `❌ W0` se il task la crea nel suo RED.
 
@@ -88,15 +88,15 @@ created: 2026-11-24
 
 Nessun piano separato di Wave 0: ogni spec nuova nasce nel RED del suo task (TDD del repo), prima dell'implementazione.
 
-- [ ] `src/auth/twitch/terms-version.spec.ts` — forma di `termsVersion` (BE-CONSENT-01, piano 02)
-- [ ] `src/auth/session/deleted-account.registry.spec.ts` — registro di 15 minuti (BE-DEL-06, piano 03)
-- [ ] `src/models/pending-quest.schema.spec.ts`, `src/travel/food/quest-travel-spending.spec.ts` — spese del tragitto (BE-DEL-02, piano 04)
-- [ ] `src/quests/party/started-quest-cancel.spec.ts`, `src/quests/party/started-quest-canceller.int-spec.ts` — annullamento (BE-DEL-03, piano 05)
-- [ ] `src/account/deletion/account-deletion.exception.spec.ts`, `account-erasure.plan.spec.ts`, `account-eraser.int-spec.ts` — cancellazione e inventario (BE-DEL-04, piano 06)
-- [ ] `src/account/deletion/account-deletion.resolver.int-spec.ts` — mutation e revoca sul filo (BE-DEL-05..08, piani 08, 10, 12)
-- [ ] `src/auth/twitch/twitch-login-name.spec.ts`, `src/auth/twitch/http-twitch-user-directory.spec.ts`, `test/auth/fake-twitch-user-directory.ts` — directory Twitch (BE-DEL-07, piano 09)
-- [ ] `src/account/deletion/portrait/portrait-public-id.spec.ts`, `portrait-deletion.service.int-spec.ts`, `portrait-deletion.sweeper.spec.ts`, `test/account/fake-portrait-store.ts` — ritratti (BE-DEL-08, piano 11)
-- [ ] `test/account/account-deletion-flow.int-spec.ts` — flusso completo (piano 13)
+- [x] `src/auth/twitch/terms-version.spec.ts` — forma di `termsVersion` (BE-CONSENT-01, piano 02)
+- [x] `src/auth/session/deleted-account.registry.spec.ts` — registro di 15 minuti (BE-DEL-06, piano 03)
+- [x] `src/models/pending-quest.schema.spec.ts`, `src/travel/food/quest-travel-spending.spec.ts` — spese del tragitto (BE-DEL-02, piano 04)
+- [x] `src/quests/party/started-quest-cancel.spec.ts`, `src/quests/party/started-quest-canceller.int-spec.ts` — annullamento (BE-DEL-03, piano 05)
+- [x] `src/account/deletion/account-deletion.exception.spec.ts`, `account-erasure.plan.spec.ts`, `account-eraser.int-spec.ts` — cancellazione e inventario (BE-DEL-04, piano 06)
+- [x] `src/account/deletion/account-deletion.resolver.int-spec.ts` — mutation e revoca sul filo (BE-DEL-05..08, piani 08, 10, 12)
+- [x] `src/auth/twitch/twitch-login-name.spec.ts`, `src/auth/twitch/http-twitch-user-directory.spec.ts`, `test/auth/fake-twitch-user-directory.ts` — directory Twitch (BE-DEL-07, piano 09)
+- [x] `src/account/deletion/portrait/portrait-public-id.spec.ts`, `portrait-deletion.service.int-spec.ts`, `portrait-deletion.sweeper.spec.ts`, `test/account/fake-portrait-store.ts` — ritratti (BE-DEL-08, piano 11)
+- [x] `test/account/account-deletion-flow.int-spec.ts` — flusso completo (piano 13)
 - Framework: nessuna installazione (Jest, replica set in memoria e fake di Twitch OAuth e push già presenti).
 
 ---
@@ -116,11 +116,11 @@ Nessun piano separato di Wave 0: ogni spec nuova nasce nel RED del suo task (TDD
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-11-25
