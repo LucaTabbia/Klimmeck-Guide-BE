@@ -29,6 +29,7 @@ import {
     CharacterDocument,
 } from 'src/models/character/character.model';
 import { DeletionReason } from 'src/models/enums/deletion-reason.enum';
+import { QuestType } from 'src/models/enums/quest-type.enum';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import {
     PendingQuest,
@@ -40,7 +41,7 @@ import {
 } from 'src/models/quest-result/quest-result.model';
 import { Quest, QuestDocument } from 'src/models/quest/quest.model';
 import { User, UserDocument } from 'src/models/user.model';
-import { refIdOf } from 'src/mongo/document-id';
+import { refIdOf, sameId } from 'src/mongo/document-id';
 import { PushDevice, PushDeviceDocument } from 'src/push/push-device.model';
 import {
     MissionDraft,
@@ -75,8 +76,23 @@ interface ErasedUser {
 const rawUpdateOf = (update: object): UpdateFilter<RawDocument> =>
     update as UpdateFilter<RawDocument>;
 
-interface QuestId {
+interface StartedQuestCandidate {
     _id: Types.ObjectId;
+    infos?: { type?: unknown } | null;
+    rescue?: { characters?: unknown[] } | null;
+}
+
+// eccezione dell'utente «Si risolve come oggi» (D-13): la aid avviata che soccorre solo personaggi cancellati la conclude l'archivio
+function resolvesAsToday(
+    quest: StartedQuestCandidate,
+    characterIds: readonly Types.ObjectId[],
+): boolean {
+    const wounded = quest.rescue?.characters ?? [];
+    return (
+        quest.infos?.type === QuestType.aid &&
+        wounded.length > 0 &&
+        wounded.every((each) => characterIds.some((id) => sameId(each, id)))
+    );
 }
 
 interface CharacterLanes {
@@ -192,17 +208,25 @@ export class AccountEraser {
         if (characterIds.length === 0) return [];
         // driver nativo: anche la registrazione con l'id in forma stringa conta (04 Pitfall 1)
         const started = await this.questModel.collection
-            .find<QuestId>(startedQuestsWithFilter(characterIds), {
-                projection: { _id: 1 },
-                session,
-            })
+            .find<StartedQuestCandidate>(
+                startedQuestsWithFilter(characterIds),
+                {
+                    projection: {
+                        _id: 1,
+                        'infos.type': 1,
+                        'rescue.characters': 1,
+                    },
+                    session,
+                },
+            )
             .toArray();
         const cancelled: CancelledStartedQuest[] = [];
-        for (const { _id } of started) {
+        for (const quest of started) {
+            if (resolvesAsToday(quest, characterIds)) continue;
             const outcome =
                 await this.startedQuestCanceller.cancelStartedQuestWithin(
                     session,
-                    _id,
+                    quest._id,
                     characterIds,
                     now,
                 );
