@@ -107,11 +107,11 @@ export const questCancelled = (questId: string): PushMessage => ({
     id: questId,
 });
 
-// quest cominciata annullata perché un compagno ha cancellato l'account (Phase 26 D-13, D-26): tipo questCancelled, id = quest; testo provvisorio, solo qui
+// quest cominciata annullata perché un compagno ha cancellato l'account (Phase 26 D-13, D-26): tipo questCancelled, id = quest; testo dettato dall'utente nella UAT della FE Phase 25, solo qui
 export const startedQuestCancelled = (questId: string): PushMessage => ({
     ...CATALOG[PushEventType.questCancelled],
     id: questId,
-    body: 'Un compagno ha lasciato il mondo: la missione è annullata e sei tornato in città, con cibo, punti e vita restituiti.',
+    body: 'Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.',
 });
 
 // ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto da ambushPushOf
