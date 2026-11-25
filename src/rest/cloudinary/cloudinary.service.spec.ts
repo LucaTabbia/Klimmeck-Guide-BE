@@ -96,6 +96,62 @@ describe('CloudinaryService', () => {
         expect((error as Error).message).toBe('Errore del provider Cloudinary');
     });
 
+    it('never lists an uploaded portrait among the resources of a folder (U-01)', async () => {
+        jest.spyOn(cloudinary.api, 'resources').mockResolvedValue({
+            resources: [
+                { public_id: 'main/town', secure_url: 'https://cdn/town' },
+                {
+                    public_id: 'characters_profile/victim',
+                    secure_url: 'https://cdn/victim',
+                },
+                {
+                    public_id: 'Characters_Profile/other',
+                    secure_url: 'https://cdn/other',
+                },
+                {
+                    public_id: 'moved',
+                    asset_folder: 'characters_profile',
+                    secure_url: 'https://cdn/moved',
+                },
+            ],
+        } as never);
+
+        await expect(service().listResources('main')).resolves.toEqual([
+            'https://cdn/town',
+        ]);
+    });
+
+    it('skips the uploaded portraits folder when listing the subfolders of a parent (U-01)', async () => {
+        jest.spyOn(cloudinary.api, 'sub_folders').mockResolvedValue({
+            folders: [
+                { name: 'main', path: 'main' },
+                { name: 'characters_profile', path: 'characters_profile' },
+            ],
+        } as never);
+        const byFolder = jest
+            .spyOn(cloudinary.api, 'resources_by_asset_folder')
+            .mockImplementation(((path: string) =>
+                Promise.resolve({
+                    resources: [
+                        {
+                            public_id: `${path}/asset`,
+                            asset_folder: path,
+                            secure_url: `https://cdn/${path}/asset`,
+                        },
+                        {
+                            public_id: 'characters_profile/stray',
+                            asset_folder: path,
+                            secure_url: `https://cdn/${path}/stray`,
+                        },
+                    ],
+                })) as never);
+
+        await expect(
+            service().listSubfoldersResources('parent'),
+        ).resolves.toEqual(['https://cdn/main/asset']);
+        expect(byFolder.mock.calls.map(([path]) => path)).toEqual(['main']);
+    });
+
     it('exposes the cloud name it is configured with (CR-01)', () => {
         const configured = new CloudinaryService({
             get: (key: string) =>
