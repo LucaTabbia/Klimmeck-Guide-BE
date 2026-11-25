@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { PubSub } from '@graphql-yoga/subscription';
 import { Model } from 'mongoose';
@@ -47,6 +47,13 @@ export class UserUpdatesPublisher extends ChangeStreamPublisher<UserDocument> {
             const userUpdated = await this.usersService.findOne(userId);
             this.publish('userUpdated', { userUpdated });
         } catch (error) {
+            // l'utente cancellato subito dopo l'update (Phase 26): nessuno da avvisare, nessun errore
+            if (error instanceof NotFoundException) {
+                this.logger.debug(
+                    `userUpdated non pubblicato: utente ${userId} non più presente`,
+                );
+                return;
+            }
             this.logger.error(
                 `Pubblicazione di userUpdated fallita: ${describeError(error)}`,
             );
