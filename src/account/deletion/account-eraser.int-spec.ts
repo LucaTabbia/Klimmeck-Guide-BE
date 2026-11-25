@@ -195,7 +195,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         return { userId, character, storyRequest };
     }
 
-    async function persistWorld(): Promise<World> {
+    async function persistWorld(role = 'adventurer'): Promise<World> {
         const userId = new Types.ObjectId();
         const storyQuest = new Types.ObjectId();
         const kept = await persistKeptPlayer(storyQuest);
@@ -245,6 +245,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             _id: userId,
             twitchId: ERASED_TWITCH_ID,
             twitchPoints: 500,
+            role,
             currentCharacter: current,
         });
 
@@ -366,7 +367,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             })
         )._id as Types.ObjectId;
 
-        const sessionIds = [];
+        const sessionIds: string[] = [];
         for (const label of ['erased-refresh-1', 'erased-refresh-2']) {
             const session = await persistSession(sessions, {
                 userId,
@@ -461,7 +462,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         return dump;
     }
 
-    async function keptDocumentsOf(world: World): Promise<Document[]> {
+    async function keptDocumentsOf(world: World): Promise<(Document | null)[]> {
         const byId = (model: AnyModel, id: Types.ObjectId) =>
             model.collection.findOne({ _id: id });
         return [
@@ -730,11 +731,8 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
     });
 
     it('refuses the innkeeper and writes nothing (D-16)', async () => {
-        const world = await persistWorld();
-        await users.updateOne(
-            { _id: world.userId },
-            { $set: { role: 'innkeeper' } },
-        );
+        // ruolo scritto all'inserimento: un update del ruolo farebbe revocare le sessioni al watcher dei ruoli
+        const world = await persistWorld('innkeeper');
         const before = await dumpDatabase();
 
         await expect(eraseInTransaction(world.userId)).rejects.toMatchObject({
