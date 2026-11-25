@@ -86,6 +86,9 @@ const TRIP_SPENDING_PROJECTION = {
     travelHungerLifeLost: 1,
 } as const;
 
+// il compagno in viaggio resta dov'è: nessuna posizione né geografia nuova (WR-05)
+const STAY_IN_PLACE: Home = { location: null, geography: [] };
+
 const isRefundablePoints = (points: unknown): points is number =>
     Number.isSafeInteger(points) && (points as number) > 0;
 
@@ -207,7 +210,8 @@ export class StartedQuestCanceller {
             .exec();
     }
 
-    // rientro e rimborsi nello stesso passo in cui sparisce la PendingQuest: nessun rimborso doppio (T-26-17)
+    // rientro e rimborsi nello stesso passo in cui sparisce la PendingQuest: nessun rimborso doppio (T-26-17);
+    // il compagno in viaggio (dato rotto) non rientra ma perde comunque la corsia, coi rimborsi: nessuno resta legato a una quest da cui è tolto (WR-05)
     private async sendBack(
         companion: CompanionSnapshot,
         questId: Types.ObjectId,
@@ -222,28 +226,55 @@ export class StartedQuestCanceller {
                   { projection: TRIP_SPENDING_PROJECTION, session },
               )
             : null;
-        if (!pendingQuestId || !spending || companion.status.activeTravel) {
+        if (!pendingQuestId || !spending) {
             this.logger.warn(
-                `Compagno ${characterHex} della missione ${questId.toHexString()} lasciato intatto: in viaggio o con la corsia su un'altra missione (dato rotto, pulizia manuale)`,
+                `Compagno ${characterHex} della missione ${questId.toHexString()} lasciato intatto: corsia su un'altra missione (dato rotto, pulizia manuale)`,
             );
             return false;
         }
-        const updated = await this.characterModel.collection.updateOne(
-            {
-                _id: companion._id,
-                ...ACTIVE_CHARACTER_FILTER,
-                'quests.pendingQuest': { $in: idForms(pendingQuestId) },
-                'status.activeTravel': null,
-            },
-            this.sendBackUpdateOf(companion, spending, home),
-            { session },
+        const travelling = Boolean(companion.status.activeTravel);
+        const released = await this.releaseLane(
+            companion,
+            pendingQuestId,
+            spending,
+            travelling ? STAY_IN_PLACE : home,
+            session,
         );
-        if (updated.matchedCount !== 1) {
+        if (!released) {
             this.logger.warn(
                 `Compagno ${characterHex} della missione ${questId.toHexString()} non riportato in città: corsia cambiata nella transazione`,
             );
             return false;
         }
+        if (travelling) {
+            this.logger.warn(
+                `Compagno ${characterHex} della missione ${questId.toHexString()} in viaggio (dato rotto): corsia liberata e rimborsi, nessun rientro né push`,
+            );
+            return false;
+        }
+        return true;
+    }
+
+    private async releaseLane(
+        companion: CompanionSnapshot,
+        pendingQuestId: Types.ObjectId,
+        spending: TripSpending,
+        home: Home,
+        session: ClientSession,
+    ): Promise<boolean> {
+        const updated = await this.characterModel.collection.updateOne(
+            {
+                _id: companion._id,
+                ...ACTIVE_CHARACTER_FILTER,
+                'quests.pendingQuest': { $in: idForms(pendingQuestId) },
+                ...(companion.status.activeTravel
+                    ? {}
+                    : { 'status.activeTravel': null }),
+            },
+            this.sendBackUpdateOf(companion, spending, home),
+            { session },
+        );
+        if (updated.matchedCount !== 1) return false;
         await this.pendingQuestModel
             .deleteOne({ _id: pendingQuestId }, { session })
             .exec();
