@@ -391,6 +391,10 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
 
         expect(schema).toContain('deleteMyAccount: Boolean!');
+        expect(schema).toContain(
+            'deleteAccountByTwitchLogin(twitchLogin: String!): DeletedAccount!',
+        );
+        expect(schema).toContain('type DeletedAccount {');
     });
 
     it('keeps the real-time and authorization contract in the generated schema', () => {
