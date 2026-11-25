@@ -1,5 +1,6 @@
 // whitelist enumerate (D-15): ogni nuova operazione admin o sul personaggio deve passare da qui
 export const EXPECTED_INNKEEPER_HANDLERS = [
+    'AccountDeletionResolver.deleteAccountByTwitchLogin',
     'CharactersResolver.characters',
     'EnemiesResolver.enemys',
     'GuidedMissionResolver.completeGuidedMission',

@@ -85,4 +85,15 @@ describe('DevAuthStrategy with a real UsersService (replSet)', () => {
             await UserModel.countDocuments({ twitchId: TEST_DEV_TWITCH_ID }),
         ).toBe(1);
     });
+
+    it('lets the dev bypass in without any consent and writes none (D-19)', async () => {
+        const identity = await strategy.tryResolve(TEST_DEV_ACCESS_TOKEN);
+
+        const stored = await UserModel.collection.findOne({
+            twitchId: TEST_DEV_TWITCH_ID,
+        });
+        expect(identity?.twitchId).toBe(TEST_DEV_TWITCH_ID);
+        expect(stored?.acceptedTermsVersion ?? null).toBeNull();
+        expect(stored?.termsAcceptedAt ?? null).toBeNull();
+    });
 });

@@ -30,10 +30,17 @@ export class AuthSessionService {
     // dopo la creazione della nuova, mai la nuova; se la revoca fallisce il login fallisce e la
     // sessione appena creata resta attiva a DB fino al TTL del refresh (il suo token non è mai stato
     // consegnato) e il login successivo la revoca perché ha _id minore (D-12)
+    // un account appena cancellato non riceve sessioni: il registro si guarda prima e dopo la creazione,
+    // così un login in gara con la cancellazione non lascia una sessione viva (Phase 26 WR-03)
     async issueForUser(user: User): Promise<AuthSession> {
+        this.refuseDeletedAccount(user.id);
         const { sessionId, refreshToken } = await this.sessionService.create(
             user.id,
         );
+        if (this.revocation.isAccountDeleted(user.id)) {
+            await this.revocation.revokeRemainingOfDeletedAccount(user.id);
+            throw AuthException.loginTicketInvalid();
+        }
         await this.revocation.revokeOthersOnLogin(user.id, sessionId);
         return this.buildSession(user, sessionId, refreshToken);
     }
@@ -82,6 +89,12 @@ export class AuthSessionService {
             );
         }
         return true;
+    }
+
+    private refuseDeletedAccount(userId: string): void {
+        if (this.revocation.isAccountDeleted(userId)) {
+            throw AuthException.loginTicketInvalid();
+        }
     }
 
     // chi non ha più accesso al canale esce da ogni dispositivo, come con un login altrove

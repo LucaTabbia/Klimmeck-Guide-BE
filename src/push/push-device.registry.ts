@@ -60,6 +60,19 @@ export class PushDeviceRegistry {
         );
     }
 
+    // cancella solo le righe lette: una registrazione arrivata dopo la lettura non perde il suo token
+    async removeAllOf(userId: Types.ObjectId): Promise<string[]> {
+        const devices = await this.model
+            .find({ userId }, { _id: 1, token: 1 })
+            .lean<(StoredToken & { _id: Types.ObjectId })[]>()
+            .exec();
+        if (devices.length === 0) return [];
+        await this.model
+            .deleteMany({ _id: { $in: devices.map(({ _id }) => _id) } })
+            .exec();
+        return devices.map(({ token }) => token);
+    }
+
     async removeTokens(tokens: string[]): Promise<number> {
         if (tokens.length === 0) return 0;
         const result = await this.model

@@ -1,6 +1,7 @@
 import { AuthException } from 'src/auth/auth.exception';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import type { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
+import type { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import type { SessionService } from 'src/auth/session/session.service';
 import {
@@ -33,6 +34,7 @@ describe('WsConnectionAuthenticator', () => {
     let identityResolver: { resolveBearer: jest.Mock };
     let sessions: { revokeReasonOf: jest.Mock };
     let registry: { register: jest.Mock; unregister: jest.Mock };
+    let deletedAccounts: { isDeleted: jest.Mock };
     let authenticator: WsConnectionAuthenticator;
     let socket: { close: jest.Mock };
 
@@ -56,10 +58,12 @@ describe('WsConnectionAuthenticator', () => {
         };
         sessions = { revokeReasonOf: jest.fn().mockResolvedValue(null) };
         registry = { register: jest.fn(), unregister: jest.fn() };
+        deletedAccounts = { isDeleted: jest.fn().mockReturnValue(false) };
         authenticator = new WsConnectionAuthenticator(
             identityResolver as unknown as AuthIdentityResolver,
             sessions as unknown as SessionService,
             registry as unknown as WsSessionRegistry,
+            deletedAccounts as unknown as DeletedAccountRegistry,
         );
     });
 
@@ -271,6 +275,61 @@ describe('WsConnectionAuthenticator', () => {
 
             expect(context.extra.expiryTimer).toBeUndefined();
             expect(jest.getTimerCount()).toBe(0);
+        });
+
+        it('closes with 4409 accountDeleted a live session of an account in the deleted registry (D-18, U-04)', async () => {
+            deletedAccounts.isDeleted.mockReturnValue(true);
+
+            await expect(
+                authenticator.onConnect(
+                    buildContext({ Authorization: 'Bearer t' }),
+                ),
+            ).resolves.toBe(false);
+            jest.advanceTimersByTime(ONE_DAY_MS);
+
+            expect(deletedAccounts.isDeleted).toHaveBeenCalledWith('user-1');
+            expect(socket.close).toHaveBeenCalledTimes(1);
+            expect(socket.close).toHaveBeenCalledWith(
+                WS_SESSION_REVOKED_CLOSE_CODE,
+                SessionRevokeReason.accountDeleted,
+            );
+        });
+
+        it('keeps the stored reason of a revoked session over the deleted registry (D-03, U-04)', async () => {
+            deletedAccounts.isDeleted.mockReturnValue(true);
+            sessions.revokeReasonOf.mockResolvedValue({
+                reason: SessionRevokeReason.newLogin,
+            });
+
+            await expect(
+                authenticator.onConnect(
+                    buildContext({ Authorization: 'Bearer t' }),
+                ),
+            ).resolves.toBe(false);
+
+            expect(socket.close).toHaveBeenCalledTimes(1);
+            expect(socket.close).toHaveBeenCalledWith(
+                WS_SESSION_REVOKED_CLOSE_CODE,
+                'newLogin',
+            );
+        });
+
+        it('closes with 4409 accountDeleted a dev identity of an account in the deleted registry (D-18, U-04)', async () => {
+            identityResolver.resolveBearer.mockResolvedValue(
+                buildIdentity({ sessionId: undefined, expiresAt: undefined }),
+            );
+            deletedAccounts.isDeleted.mockReturnValue(true);
+
+            await expect(
+                authenticator.onConnect(
+                    buildContext({ Authorization: 'Bearer dev' }),
+                ),
+            ).resolves.toBe(false);
+
+            expect(socket.close).toHaveBeenCalledWith(
+                WS_SESSION_REVOKED_CLOSE_CODE,
+                SessionRevokeReason.accountDeleted,
+            );
         });
 
         it('refuses the connection when the session lookup fails (D-03)', async () => {

@@ -25,6 +25,7 @@ import {
     LoginTicketSchema,
 } from 'src/auth/login-ticket/login-ticket.model';
 import { LoginTicketService } from 'src/auth/login-ticket/login-ticket.service';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { Session, SessionSchema } from 'src/auth/session/session.model';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { SessionService } from 'src/auth/session/session.service';
@@ -63,6 +64,7 @@ import { UsersModule } from 'src/users/users.module';
         OAuthStateService,
         SessionService,
         WsSessionRegistry,
+        DeletedAccountRegistry,
         SessionRevocationService,
         UserRoleChangesPublisher,
         LoginTicketService,
@@ -83,6 +85,7 @@ import { UsersModule } from 'src/users/users.module';
         AuthIdentityResolver,
         WsConnectionAuthenticator,
         AuthSessionService,
+        SessionRevocationService,
     ],
 })
 export class AuthModule {}

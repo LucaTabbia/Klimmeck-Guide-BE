@@ -257,6 +257,10 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type DeletedAccount {
+  twitchId: String!
+}
+
 enum DungeonTurnKind {
   exploration
   fight
@@ -575,7 +579,9 @@ type Mutation {
   completeGuidedMission(pendingQuestId: ID!): [QuestResult!]!
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
+  deleteAccountByTwitchLogin(twitchLogin: String!): DeletedAccount!
   deleteCharacter: User!
+  deleteMyAccount: Boolean!
   discardMissionDraft(pendingQuestId: ID!): CommonResponse!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!

@@ -3,7 +3,10 @@ import {
     HELIX_EVENTSUB_SUBSCRIPTIONS_URL,
     HttpTwitchHelixClient,
 } from 'src/eventsub/helix/http-twitch-helix.client';
-import { TwitchAppTokenCache } from 'src/eventsub/helix/twitch-app-token.cache';
+import {
+    TwitchAppTokenCache,
+    twitchAppTokenCacheProvider,
+} from 'src/eventsub/helix/twitch-app-token.cache';
 import { TwitchHelixError } from 'src/eventsub/helix/twitch-helix.client';
 import type { CreateEventSubSubscriptionRequest } from 'src/eventsub/helix/twitch-helix.client';
 import { FixedClock } from '../../../test/auth/fixed-clock';
@@ -109,10 +112,11 @@ describe('HttpTwitchHelixClient', () => {
         config: EventSubConfig = buildTestEventSubConfig(),
     ): HttpTwitchHelixClient {
         const clock = new FixedClock(new Date('2026-10-19T12:00:00.000Z'));
-        return new HttpTwitchHelixClient(
+        const tokens = twitchAppTokenCacheProvider.useFactory(
             config,
-            new TwitchAppTokenCache(config, clock),
-        );
+            clock,
+        ) as TwitchAppTokenCache;
+        return new HttpTwitchHelixClient(config, tokens);
     }
 
     function helixCalls(): Array<{ url: string; init: RequestInit }> {

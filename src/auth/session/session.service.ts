@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import {
@@ -146,6 +146,31 @@ export class SessionService {
         );
     }
 
+    // dentro la transazione del chiamante (Phase 26 D-18): revoca le attive con accountDeleted e accorcia
+    // ogni sessione dell'utente alla vita dell'access token, mai allungandola; un conflitto di scrittura
+    // ritenta l'intera transazione, quindi gli id letti sono quelli revocati
+    // la stessa ora di ogni altro passo della cancellazione (IN-05)
+    revokeAllForAccountDeletionWithin(
+        userId: string,
+        session: ClientSession,
+        now: Date,
+    ): Promise<string[]> {
+        return this.revokeOfDeletedAccount(
+            userId,
+            now,
+            this.activeFilter(now),
+            session,
+        );
+    }
+
+    // dopo il commit della cancellazione (WR-03): una sessione nata da un login in gara non è nello snapshot della transazione;
+    // si revoca con lo stesso motivo e la stessa scadenza accorciata, gli id tornano per chiuderne i socket
+    revokeRemainingForAccountDeletion(userId: string): Promise<string[]> {
+        return this.revokeOfDeletedAccount(userId, this.clock.now(), {
+            revokedAt: null,
+        });
+    }
+
     // una lettura per connessione WS (D-03): solo revokedAt non nullo chiude, una sessione assente resta accettata
     async revokeReasonOf(
         sessionId: string,
@@ -189,11 +214,49 @@ export class SessionService {
         return ids.filter((id) => written.has(id));
     }
 
+    private async revokeOfDeletedAccount(
+        userId: string,
+        now: Date,
+        candidates: Record<string, unknown>,
+        session?: ClientSession,
+    ): Promise<string[]> {
+        if (!isObjectIdHex(userId)) return [];
+        const owner = new Types.ObjectId(userId);
+        const ids = await this.sessionIdsMatching(
+            { userId: owner, ...candidates },
+            session,
+        );
+        if (ids.length > 0) {
+            await this.sessionModel
+                .updateMany(
+                    { _id: { $in: ids }, revokedAt: null },
+                    {
+                        $set: {
+                            revokedAt: now,
+                            revokeReason: SessionRevokeReason.accountDeleted,
+                        },
+                    },
+                    { session },
+                )
+                .exec();
+        }
+        await this.sessionModel
+            .updateMany(
+                { userId: owner },
+                { $min: { expiresAt: this.accessTokenExpiresAtFrom(now) } },
+                { session },
+            )
+            .exec();
+        return ids;
+    }
+
     private async sessionIdsMatching(
         filter: Record<string, unknown>,
+        session?: ClientSession,
     ): Promise<string[]> {
         const sessions = await this.sessionModel
             .find(filter, { _id: 1 })
+            .session(session ?? null)
             .lean<{ _id: Types.ObjectId }[]>()
             .exec();
         return sessions.map(({ _id }) => _id.toHexString());
@@ -382,6 +445,13 @@ export class SessionService {
         return new Date(
             now.getTime() -
                 this.config.refreshTokenGraceSeconds * MILLISECONDS_PER_SECOND,
+        );
+    }
+
+    private accessTokenExpiresAtFrom(now: Date): Date {
+        return new Date(
+            now.getTime() +
+                this.config.accessTokenTtlSeconds * MILLISECONDS_PER_SECOND,
         );
     }
 

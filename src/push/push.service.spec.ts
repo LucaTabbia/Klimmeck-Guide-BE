@@ -466,6 +466,38 @@ describe('PushService', () => {
         });
     });
 
+    describe('unsubscribeFromStreamerLive', () => {
+        it('unsubscribes the tokens of a deleted account from the live topic (D-25)', async () => {
+            await service.unsubscribeFromStreamerLive(['tok-a', 'tok-b']);
+
+            expect(transport.unsubscriptions).toEqual([
+                { tokens: ['tok-a', 'tok-b'], topic: STREAMER_LIVE },
+            ]);
+        });
+
+        it('does nothing without tokens (D-25)', async () => {
+            await service.unsubscribeFromStreamerLive([]);
+
+            expect(transport.unsubscriptions).toEqual([]);
+            expect(loggedLines(warn)).toEqual([]);
+        });
+
+        it('logs and swallows a topic failure (D-25)', async () => {
+            transport.failTopicManagement(new Error('boom'));
+
+            await expect(
+                service.unsubscribeFromStreamerLive([LONG_TOKEN, 'tok-b']),
+            ).resolves.toBeUndefined();
+            expect(loggedLines(warn)).toEqual([expect.stringContaining('2')]);
+            expect(
+                loggedLines(warn).some(
+                    (line) =>
+                        line.includes(LONG_TOKEN) || line.includes('tok-b'),
+                ),
+            ).toBe(false);
+        });
+    });
+
     describe('sendTest', () => {
         it('rejects with PUSH_DISABLED when push is not configured', async () => {
             transport.enabled = false;

@@ -383,6 +383,45 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
+| 26. Eliminazione account e consenso | v1.1 | 14/14 | Complete | 2026-11-25 |
+
+### Phase 26: Eliminazione account e consenso
+
+**Goal:** (↔ FE Phase 25) una mutation autenticata cancella definitivamente l'account di chi la chiama: utente, personaggi (anche archiviati con soft delete), sessioni (revoca immediata), device push, ritratto su Cloudinary e tutto ciò che resta legato al Twitch ID, liberando posti in corsie e richieste come fa l'archiviazione; registro delle azioni dell'oste e backup restano ai loro TTL. Eventuale registrazione dell'accettazione di termini e privacy (versione e data) da decidere in discuss. Le pagine legali pubbliche (repo `LucaTabbia/klimmeck-guide-legal`) promettono già la cancellazione entro 30 giorni.
+**Depends on:** Phase 25
+**Scope**: decisioni D-03..D-26 di `26-CONTEXT.md` (discuss interattivo del 2026-11-24, congiunto con la FE Phase 25, il cui CONTEXT è autorevole; emendato dopo la ricerca: D-13 sostituita, D-17..D-26 aggiunte).
+**Requirements**: BE-DEL-01, BE-DEL-02, BE-DEL-03, BE-DEL-04, BE-DEL-05, BE-DEL-06, BE-DEL-07, BE-DEL-08, BE-DEL-09, BE-CONSENT-01, BE-CONSENT-02
+**Success Criteria** (what must be TRUE):
+  1. `deleteMyAccount` cancella in una sola transazione l'utente, tutti i suoi personaggi (anche archiviati, trovati da `Character.user`), richieste, bozze, esiti, ticket, device e verifiche d'accesso; l'oste è rifiutato con `INNKEEPER_ACCOUNT_PROTECTED`; lo stesso Twitch rientra subito da zero; un inventario per collection prova che nulla resta tranne registro dell'oste, registro EventSub e sessioni revocate in scadenza.
+  2. Una quest effettivamente cominciata con un personaggio dell'utente si annulla: i compagni tornano al marker della città della quest con cibo del tragitto, punti spesi e vita persa per fame restituiti e un push `questCancelled`; la quest torna sul tabellone; la `aid` avviata il cui unico ferito è il cancellato si risolve come oggi; una quest non cominciata libera solo il posto; l'archiviazione del personaggio non cambia.
+  3. Le sessioni dell'utente sono revocate con `accountDeleted`: per 15 minuti il refresh risponde `SESSION_REVOKED` con quella reason, i socket si chiudono con 4409 e le chiamate HTTP con un access token ancora vivo ricevono `UNAUTHENTICATED`; dopo, `SESSION_EXPIRED`.
+  4. `deleteAccountByTwitchLogin` risolve il nome utente con Helix ed esegue la stessa cancellazione, con quattro codici distinti e una voce del registro dell'oste senza il nome utente.
+  5. Ritratto, topic FCM `streamer-live`, push e pubblicazioni avvengono dopo il commit; un loro fallimento è registrato e ritentato (ritratto) senza annullare la cancellazione.
+  6. Il login porta `termsVersion` allo start, firmata nello state; il callback scrive versione e data nell'upsert dell'utente; senza versione → `?error=terms_not_accepted`; bypass di sviluppo esente.
+  7. SDL solo additivo (cinque righe) al boot reale di test; handoff `BACKEND-NOTES.md` per la FE Phase 25.
+**Decisioni dopo la ricerca (2026-11-24, `26-CONTEXT.md` D-17..D-26 e `26-REPO-RULES.md`)**: niente segnaposto né `QuestRegistration.vacant` alla cancellazione dell'account (quest cominciata annullata con rientro e rimborso); `Character.user` interno; spese del tragitto annotate sulla `PendingQuest`; motivo di revoca `accountDeleted` con finestra di 15 minuti e registro in memoria; consenso come `termsVersion` sullo start; token app Twitch dalle credenziali del login; registro dell'oste con argomenti oscurati; nessun migratore (i dati di sviluppo orfani sono dell'orchestratore al boot reale).
+**Unblocks (FE)**: FE Phase 25 (selezioni delle due mutation gated sul merge).
+**Branch**: `feat/26-eliminazione-account-e-consenso` da `develop`.
+**Plans**: 14 plans
+**Stato (2026-11-25)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §7, da eseguire) a cura dell'orchestratore
+
+**Chiusura (2026-11-25)**: review corretta (`26-REVIEW-FIX.md`), verifica `passed` 7/7 con 11/11 requisiti (`26-VERIFICATION.md`), audit di sicurezza (`26-SECURITY.md`), boot reale dal ramo senza migratori (`BACKEND-NOTES.md` §8) e UAT su device superata insieme alla FE Phase 25 (`BACKEND-NOTES.md` §9): consenso registrato per un utente esistente e per uno nuovo, cancellazione propria e dall'oste, quest cominciata annullata con rimborsi, quest non cominciata col solo posto liberato. Corpo del push dell'annullamento dettato dall'utente (`056995f8`, `8d753909`). Da osservare in produzione: ritratto su Cloudinary, disiscrizione dal topic FCM, finestra del registro dopo un riavvio. PR #53 in draft: da fondere su `develop` **prima** della PR #59 della FE.
+
+Plans:
+- [x] 26-01-PLAN.md — Proprietario del personaggio (`Character.user`) scritto alla creazione
+- [x] 26-02-PLAN.md — Consenso al login: `termsVersion` sullo start, state firmato, versione e data nell'upsert
+- [x] 26-03-PLAN.md — Motivo di revoca `accountDeleted`, revoca in transazione con finestra di 15 minuti e registro degli access token
+- [x] 26-04-PLAN.md — Spese del tragitto (cibo e vita persa per fame) annotate sulla `PendingQuest`
+- [x] 26-05-PLAN.md — Annullamento di una quest cominciata: rientro in città, rimborsi, quest di nuovo sul tabellone
+- [x] 26-06-PLAN.md — Codici, eccezione e `AccountEraser` in transazione con l'inventario per collection
+- [x] 26-07-PLAN.md — Quest cominciate annullate prima dell'archivio dentro la cancellazione
+- [x] 26-08-PLAN.md — Mutation `deleteMyAccount` e revoca sul filo
+- [x] 26-09-PLAN.md — Token app Twitch parametrico e `TwitchUserDirectory` (nome utente → Twitch ID)
+- [x] 26-10-PLAN.md — Mutation `deleteAccountByTwitchLogin` con registro dell'oste oscurato
+- [x] 26-11-PLAN.md — Ritratti: id Cloudinary, porta `PortraitStore`, outbox e sweeper
+- [x] 26-12-PLAN.md — Effetti dopo il commit: outbox nella transazione, topic FCM, push e pubblicazioni
+- [x] 26-13-PLAN.md — Gate della fase
+- [x] 26-14-PLAN.md — Handoff `BACKEND-NOTES.md` e chiusura
 
 ---
 

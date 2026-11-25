@@ -47,6 +47,14 @@ function requestMutation(
 const EMPTY_TRANSACTION_ITEMS = { equipAssets: [], lootAssets: [] };
 
 export const HANDLER_FIXTURES: Record<ProtectedHandler, HandlerFixture> = {
+    'AccountDeletionResolver.deleteAccountByTwitchLogin': {
+        kind: 'mutation',
+        field: 'deleteAccountByTwitchLogin',
+        target: 'none',
+        document:
+            'mutation DeleteAccountByTwitchLogin($twitchLogin: String!) { deleteAccountByTwitchLogin(twitchLogin: $twitchLogin) { twitchId } }',
+        variables: () => ({ twitchLogin: 'matrix_target' }),
+    },
     'CharactersResolver.characters': {
         kind: 'query',
         field: 'characters',

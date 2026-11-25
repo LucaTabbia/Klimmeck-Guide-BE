@@ -1,5 +1,8 @@
 import request from 'supertest';
 import { AuthErrorCode } from 'src/auth/auth-error-code.enum';
+import { AuthSessionService } from 'src/auth/auth-session.service';
+import { RoleType } from 'src/models/enums/role-type.enum';
+import { User, UserDocument } from 'src/models/user.model';
 import {
     AuthTestApp,
     createAuthTestApp,
@@ -10,6 +13,8 @@ import { FAKE_TWITCH_USER_ID } from './fake-twitch-oauth.client';
 // coppia verifier/challenge S256 dell'esempio RFC 7636 (appendice B)
 const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+const TERMS_VERSION = '2026-11-24';
+const LEGACY_TWITCH_ID = 'twitch-legacy-1';
 
 const SESSION_FIELDS = 'accessToken refreshToken';
 const EXCHANGE = `
@@ -52,6 +57,10 @@ describe('Full login flow (start → callback → ticket → exchange → me →
         harness = await createAuthTestApp();
     });
 
+    afterEach(async () => {
+        await harness.clearDatabase();
+    });
+
     afterAll(async () => {
         await harness.close();
     });
@@ -86,7 +95,7 @@ describe('Full login flow (start → callback → ticket → exchange → me →
     it('signs in through the fake Twitch client and ends with a revoked session', async () => {
         const state = await redirectParam(
             '/auth/twitch/start',
-            { challenge: CHALLENGE },
+            { challenge: CHALLENGE, termsVersion: TERMS_VERSION },
             'state',
         );
         const ticket = await redirectParam(
@@ -128,5 +137,30 @@ describe('Full login flow (start → callback → ticket → exchange → me →
         expect(bodyOf(afterLogout).errors?.[0]?.extensions.code).toBe(
             AuthErrorCode.SESSION_REVOKED,
         );
+    });
+
+    it('refreshes a session of a user written without consent (D-11)', async () => {
+        await harness.connection.collection('users').insertOne({
+            twitchId: LEGACY_TWITCH_ID,
+            twitchPoints: 0,
+            role: RoleType.adventurer,
+            currentCharacter: null,
+        });
+        const legacy = await harness.connection
+            .model<UserDocument>(User.name)
+            .findOne({ twitchId: LEGACY_TWITCH_ID })
+            .exec();
+        const issued = await harness.app
+            .get(AuthSessionService)
+            .issueForUser(legacy as UserDocument);
+
+        const refreshed = sessionOf(
+            await graphqlRequest(harness.app, REFRESH, {
+                refreshToken: issued.refreshToken,
+            }),
+            'refreshSession',
+        );
+
+        expect(await meTwitchId(refreshed.accessToken)).toBe(LEGACY_TWITCH_ID);
     });
 });

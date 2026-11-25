@@ -1,11 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import type { FactoryProvider } from '@nestjs/common';
 import { Clock } from 'src/auth/clock';
 import { TWITCH_TOKEN_URL } from 'src/auth/twitch/http-twitch-oauth.client';
 import { EVENTSUB_CONFIG } from 'src/config/eventsub-config';
-import type {
-    EventSubConfig,
-    ManagedEventSubConfig,
-} from 'src/config/eventsub-config';
+import type { EventSubConfig } from 'src/config/eventsub-config';
 import { TwitchHelixError } from 'src/eventsub/helix/twitch-helix.client';
 import {
     assertTwitchOk,
@@ -21,6 +18,11 @@ export const NOT_MANAGED_MESSAGE =
 const TOKEN_OPERATION = 'Twitch app token';
 const MILLISECONDS_PER_SECOND = 1000;
 
+export interface TwitchAppCredentials {
+    clientId: string;
+    clientSecret: string;
+}
+
 interface AppTokenResponse {
     access_token?: unknown;
     expires_in?: unknown;
@@ -32,25 +34,28 @@ interface CachedAppToken {
 }
 
 // token solo in memoria, mai persistito né loggato; gli app token non si rinnovano: se ne chiede uno nuovo (D-13)
-@Injectable()
+// istanze costruite da factory: EventSub dalla config gestita, la cancellazione dell'oste dalle credenziali del login (Phase 26 D-20)
 export class TwitchAppTokenCache {
     private cached: CachedAppToken | null = null;
     private pending: Promise<string> | null = null;
 
     constructor(
-        @Inject(EVENTSUB_CONFIG) private readonly config: EventSubConfig,
+        private readonly credentials: TwitchAppCredentials | null,
         private readonly clock: Clock,
+        private readonly unavailableMessage: string = NOT_MANAGED_MESSAGE,
     ) {}
 
     getToken(): Promise<string> {
-        if (this.config.mode !== 'managed') {
-            return Promise.reject(new TwitchHelixError(NOT_MANAGED_MESSAGE));
+        if (!this.credentials) {
+            return Promise.reject(
+                new TwitchHelixError(this.unavailableMessage),
+            );
         }
         if (this.cached && this.isFresh(this.cached)) {
             return Promise.resolve(this.cached.accessToken);
         }
         if (this.pending) return this.pending;
-        this.pending = this.fetchToken(this.config).finally(() => {
+        this.pending = this.fetchToken(this.credentials).finally(() => {
             this.pending = null;
         });
         return this.pending;
@@ -69,7 +74,9 @@ export class TwitchAppTokenCache {
         );
     }
 
-    private async fetchToken(config: ManagedEventSubConfig): Promise<string> {
+    private async fetchToken(
+        credentials: TwitchAppCredentials,
+    ): Promise<string> {
         const response = await sendTwitchRequest(
             TOKEN_OPERATION,
             TWITCH_TOKEN_URL,
@@ -79,8 +86,8 @@ export class TwitchAppTokenCache {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({
-                    client_id: config.clientId,
-                    client_secret: config.clientSecret,
+                    client_id: credentials.clientId,
+                    client_secret: credentials.clientSecret,
                     grant_type: 'client_credentials',
                 }).toString(),
                 signal: AbortSignal.timeout(HELIX_REQUEST_TIMEOUT_MS),
@@ -108,6 +115,21 @@ export class TwitchAppTokenCache {
                 expiresIn * MILLISECONDS_PER_SECOND,
         };
     }
+}
+
+export const twitchAppTokenCacheProvider: FactoryProvider<TwitchAppTokenCache> =
+    {
+        provide: TwitchAppTokenCache,
+        useFactory: (config: EventSubConfig, clock: Clock) =>
+            new TwitchAppTokenCache(eventSubCredentialsOf(config), clock),
+        inject: [EVENTSUB_CONFIG, Clock],
+    };
+
+function eventSubCredentialsOf(
+    config: EventSubConfig,
+): TwitchAppCredentials | null {
+    if (config.mode !== 'managed') return null;
+    return { clientId: config.clientId, clientSecret: config.clientSecret };
 }
 
 function requireAccessToken(body: AppTokenResponse): string {

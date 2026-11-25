@@ -47,6 +47,23 @@ export class PendingQuest {
         default: null,
     })
     researchResult: Types.ObjectId | null;
+
+    // righe di cibo mangiate nel viaggio verso la quest (Phase 26 D-13, D-26): rimborso dell'annullamento; mai sul filo
+    @Prop({
+        type: [
+            {
+                _id: false,
+                item: { type: MongooseSchema.Types.ObjectId, ref: 'LootItem' },
+                quantity: Number,
+            },
+        ],
+        default: [],
+    })
+    travelFoodSpent: { item: Types.ObjectId; quantity: number }[];
+
+    // punti vita persi per fame nello stesso viaggio (Phase 26 D-13); mai sul filo
+    @Prop({ type: Number, default: 0 })
+    travelHungerLifeLost: number;
 }
 
 export type PendingQuestDocument = PendingQuest & Document;

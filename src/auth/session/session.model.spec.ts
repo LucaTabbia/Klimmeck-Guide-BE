@@ -18,6 +18,7 @@ describe('Session model', () => {
             'reuseDetected',
             'userLogout',
             'accessLost',
+            'accountDeleted',
         ]);
     });
 

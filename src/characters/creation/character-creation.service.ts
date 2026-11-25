@@ -66,7 +66,7 @@ export class CharacterCreationService {
                     .exec();
                 if (!claimed) throw await this.rejectUnclaimed(userId, session);
                 await this.characterModel.create(
-                    [{ _id: characterId, ...character }],
+                    [{ _id: characterId, ...character, user: userId }],
                     { session },
                 );
             });

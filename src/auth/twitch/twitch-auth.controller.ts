@@ -25,9 +25,13 @@ export class TwitchAuthController {
     @Redirect()
     async start(
         @Query('challenge') challenge?: string,
+        @Query('termsVersion') termsVersion?: string,
     ): Promise<HttpRedirectResponse> {
         return {
-            url: await this.twitchLoginService.buildStartRedirectUrl(challenge),
+            url: await this.twitchLoginService.buildStartRedirectUrl(
+                challenge,
+                termsVersion,
+            ),
             statusCode: HttpStatus.FOUND,
         };
     }

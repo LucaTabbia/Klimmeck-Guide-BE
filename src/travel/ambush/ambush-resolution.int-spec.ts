@@ -1146,6 +1146,74 @@ describe('AmbushResolutionService (replica set)', () => {
             F20 = await persistFood(world.models.lootItems, 20);
         });
 
+        // viaggio verso una quest con la sua PendingQuest di oggi, senza le spese del tragitto (D-11, D-26)
+        const onQuestTrip = async (subject: Traveller) => {
+            const quest = await persistQuest(
+                world.models.quests,
+                buildQuest({
+                    registeredAdventurers: [
+                        {
+                            character: subject.characterId,
+                            title: TitleType.rookie,
+                        },
+                    ],
+                }),
+            );
+            const { insertedId } =
+                await world.models.pendingQuests.collection.insertOne({
+                    startDate: null,
+                    arrivedAt: null,
+                    waitingTime: 0,
+                    pointsSpent: 0,
+                    quest: quest._id,
+                });
+            await world.models.characters.updateOne(
+                { _id: subject.characterId },
+                {
+                    $set: {
+                        'quests.pendingQuest': insertedId,
+                        'status.activeTravel.kind': 'quest',
+                        'status.activeTravel.to': map.questPoi,
+                    },
+                },
+            );
+            return insertedId;
+        };
+
+        it('records the meal and hunger before a won ambush on the pending quest (D-13, D-26)', async () => {
+            const subject = await longTraveller(290);
+            const pending = await onQuestTrip(subject);
+            chance.load([0, 0]);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'won',
+            );
+
+            expect((await rawOf(subject)).status.currentLifePoints).toBe(945);
+            const raw = await world.models.pendingQuests.collection.findOne({
+                _id: pending,
+            });
+            expect(raw?.travelFoodSpent).toEqual([
+                { item: F20._id, quantity: 28 },
+            ]);
+            expect(raw?.travelHungerLifeLost).toBe(55);
+        });
+
+        it('records nothing when the ambush is lost (D-26)', async () => {
+            const subject = await longTraveller(290);
+            await onQuestTrip(subject);
+            defeatOf(subject);
+
+            await expect(service.resolve(subject.identity)).resolves.toBe(
+                'lost',
+            );
+
+            const raw = await rawOf(subject);
+            expect(raw.quests.pendingQuest).toBeNull();
+            expect(raw.status.currentLifePoints).toBe(1);
+            expect(await world.models.pendingQuests.countDocuments()).toBe(0);
+        });
+
         it('fights with the exact life of the ambush kilometre and keeps the plan on a victory (D-07, D-16, D-18)', async () => {
             const subject = await longTraveller(290);
             chance.load([0, 0]);

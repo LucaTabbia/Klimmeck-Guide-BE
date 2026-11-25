@@ -12,7 +12,7 @@ import { EventSubStartupReporter } from 'src/eventsub/eventsub-startup.reporter'
 import { EventSubWebhookService } from 'src/eventsub/eventsub-webhook.service';
 import { EventSubController } from 'src/eventsub/eventsub.controller';
 import { HttpTwitchHelixClient } from 'src/eventsub/helix/http-twitch-helix.client';
-import { TwitchAppTokenCache } from 'src/eventsub/helix/twitch-app-token.cache';
+import { twitchAppTokenCacheProvider } from 'src/eventsub/helix/twitch-app-token.cache';
 import { TwitchHelixClient } from 'src/eventsub/helix/twitch-helix.client';
 import { PointsCreditService } from 'src/eventsub/points-credit.service';
 import { StreamOnlineRecorder } from 'src/eventsub/stream-online.recorder';
@@ -34,7 +34,7 @@ import { PushModule } from 'src/push/push.module';
     providers: [
         eventSubConfigProvider,
         { provide: Clock, useClass: SystemClock },
-        TwitchAppTokenCache,
+        twitchAppTokenCacheProvider,
         { provide: TwitchHelixClient, useClass: HttpTwitchHelixClient },
         EventSubMessageIndexVerifier,
         PointsCreditService,

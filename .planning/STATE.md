@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Cura e modelli
 status: executing
-stopped_at: "Completato 25-14-PLAN.md"
-last_updated: "2026-11-21T19:30:00.000Z"
-last_activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
+stopped_at: "Phase 26 completa (2026-11-25): UAT su device con la FE Phase 25 superata; PR #53 da togliere dal draft e fondere su develop prima della PR #59 della FE"
+last_updated: "2026-11-25T14:36:13.000Z"
+last_activity: 2026-11-25 -- Phase 26 chiusa dopo la UAT su device con la FE Phase 25; PR #53 in draft
 progress:
   total_phases: 6
   completed_phases: 5
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 **Core value:** Il backend è la fonte di verità affidabile e sicura dello stato di gioco: nessun client può alterare uno stato che non gli appartiene, e ogni valore mostrato dal frontend è calcolato e garantito server-side.
-**Current focus:** Phase 25 — Storie dei partecipanti e ferite dell'oste (↔ FE Phase 24) su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
+**Current focus:** Phase 26 — Eliminazione account e consenso (↔ FE Phase 25) su `feat/26-eliminazione-account-e-consenso`: completa il 2026-11-25, UAT su device superata; resta la merge della PR #53 su `develop` prima della PR #59 della FE. In precedenza: Phase 25 — Storie dei partecipanti e ferite dell'oste (↔ FE Phase 24) su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 
 ## Current Position
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
-Phase: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
+Phase: 26 di 26 (Eliminazione account e consenso) — COMPLETA il 2026-11-25 su `feat/26-eliminazione-account-e-consenso`, 14 piani, PR #53 in draft. In precedenza: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
 Plan: 14 of 14
-Status: executing — Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
-Last activity: 2026-11-21 -- Phase 25 piano 14 completato (handoff BACKEND-NOTES.md per la FE Phase 24, requisiti BE-WOUND e BE-STORY chiusi)
-Next step: orchestratore: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore; poi merge di BE e FE.
+Status: Phase 26 COMPLETA il 2026-11-25 — 14/14 piani, review, verifica `passed` 7/7 (11/11 requisiti), audit di sicurezza, boot reale dal ramo senza migratori e UAT su device superata insieme alla FE Phase 25 (`BACKEND-NOTES.md` §9): consenso a DB per un utente esistente e per uno nuovo, cancellazione propria e dall'oste (anche di un giocatore online), quest cominciata annullata con rimborsi e push, quest non cominciata col solo posto liberato; corpo del push dettato dall'utente (`056995f8`, `8d753909`); da osservare in produzione ritratto su Cloudinary, disiscrizione dal topic FCM e finestra del registro dopo un riavvio. PR #53 in draft verso `develop`
+Last activity: 2026-11-25 -- Phase 26 chiusa: esito della UAT su device con la FE Phase 25 registrato in `BACKEND-NOTES.md` §9, ROADMAP e STATE aggiornati; requisiti BE-DEL-01..09 e BE-CONSENT-01..02 già chiusi e confermati da `26-VERIFICATION.md`
+Next step: l'utente toglie la PR #53 dal draft e la fonde su `develop` PRIMA della PR #59 della FE (`feat/25-account-deletion-and-legal-consent`); dopo la merge la FE rifà il controllo dello schema su `develop`.
 
 ## Current Milestone
 
@@ -52,6 +52,9 @@ v1.1 Cura e modelli: Phase 18 Quest heal per taglia (BE-HEAL-01..09, ↔ FE 18) 
 - 2026-11-12: aggiunta la Phase 21 Premi per rango e soccorsi (BE-RANKP-01..06), gemella della FE Phase 20, dal discuss della FE; 3 aid concluse a mano nelle UAT cancellate a DB su ordine dell'utente (backup EJSON nello scratchpad della sessione).
 - 2026-11-12: aggiunta la Phase 22 Completamento guidato delle missioni (BE-GMFLOW-01..07), gemella della FE Phase 21, dal discuss della FE; ramo impilato sulla 21.
 - 2026-11-15: aggiunta la Phase 24 Origini delle magie, quest void e shamanic, gemella della FE Phase 23: macroclasse origin → use → energy (void, magic, shamanic), quest `shamanic` e `void` come la `magic`, tipi di città nuovi, livello minimo al posto dell'xp minimo; ramo impilato sulla 23; discuss e plan da fare.
+- 2026-11-24: Phase 26 aggiunta — Eliminazione account e consenso (↔ FE Phase 25): cancellazione definitiva dell'account su richiesta del giocatore.
+- 2026-11-24: contesto della Phase 26 raccolto (discuss interattivo, congiunto con la FE Phase 25): D-01..D-16 nel `25-CONTEXT.md` del FE, parte BE in `26-CONTEXT.md`; prossimo passo `/gsd-plan-phase 26`.
+- 2026-11-25: Phase 26 chiusa dopo la UAT su device con la FE Phase 25 (`BACKEND-NOTES.md` §9); PR #53 da fondere su `develop` prima della PR #59 della FE.
 
 ### Decisions
 
@@ -93,6 +96,6 @@ Il log completo è nella tabella Key Decisions di `PROJECT.md`; le decisioni per
 
 ## Session Continuity
 
-Last session: 2026-11-11 — esecuzione e chiusura della Phase 19 (23 piani, boot reale, contenuto, rimozione del modulo una tantum)
-Stopped at: Phase 19 completa (23/23, 2026-11-11) — PR #33 da togliere dal draft e mergiare su `develop`; poi Phase 20 (solo BE) e piani gated della FE Phase 19
-Resume file: .planning/phases/19-revisione-dei-modelli/BACKEND-NOTES.md
+Last session: 2026-11-25 — chiusura della Phase 26 dopo la UAT su device con la FE Phase 25
+Stopped at: Phase 26 completa (14/14, 2026-11-25) — PR #53 da togliere dal draft e fondere su `develop` prima della PR #59 della FE; poi la FE rifà il controllo dello schema su `develop`
+Resume file: .planning/phases/26-eliminazione-account-e-consenso/BACKEND-NOTES.md

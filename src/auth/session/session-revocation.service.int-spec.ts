@@ -7,6 +7,7 @@ import {
     SessionDocument,
     SessionSchema,
 } from 'src/auth/session/session.model';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
@@ -28,6 +29,7 @@ type RevocationEvent =
 describe('SessionRevocationService (replSet)', () => {
     let sessions: SessionService;
     let revocation: SessionRevocationService;
+    let deletedAccounts: DeletedAccountRegistry;
     let events: RevocationEvent[];
     let fakeRegistry: { closeSessions: jest.Mock };
 
@@ -48,6 +50,7 @@ describe('SessionRevocationService (replSet)', () => {
             providers: [
                 SessionService,
                 SessionRevocationService,
+                DeletedAccountRegistry,
                 { provide: WsSessionRegistry, useValue: fakeRegistry },
                 {
                     provide: getModelToken(Session.name),
@@ -59,6 +62,7 @@ describe('SessionRevocationService (replSet)', () => {
         }).compile();
         sessions = moduleRef.get(SessionService);
         revocation = moduleRef.get(SessionRevocationService);
+        deletedAccounts = moduleRef.get(DeletedAccountRegistry);
         recordDatabaseRevocation('revokeOthersOf');
         recordDatabaseRevocation('revokeAllOf');
     });
@@ -173,5 +177,89 @@ describe('SessionRevocationService (replSet)', () => {
         ).rejects.toBe(failure);
 
         expect(fakeRegistry.closeSessions).not.toHaveBeenCalled();
+    });
+
+    it('revokes inside the caller transaction and returns the revoked sessions (D-18)', async () => {
+        const [foreign] = await createSessions(OTHER_USER_ID, 1);
+        const [a, b] = await createSessions(USER_ID, 2);
+
+        const revoked = await SessionModel.db.transaction((session) =>
+            revocation.revokeForAccountDeletionWithin(
+                USER_ID,
+                session,
+                new Date(),
+            ),
+        );
+
+        expect([...revoked].sort()).toEqual([a, b].sort());
+        expect((await readSession(a))?.revokeReason).toBe('accountDeleted');
+        expect((await readSession(foreign))?.revokedAt).toBeNull();
+        expect(fakeRegistry.closeSessions).not.toHaveBeenCalled();
+        expect(deletedAccounts.isDeleted(USER_ID)).toBe(false);
+    });
+
+    it('revokes and closes a session born after the transaction of the deletion (WR-03)', async () => {
+        const [foreign] = await createSessions(OTHER_USER_ID, 1);
+        const [a, b] = await createSessions(USER_ID, 2);
+        const revoked = await SessionModel.db.transaction((session) =>
+            revocation.revokeForAccountDeletionWithin(
+                USER_ID,
+                session,
+                new Date(),
+            ),
+        );
+        const [late] = await createSessions(USER_ID, 1);
+
+        await revocation.closeDeletedAccountSessions(USER_ID, revoked);
+
+        const stored = await readSession(late);
+        expect(stored?.revokeReason).toBe('accountDeleted');
+        expect(stored?.revokedAt).toBeInstanceOf(Date);
+        expect(stored?.expiresAt.getTime()).toBeLessThanOrEqual(
+            (stored?.revokedAt as Date).getTime() + 900 * 1000,
+        );
+        expect(events).toEqual([
+            ['sockets', [a, b, late].sort(), 'accountDeleted'],
+        ]);
+        expect((await readSession(foreign))?.revokedAt).toBeNull();
+        expect(deletedAccounts.isDeleted(USER_ID)).toBe(true);
+    });
+
+    it('marks the account before the late revocation so no login slips between them (WR-03)', async () => {
+        const marked: boolean[] = [];
+        jest.spyOn(
+            sessions,
+            'revokeRemainingForAccountDeletion' as never,
+        ).mockImplementation((() => {
+            marked.push(deletedAccounts.isDeleted(USER_ID));
+            return Promise.resolve([]);
+        }) as never);
+
+        await revocation.closeDeletedAccountSessions(USER_ID, []);
+
+        expect(marked).toEqual([true]);
+    });
+
+    it('closes the live sockets with 4409 accountDeleted and marks the account after the commit (D-03, D-18)', async () => {
+        const sockets = [{ close: jest.fn() }, { close: jest.fn() }];
+        const registry = new WsSessionRegistry();
+        registry.register('session-a', sockets[0]);
+        registry.register('session-b', sockets[1]);
+        const facade = new SessionRevocationService(
+            sessions,
+            registry,
+            deletedAccounts,
+        );
+
+        await facade.closeDeletedAccountSessions(USER_ID, [
+            'session-a',
+            'session-b',
+        ]);
+
+        for (const socket of sockets) {
+            expect(socket.close).toHaveBeenCalledWith(4409, 'accountDeleted');
+        }
+        expect(deletedAccounts.isDeleted(USER_ID)).toBe(true);
+        expect(deletedAccounts.isDeleted(OTHER_USER_ID)).toBe(false);
     });
 });

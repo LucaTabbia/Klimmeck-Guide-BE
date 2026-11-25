@@ -228,4 +228,60 @@ describe('CloudinaryController (wire)', () => {
         expect(missing.body).toEqual(badUserInput('folder'));
         expect(harness.cloudinary.listResources).toHaveBeenCalledTimes(1);
     });
+
+    it.each([
+        'characters_profile',
+        'Characters_Profile',
+        '/characters_profile/',
+        'characters_profile/sub',
+        'CHARACTERS_PROFILE//deeper/still',
+        '',
+        '/',
+        '//',
+    ])(
+        'refuses the uploaded portraits folder and the root %p on both image lists (U-01)',
+        async (folder) => {
+            harness.cloudinary.listSubfoldersResources.mockClear();
+
+            const listed = await post(harness, 'getUrls').send({ folder });
+            const subfolders = await post(harness, 'getSubfoldersUrls').send({
+                folder,
+            });
+
+            expect(listed.status).toBe(400);
+            expect(listed.body).toEqual(badUserInput('folder'));
+            expect(subfolders.status).toBe(400);
+            expect(subfolders.body).toEqual(badUserInput('folder'));
+            expect(harness.cloudinary.listResources).not.toHaveBeenCalled();
+            expect(
+                harness.cloudinary.listSubfoldersResources,
+            ).not.toHaveBeenCalled();
+        },
+    );
+
+    it('keeps listing the preset folders, the splash one of the app included (U-01)', async () => {
+        harness.cloudinary.listSubfoldersResources.mockClear();
+        harness.cloudinary.listSubfoldersResources.mockResolvedValueOnce([
+            'https://cdn.test/main/town/map.png',
+        ]);
+
+        const splash = await post(harness, 'getSubfoldersUrls').send({
+            folder: 'main',
+        });
+        const lookalike = await post(harness, 'getUrls').send({
+            folder: 'characters_profile_presets',
+        });
+
+        expect(splash.status).toBe(201);
+        expect(splash.body).toEqual({
+            urls: ['https://cdn.test/main/town/map.png'],
+        });
+        expect(harness.cloudinary.listSubfoldersResources.mock.calls).toEqual([
+            ['main'],
+        ]);
+        expect(lookalike.status).toBe(201);
+        expect(harness.cloudinary.listResources.mock.calls).toEqual([
+            ['characters_profile_presets'],
+        ]);
+    });
 });

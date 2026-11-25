@@ -4,7 +4,9 @@ import WebSocket from 'ws';
 import { AuthSessionService } from 'src/auth/auth-session.service';
 import { sha256Hex } from 'src/auth/crypto/token-crypto';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
+import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
 import { RoleType } from 'src/models/enums/role-type.enum';
 import { User, UserDocument } from 'src/models/user.model';
@@ -270,5 +272,78 @@ describe('last login wins (wire)', () => {
             .exec();
         expect(stored?.revokedAt).toBeNull();
         expect(stored?.revokeReason).toBeNull();
+    });
+
+    describe('account deleted (wire)', () => {
+        // la revoca come la eseguirà la cancellazione: in transazione, poi la facciata dopo il commit
+        async function deleteAccount(): Promise<void> {
+            const revocation = harness.app.get(SessionRevocationService);
+            const userId = String(user._id);
+            const revoked = await harness.connection.transaction((session) =>
+                revocation.revokeForAccountDeletionWithin(
+                    userId,
+                    session,
+                    new Date(),
+                ),
+            );
+            await revocation.closeDeletedAccountSessions(userId, revoked);
+        }
+
+        it('closes the live socket of a deleted account with 4409 accountDeleted (D-03, D-18)', async () => {
+            const session = await login();
+            const { closed } = await openTracked(session);
+
+            await deleteAccount();
+
+            await expect(closed).resolves.toEqual({
+                code: SESSION_REVOKED_CLOSE_CODE,
+                reason: 'accountDeleted',
+                acknowledged: true,
+            });
+        });
+
+        it('closes a connection_init with the JWT of a deleted account with 4409 accountDeleted (D-18)', async () => {
+            const session = await login();
+            await deleteAccount();
+
+            await expect(
+                connectAndAwaitClose(url, { Authorization: bearerOf(session) }),
+            ).resolves.toEqual({
+                code: SESSION_REVOKED_CLOSE_CODE,
+                reason: 'accountDeleted',
+                acknowledged: false,
+            });
+        });
+
+        it('closes a connection_init of a deleted account whose late pass failed with 4409 accountDeleted (D-18, U-04)', async () => {
+            const session = await login();
+            // seconda passata fallita: la sessione è ancora attiva a DB, l'id è nel registro
+            harness.app.get(DeletedAccountRegistry).mark(String(user._id));
+
+            await expect(
+                connectAndAwaitClose(url, { Authorization: bearerOf(session) }),
+            ).resolves.toEqual({
+                code: SESSION_REVOKED_CLOSE_CODE,
+                reason: 'accountDeleted',
+                acknowledged: false,
+            });
+            expect(
+                (await sessions.findById(sessionIdOf(session)).lean().exec())
+                    ?.revokedAt ?? null,
+            ).toBeNull();
+        });
+
+        it('refuses the refresh of a deleted account with SESSION_REVOKED and accountDeleted (D-18)', async () => {
+            const session = await login();
+            await deleteAccount();
+
+            const body = await refresh(session);
+
+            expect(body.data).toBeNull();
+            expect(body.errors?.[0]?.extensions).toEqual({
+                code: 'SESSION_REVOKED',
+                reason: 'accountDeleted',
+            });
+        });
     });
 });

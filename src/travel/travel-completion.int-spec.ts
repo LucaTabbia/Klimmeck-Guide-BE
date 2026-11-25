@@ -473,6 +473,8 @@ describe('TravelCompletionService (replSet)', () => {
                 maxLifePoints = HARDY_LIFE_POINTS,
                 ownedItems = [] as unknown[],
                 food = {} as Record<string, unknown> | null,
+                kind = 'free',
+                pendingQuest = null as Types.ObjectId | null,
             } = {},
         ): Promise<Types.ObjectId> {
             seq += 1;
@@ -484,11 +486,13 @@ describe('TravelCompletionService (replSet)', () => {
                         location: new Types.ObjectId(),
                         activeTravel: buildFoodTravelDoc(food, {
                             to: destination,
+                            kind,
                         }),
                         currentLifePoints: lifePoints,
                         maxLifePoints,
                     },
                     assets: { ...buildCharacter().assets, ownedItems },
+                    quests: { completedQuests: [], pendingQuest },
                 },
             });
             return player.character!._id as Types.ObjectId;
@@ -614,6 +618,53 @@ describe('TravelCompletionService (replSet)', () => {
                 error.mockRestore();
                 log.mockRestore();
             }
+        });
+
+        it('records the arrival meal and hunger of a quest trip on its pending quest (D-13, D-26)', async () => {
+            const pending = await persistPendingQuest(null);
+            const ownedItems = await tenFoodUnits();
+            const id = await foodTraveller(new Types.ObjectId(), {
+                ownedItems,
+                kind: 'quest',
+                pendingQuest: pending._id,
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            expect((await rawCharacter(id))?.status.currentLifePoints).toBe(
+                HARDY_LIFE_POINTS - 55,
+            );
+            const raw = await pendingQuests.collection.findOne({
+                _id: pending._id,
+            });
+            expect(raw?.travelFoodSpent).toEqual([
+                {
+                    item: (ownedItems[0] as { item: unknown }).item,
+                    quantity: 10,
+                },
+            ]);
+            expect(raw?.travelHungerLifeLost).toBe(55);
+        });
+
+        it('records nothing on arrival when the party was dissolved (D-26)', async () => {
+            const destination = new Types.ObjectId();
+            const id = await foodTraveller(destination, {
+                ownedItems: await tenFoodUnits(),
+                kind: 'quest',
+                pendingQuest: new Types.ObjectId(),
+            });
+
+            await expect(completion.complete(identityOf(id))).resolves.toBe(
+                'completed',
+            );
+
+            const raw = await rawCharacter(id);
+            expect(raw?.status.currentLifePoints).toBe(HARDY_LIFE_POINTS - 55);
+            expect(raw?.assets.ownedItems).toEqual([]);
+            expect(raw?.status.location).toEqual(destination);
+            expect(await pendingQuests.collection.countDocuments()).toBe(0);
         });
 
         it('arrives as before with a legacy travel without a food plan (D-11)', async () => {

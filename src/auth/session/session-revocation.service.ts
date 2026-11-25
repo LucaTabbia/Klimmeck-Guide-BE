@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import type { ClientSession } from 'mongoose';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import { WsSessionRegistry } from 'src/auth/ws/ws-session-registry';
@@ -13,6 +15,7 @@ export class SessionRevocationService {
     constructor(
         private readonly sessions: SessionService,
         private readonly registry: WsSessionRegistry,
+        private readonly deletedAccounts: DeletedAccountRegistry,
     ) {}
 
     async revokeOthersOnLogin(
@@ -45,5 +48,46 @@ export class SessionRevocationService {
             SessionRevokeReason.accessLost,
         );
         this.registry.closeSessions(revoked, SessionRevokeReason.accessLost);
+    }
+
+    // cancellazione dell'account (Phase 26 D-18): la revoca a DB dentro la transazione del chiamante...
+    revokeForAccountDeletionWithin(
+        userId: string,
+        session: ClientSession,
+        now: Date,
+    ): Promise<string[]> {
+        return this.sessions.revokeAllForAccountDeletionWithin(
+            userId,
+            session,
+            now,
+        );
+    }
+
+    // ...i socket e il registro degli access token ancora vivi solo dopo il commit (D-03, D-18);
+    // il segno precede la seconda passata: un login che la manca trova già il registro (WR-03)
+    async closeDeletedAccountSessions(
+        userId: string,
+        sessionIds: readonly string[],
+    ): Promise<void> {
+        this.deletedAccounts.mark(userId);
+        let late: string[] = [];
+        try {
+            late = await this.revokeRemainingOfDeletedAccount(userId);
+        } finally {
+            // anche se la seconda passata fallisce, i socket già revocati si chiudono
+            this.registry.closeSessions(
+                [...new Set([...sessionIds, ...late])],
+                SessionRevokeReason.accountDeleted,
+            );
+        }
+    }
+
+    isAccountDeleted(userId: string): boolean {
+        return this.deletedAccounts.isDeleted(userId);
+    }
+
+    // sessioni nate dopo lo snapshot della cancellazione (WR-03)
+    revokeRemainingOfDeletedAccount(userId: string): Promise<string[]> {
+        return this.sessions.revokeRemainingForAccountDeletion(userId);
     }
 }

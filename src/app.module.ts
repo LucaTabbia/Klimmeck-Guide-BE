@@ -11,6 +11,7 @@ import { CharactersModule } from './characters/characters.module';
 import { SpellRecoveryModule } from './characters/spells/spell-recovery.module';
 import { CharacterCreationModule } from './characters/creation/character-creation.module';
 import { CharacterDeletionModule } from './characters/deletion/character-deletion.module';
+import { AccountDeletionModule } from './account/deletion/account-deletion.module';
 import { CitiesModule } from './cities/cities.module';
 import { ShopMaintenanceModule } from './shops/maintenance/shop-maintenance.module';
 import { ShopsModule } from './shops/shops.module';
@@ -97,6 +98,7 @@ import { createGraphQLOptions } from './graphql/graphql-options.factory';
         SpellRecoveryModule,
         CharacterCreationModule,
         CharacterDeletionModule,
+        AccountDeletionModule,
         CitiesModule,
         ShopMaintenanceModule,
         // esplicito anche se ShopMaintenanceModule lo importa: i resolver cityShop e shopPoolReport restano montati senza la manutenzione (Nest deduplica)

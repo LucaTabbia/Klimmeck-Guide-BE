@@ -135,6 +135,28 @@ export class PushService {
         return true; // idempotente (D-03)
     }
 
+    // device registrati in gara con la cancellazione dell'account (Phase 26 U-02): righe tolte, token restituiti per la disiscrizione
+    removeDevicesOf(userId: Types.ObjectId): Promise<string[]> {
+        return this.registry.removeAllOf(userId);
+    }
+
+    // token di un account cancellato fuori dal topic «in diretta» (Phase 26 D-25): best-effort, dopo il commit
+    async unsubscribeFromStreamerLive(
+        tokens: readonly string[],
+    ): Promise<void> {
+        if (tokens.length === 0) return;
+        try {
+            await this.transport.unsubscribeFromTopic(
+                [...tokens],
+                STREAMER_LIVE_TOPIC,
+            );
+        } catch (error) {
+            this.logger.warn(
+                `unsubscribe ${STREAMER_LIVE_TOPIC} failed for ${tokens.length} token(s) of a deleted account: ${describePushError(error)}`,
+            );
+        }
+    }
+
     async sendTest(
         callerId: string,
         input: SendTestPushInput,

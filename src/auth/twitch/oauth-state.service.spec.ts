@@ -11,11 +11,13 @@ import {
 } from '../../../test/auth/test-auth-config';
 
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+const TERMS_VERSION = '2026-11-24';
 const OTHER_SECRET = 'another-secret-0123456789abcdef-0123456789';
 const OAUTH_STATE_TTL_SECONDS = 600;
 
 interface DecodedState {
     challenge: string;
+    termsVersion: string;
     nonce: string;
     aud: string;
     iss: string;
@@ -60,7 +62,7 @@ describe('OAuthStateService', () => {
 
     describe('sign', () => {
         it('signs an HS256 JWT bound to the twitch-oauth-state audience with a 600 s lifetime', async () => {
-            const state = await service.sign(CHALLENGE);
+            const state = await service.sign(CHALLENGE, TERMS_VERSION);
 
             const decoded = jwtService.decode<DecodedState>(state);
             expect(decodeHeader(state).alg).toBe('HS256');
@@ -68,25 +70,49 @@ describe('OAuthStateService', () => {
             expect(decoded.iss).toBe(TOKEN_ISSUER);
             expect(decoded.exp - decoded.iat).toBe(OAUTH_STATE_TTL_SECONDS);
             expect(decoded.challenge).toBe(CHALLENGE);
+            expect(decoded.termsVersion).toBe(TERMS_VERSION);
             expect(typeof decoded.nonce).toBe('string');
             expect(decoded.nonce.length).toBeGreaterThan(0);
         });
 
         it('produces a different state on every call for the same challenge', async () => {
-            const first = await service.sign(CHALLENGE);
-            const second = await service.sign(CHALLENGE);
+            const first = await service.sign(CHALLENGE, TERMS_VERSION);
+            const second = await service.sign(CHALLENGE, TERMS_VERSION);
 
             expect(first).not.toBe(second);
         });
     });
 
-    describe('verifyChallenge', () => {
-        it('returns the challenge of a valid state', async () => {
-            const state = await service.sign(CHALLENGE);
+    describe('verify', () => {
+        it('signs the accepted version next to the challenge (D-19)', async () => {
+            const state = await service.sign(CHALLENGE, TERMS_VERSION);
 
-            await expect(service.verifyChallenge(state)).resolves.toBe(
-                CHALLENGE,
-            );
+            await expect(service.verify(state)).resolves.toEqual({
+                challenge: CHALLENGE,
+                termsVersion: TERMS_VERSION,
+            });
+        });
+
+        it('reads a state without version as no consent (D-19)', async () => {
+            const state = signState({ challenge: CHALLENGE, nonce: 'n' });
+
+            await expect(service.verify(state)).resolves.toEqual({
+                challenge: CHALLENGE,
+                termsVersion: null,
+            });
+        });
+
+        it('reads a malformed version as no consent (D-19)', async () => {
+            const state = signState({
+                challenge: CHALLENGE,
+                termsVersion: '../x',
+                nonce: 'n',
+            });
+
+            await expect(service.verify(state)).resolves.toEqual({
+                challenge: CHALLENGE,
+                termsVersion: null,
+            });
         });
 
         it('returns null for a state signed with another secret', async () => {
@@ -95,11 +121,11 @@ describe('OAuthStateService', () => {
                 { secret: OTHER_SECRET },
             );
 
-            await expect(service.verifyChallenge(state)).resolves.toBeNull();
+            await expect(service.verify(state)).resolves.toBeNull();
         });
 
         it('returns null for a tampered payload', async () => {
-            const state = await service.sign(CHALLENGE);
+            const state = await service.sign(CHALLENGE, TERMS_VERSION);
             const [header, , signature] = state.split('.');
             const forgedPayload = Buffer.from(
                 JSON.stringify({
@@ -109,9 +135,7 @@ describe('OAuthStateService', () => {
             ).toString('base64url');
 
             await expect(
-                service.verifyChallenge(
-                    `${header}.${forgedPayload}.${signature}`,
-                ),
+                service.verify(`${header}.${forgedPayload}.${signature}`),
             ).resolves.toBeNull();
         });
 
@@ -121,9 +145,7 @@ describe('OAuthStateService', () => {
                 { audience: ACCESS_TOKEN_AUDIENCE },
             );
 
-            await expect(
-                service.verifyChallenge(accessToken),
-            ).resolves.toBeNull();
+            await expect(service.verify(accessToken)).resolves.toBeNull();
         });
 
         it('returns null for an expired state', async () => {
@@ -142,13 +164,13 @@ describe('OAuthStateService', () => {
                 },
             );
 
-            await expect(service.verifyChallenge(expired)).resolves.toBeNull();
+            await expect(service.verify(expired)).resolves.toBeNull();
         });
 
         it('returns null for a state without a challenge', async () => {
             const state = signState({ nonce: 'n' });
 
-            await expect(service.verifyChallenge(state)).resolves.toBeNull();
+            await expect(service.verify(state)).resolves.toBeNull();
         });
 
         it.each([
@@ -157,7 +179,7 @@ describe('OAuthStateService', () => {
             ['a number', 42],
             ['garbage', 'not-a-jwt'],
         ])('returns null for %s without throwing', async (_label, state) => {
-            await expect(service.verifyChallenge(state)).resolves.toBeNull();
+            await expect(service.verify(state)).resolves.toBeNull();
         });
     });
 });

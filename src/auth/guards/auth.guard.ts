@@ -5,6 +5,7 @@ import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
 import { AuthException } from 'src/auth/auth.exception';
 import { IS_PUBLIC_KEY } from 'src/auth/decorators/public.decorator';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
 import type { GraphQLRequestContext } from 'src/graphql/graphql-context';
 
 interface GuardedRequest {
@@ -18,6 +19,7 @@ export class AuthGuard implements CanActivate {
     constructor(
         private readonly reflector: Reflector,
         private readonly identityResolver: AuthIdentityResolver,
+        private readonly deletedAccounts: DeletedAccountRegistry,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -55,9 +57,14 @@ export class AuthGuard implements CanActivate {
             const { extra } = this.getGraphQLContext(context);
             if (extra) return assertActiveWsIdentity(extra.identity);
         }
-        return this.identityResolver.resolveBearer(
+        const identity = await this.identityResolver.resolveBearer(
             request.headers?.authorization,
         );
+        // access token ancora vivo di un account cancellato (Phase 26 D-18): il ramo WS è già chiuso con 4409
+        if (this.deletedAccounts.isDeleted(identity.userId)) {
+            throw AuthException.unauthenticated();
+        }
+        return identity;
     }
 
     private getGraphQLContext(

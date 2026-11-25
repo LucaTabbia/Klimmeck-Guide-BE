@@ -136,6 +136,7 @@ describe('TwitchLoginErrorCode', () => {
                 'invalid_state',
                 'not_following',
                 'rate_limited',
+                'terms_not_accepted',
                 'twitch_client_mismatch',
                 'twitch_exchange_failed',
                 'twitch_not_configured',

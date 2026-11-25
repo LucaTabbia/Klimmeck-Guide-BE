@@ -12,6 +12,7 @@ import { idForms, refIdOf } from 'src/mongo/document-id';
 import { describeError } from 'src/mongo/mongo-errors';
 import { ownersOf } from 'src/mongo/owners-of';
 import { questCancelled } from 'src/push/push-events';
+import type { PushMessage } from 'src/push/push-message';
 import type { PushService } from 'src/push/push.service';
 import { registeredIdsOf } from './party-rules';
 
@@ -120,11 +121,11 @@ export async function notifyQuestCancelled(
     questId: Types.ObjectId,
     characterIds: readonly Types.ObjectId[],
     logger: WarnLogger,
+    message: PushMessage = questCancelled(questId.toHexString()),
 ): Promise<void> {
     if (characterIds.length === 0) return;
     try {
         const owners = await ownersOf(userModel, characterIds);
-        const message = questCancelled(questId.toHexString());
         for (const ownerId of owners.values()) {
             await push.sendToUser(ownerId, message);
         }

@@ -1,6 +1,6 @@
 import { ObjectType, Field, ID, InputType } from '@nestjs/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 import {
     CharacterInfosSchema,
     CharacterInfos,
@@ -52,6 +52,10 @@ export class Character {
 
     @Prop({ type: String, enum: Object.values(DeletionReason), default: null })
     deletionReason: DeletionReason | null;
+
+    // proprietario (Phase 26 D-24): mai esposto in GraphQL; assente sui personaggi creati prima della fase (D-11)
+    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
+    user: Types.ObjectId | null;
 }
 
 export type CharacterDocument = Character & Document;
@@ -127,6 +131,10 @@ CharacterSchema.index(
     { deletedAt: 1, 'status.activeTravel.food.settledKm': 1 },
     { name: CHARACTER_ACTIVE_TRAVEL_FOOD_INDEX },
 );
+
+export const CHARACTER_USER_INDEX = 'character_user';
+// la cancellazione dell'account trova anche gli archiviati (Phase 26 D-24)
+CharacterSchema.index({ user: 1 }, { name: CHARACTER_USER_INDEX });
 
 @InputType()
 export class CharacterInput {

@@ -1,3 +1,5 @@
+import { TypeMetadataStorage } from '@nestjs/graphql';
+import { LazyMetadataStorage } from '@nestjs/graphql/dist/schema-builder/storages/lazy-metadata.storage';
 import mongoose, { Model } from 'mongoose';
 import {
     Character,
@@ -86,5 +88,43 @@ describe('character name index', () => {
     it('names the partial index and the legacy global index', () => {
         expect(CHARACTER_NAME_INDEX).toBe('character_name_active_ci_unique');
         expect(LEGACY_CHARACTER_NAME_INDEX).toBe('character_name_ci_unique');
+    });
+});
+
+describe('character owner', () => {
+    const CharacterModel: Model<any> =
+        mongoose.models[Character.name] ||
+        mongoose.model(Character.name, CharacterSchema);
+
+    const graphqlFieldNamesOfCharacter = (): string[] => {
+        LazyMetadataStorage.load([Character]);
+        const objectType =
+            TypeMetadataStorage.getObjectTypeMetadataByTarget(Character)!;
+        TypeMetadataStorage.compileClassMetadata([objectType]);
+        return objectType.properties!.map(({ name }) => name).sort();
+    };
+
+    it('declares the owner index of a character (D-24)', () => {
+        expect(CharacterSchema.indexes()).toContainEqual([
+            { user: 1 },
+            expect.objectContaining({ name: 'character_user' }),
+        ]);
+    });
+
+    it('keeps the owner out of GraphQL (D-24)', () => {
+        expect(graphqlFieldNamesOfCharacter()).toEqual([
+            'assets',
+            'id',
+            'infos',
+            'quests',
+            'status',
+        ]);
+    });
+
+    it('reads a character without owner as owner null (D-11)', () => {
+        const character = new CharacterModel(buildCharacter());
+
+        expect(character.user).toBeNull();
+        expect(character.validateSync()).toBeUndefined();
     });
 });

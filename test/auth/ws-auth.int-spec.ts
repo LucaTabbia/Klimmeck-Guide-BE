@@ -130,7 +130,7 @@ describe('graphql-ws authentication on real sockets', () => {
             it('closes a connection with a signed OAuth state used as bearer', async () => {
                 const state = await harness.app
                     .get(OAuthStateService)
-                    .sign(CHALLENGE);
+                    .sign(CHALLENGE, '2026-11-24');
 
                 expectForbidden(
                     await connectAndAwaitClose(url, {
