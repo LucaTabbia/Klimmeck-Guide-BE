@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import { isPortraitFolderPath, PORTRAIT_FOLDER } from './portrait-folder';
 
 const PROVIDER_ERROR_NAME = 'CloudinaryError';
 const PROVIDER_ERROR_MESSAGE = 'Errore del provider Cloudinary';
@@ -25,6 +26,25 @@ function rethrowProviderError(rejection: unknown): never {
     throw providerErrorOf(rejection);
 }
 
+interface ListedResource {
+    public_id?: unknown;
+    asset_folder?: unknown;
+    secure_url: string;
+}
+
+function isUploadedPortrait({ public_id, asset_folder }: ListedResource) {
+    return [public_id, asset_folder].some(
+        (path) => typeof path === 'string' && isPortraitFolderPath(path),
+    );
+}
+
+// un ritratto caricato da un giocatore non esce mai da un elenco, qualunque cartella sia chiesta (Phase 26 U-01)
+function listableUrlsOf(resources: readonly ListedResource[]): string[] {
+    return resources
+        .filter((resource) => !isUploadedPortrait(resource))
+        .map((resource) => resource.secure_url);
+}
+
 @Injectable()
 export class CloudinaryService {
     // il cloud dell'app: solo i suoi ritratti si possono distruggere (Phase 26 CR-01)
@@ -42,13 +62,10 @@ export class CloudinaryService {
     async uploadImage(file: Express.Multer.File): Promise<UploadApiResponse> {
         return new Promise((resolve, reject) => {
             cloudinary.uploader
-                .upload_stream(
-                    { folder: 'characters_profile' },
-                    (error, result) => {
-                        if (error) reject(providerErrorOf(error));
-                        else resolve(result as UploadApiResponse);
-                    },
-                )
+                .upload_stream({ folder: PORTRAIT_FOLDER }, (error, result) => {
+                    if (error) reject(providerErrorOf(error));
+                    else resolve(result as UploadApiResponse);
+                })
                 .end(file.buffer);
         });
     }
@@ -72,10 +89,7 @@ export class CloudinaryService {
                     next_cursor: nextCursor,
                 })
                 .catch(rethrowProviderError);
-            const urls = result.resources.map(
-                (resource) => resource.secure_url,
-            );
-            allUrls = [...allUrls, ...urls];
+            allUrls = [...allUrls, ...listableUrlsOf(result.resources)];
             nextCursor = result.next_cursor;
         } while (nextCursor);
         return allUrls;
@@ -87,6 +101,7 @@ export class CloudinaryService {
             .catch(rethrowProviderError);
         let allUrls: string[] = [];
         for (const sub of subfolders['folders']) {
+            if (isPortraitFolderPath(sub.path)) continue;
             let nextCursor: string | undefined = undefined;
             do {
                 const result = await cloudinary.api
@@ -96,10 +111,7 @@ export class CloudinaryService {
                         next_cursor: nextCursor,
                     })
                     .catch(rethrowProviderError);
-                const urls = result.resources.map(
-                    (resource) => resource.secure_url,
-                );
-                allUrls = [...allUrls, ...urls];
+                allUrls = [...allUrls, ...listableUrlsOf(result.resources)];
                 nextCursor = result.next_cursor;
             } while (nextCursor);
         }

@@ -1,4 +1,4 @@
-export const PORTRAIT_FOLDER = 'characters_profile';
+import { PORTRAIT_FOLDER } from 'src/rest/cloudinary/portrait-folder';
 
 const CLOUDINARY_HOST = 'res.cloudinary.com';
 const SECURE_PROTOCOL = 'https:';
