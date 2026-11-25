@@ -136,6 +136,7 @@ const INTRUDER_MUTATION =
 const CREATE_CHARACTER = `mutation { createCharacter(input: { name: "Aria", sex: female, pronoun: she, race: human, classType: wizard, age: 25 }) { id } }`;
 const RACE_TRAITS = '{ raceTraits { race } }';
 const DELETE_CHARACTER = 'mutation { deleteCharacter { id } }';
+const DELETE_MY_ACCOUNT = 'mutation { deleteMyAccount }';
 const USE_ITEM =
     'mutation { useItem(itemId: "64b000000000000000000001") { hpAfter } }';
 const REGISTER_PUSH_DEVICE =
@@ -384,6 +385,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         expect(schema).not.toContain('deletedAt');
         expect(schema).not.toContain('deletionReason');
         expect(schema).not.toContain('DeletionReason');
+    });
+
+    it('writes the account deletion API into the generated schema (D-20)', () => {
+        const schema = readFileSync(SCHEMA_FILE, 'utf8');
+
+        expect(schema).toContain('deleteMyAccount: Boolean!');
     });
 
     it('keeps the real-time and authorization contract in the generated schema', () => {
@@ -1342,6 +1349,12 @@ describe('AppModule (real boot without Twitch credentials)', () => {
 
         it('rejects deleteCharacter without a bearer', async () => {
             expect(errorCodeOf(await graphqlCall(app, DELETE_CHARACTER))).toBe(
+                AuthErrorCode.UNAUTHENTICATED,
+            );
+        });
+
+        it('rejects deleteMyAccount without a bearer (D-20)', async () => {
+            expect(errorCodeOf(await graphqlCall(app, DELETE_MY_ACCOUNT))).toBe(
                 AuthErrorCode.UNAUTHENTICATED,
             );
         });
