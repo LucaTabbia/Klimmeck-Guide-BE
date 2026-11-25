@@ -1111,7 +1111,12 @@ describe('deleteMyAccount (wire)', () => {
 
             expect(portraits.destroyed).toEqual([]);
             expect(await queuedPortraits()).toEqual([
-                { publicId: PORTRAIT_ID, queuedAt: NOW, attempts: 1 },
+                {
+                    publicId: PORTRAIT_ID,
+                    queuedAt: NOW,
+                    attempts: 1,
+                    nextAttemptAt: new Date(NOW.getTime() + 60 * 1000),
+                },
             ]);
         });
 

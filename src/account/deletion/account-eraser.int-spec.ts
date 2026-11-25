@@ -619,11 +619,13 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
                     publicId: 'characters_profile/erased-ghost',
                     queuedAt: NOW,
                     attempts: 0,
+                    nextAttemptAt: NOW,
                 },
                 {
                     publicId: 'characters_profile/erased-hero',
                     queuedAt: NOW,
                     attempts: 0,
+                    nextAttemptAt: NOW,
                 },
             ]);
             await expectNothingLeftOf(world);
@@ -740,6 +742,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
                     publicId: 'characters_profile/erased-ghost',
                     queuedAt: NOW,
                     attempts: 0,
+                    nextAttemptAt: NOW,
                 },
             ]);
         });

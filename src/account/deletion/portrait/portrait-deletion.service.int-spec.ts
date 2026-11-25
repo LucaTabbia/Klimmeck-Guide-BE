@@ -11,14 +11,21 @@ import {
     PortraitDeletionDocument,
     PortraitDeletionSchema,
 } from './portrait-deletion.model';
-import { PortraitDeletionService } from './portrait-deletion.service';
+import { Clock } from 'src/auth/clock';
+import {
+    MAX_PORTRAIT_ATTEMPTS,
+    PortraitDeletionService,
+} from './portrait-deletion.service';
 import { PortraitStore } from './portrait-store';
 import { FakePortraitStore } from '../../../../test/account/fake-portrait-store';
+import { FixedClock } from '../../../../test/auth/fixed-clock';
 
 const NOW = new Date('2026-11-25T10:00:00.000Z');
 const LATER = new Date('2026-11-25T10:05:00.000Z');
 const FIRST_PORTRAIT = 'characters_profile/first-portrait';
 const SECOND_PORTRAIT = 'characters_profile/second-portrait';
+const MINUTE_SECONDS = 60;
+const DAY_SECONDS = 24 * 60 * 60;
 
 describe('PortraitDeletionService (replSet)', () => {
     let app: INestApplication;
@@ -26,9 +33,11 @@ describe('PortraitDeletionService (replSet)', () => {
     let outbox: Model<PortraitDeletionDocument>;
     let service: PortraitDeletionService;
     let store: FakePortraitStore;
+    let clock: FixedClock;
 
     beforeAll(async () => {
         store = new FakePortraitStore();
+        clock = new FixedClock(NOW);
         const moduleRef = await Test.createTestingModule({
             imports: [
                 MongooseModule.forRoot(process.env.MONGO_TEST_URI as string, {
@@ -44,6 +53,7 @@ describe('PortraitDeletionService (replSet)', () => {
             providers: [
                 PortraitDeletionService,
                 { provide: PortraitStore, useValue: store },
+                { provide: Clock, useValue: clock },
             ],
         }).compile();
         app = moduleRef.createNestApplication();
@@ -118,6 +128,7 @@ describe('PortraitDeletionService (replSet)', () => {
         expect(Object.keys(row ?? {}).sort()).toEqual([
             '_id',
             'attempts',
+            'nextAttemptAt',
             'publicId',
             'queuedAt',
         ]);
@@ -161,8 +172,69 @@ describe('PortraitDeletionService (replSet)', () => {
         await expect(service.flush()).resolves.toBe(1);
         expect(store.destroyed).toEqual([SECOND_PORTRAIT]);
 
+        clock.advanceSeconds(MINUTE_SECONDS);
         await expect(service.flush()).resolves.toBe(1);
         expect(store.destroyed).toEqual([SECOND_PORTRAIT, FIRST_PORTRAIT]);
         expect(await outbox.countDocuments({})).toBe(0);
+    });
+
+    it('waits a growing delay before retrying a failed portrait (WR-02)', async () => {
+        const start = clock.now();
+        await enqueueCommitted([FIRST_PORTRAIT], start);
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+        const destroy = jest.spyOn(store, 'destroy');
+        store.failNext(2);
+
+        await service.flush();
+        await service.flush();
+        expect(destroy).toHaveBeenCalledTimes(1);
+        expect(
+            (await outbox.findOne({ publicId: FIRST_PORTRAIT }).lean().exec())
+                ?.nextAttemptAt,
+        ).toEqual(new Date(start.getTime() + MINUTE_SECONDS * 1000));
+
+        clock.advanceSeconds(MINUTE_SECONDS);
+        await service.flush();
+        expect(destroy).toHaveBeenCalledTimes(2);
+        const retried = await outbox
+            .findOne({ publicId: FIRST_PORTRAIT })
+            .lean()
+            .exec();
+        expect(retried?.attempts).toBe(2);
+        expect(retried?.nextAttemptAt).toEqual(
+            new Date(clock.now().getTime() + 2 * MINUTE_SECONDS * 1000),
+        );
+
+        clock.advanceSeconds(MINUTE_SECONDS);
+        await service.flush();
+        expect(destroy).toHaveBeenCalledTimes(2);
+        clock.advanceSeconds(MINUTE_SECONDS);
+        await expect(service.flush()).resolves.toBe(1);
+        expect(store.destroyed).toEqual([FIRST_PORTRAIT]);
+    });
+
+    it('gives up after the cap and reports the row once at ERROR without its public id (WR-02)', async () => {
+        await enqueueCommitted([FIRST_PORTRAIT], clock.now());
+        const row = await outbox.findOne({ publicId: FIRST_PORTRAIT }).exec();
+        jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+        const destroy = jest.spyOn(store, 'destroy');
+        store.failNext(MAX_PORTRAIT_ATTEMPTS + 1);
+
+        for (let attempt = 0; attempt < MAX_PORTRAIT_ATTEMPTS + 2; attempt++) {
+            await service.flush();
+            clock.advanceSeconds(DAY_SECONDS);
+        }
+
+        expect(MAX_PORTRAIT_ATTEMPTS).toBeGreaterThan(1);
+        expect(destroy).toHaveBeenCalledTimes(MAX_PORTRAIT_ATTEMPTS);
+        const kept = await outbox.findOne({ publicId: FIRST_PORTRAIT }).exec();
+        expect(kept?.attempts).toBe(MAX_PORTRAIT_ATTEMPTS);
+        const reports = error.mock.calls.map(([value]) => String(value));
+        expect(reports).toHaveLength(1);
+        expect(reports[0]).toContain(String(row?._id));
+        expect(reports[0]).not.toContain(FIRST_PORTRAIT);
     });
 });
