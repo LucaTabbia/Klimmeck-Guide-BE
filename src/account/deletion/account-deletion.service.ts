@@ -105,9 +105,10 @@ export class AccountDeletionService {
         }
     }
 
-    // ordine fisso (D-13, D-25, N6): socket, compagni rientrati, soccorritori liberati, topic, spinta ai ritratti
+    // ordine fisso (D-13, D-25, N6): socket e device rimasti, compagni rientrati, soccorritori liberati, topic, spinta ai ritratti
     private async afterCommit(report: ErasureReport): Promise<void> {
         await this.closeSessions(report);
+        const lateTokens = await this.removeLateDevices(report);
         for (const { questId, characterIds } of report.cancelled) {
             await notifyQuestCancelled(
                 this.users,
@@ -127,9 +128,30 @@ export class AccountDeletionService {
                 this.logger,
             );
         }
-        await this.push.unsubscribeFromStreamerLive(report.pushTokens);
+        await this.push.unsubscribeFromStreamerLive([
+            ...new Set([...report.pushTokens, ...lateTokens]),
+        ]);
         // la risposta non aspetta Cloudinary (WR-01): lo sweeper consegna, gli errori li registra lui
         this.portraitSweeper.kick();
+    }
+
+    // come la seconda passata delle sessioni (WR-03): un device registrato fra la lettura della transazione e il commit (U-02);
+    // nel log solo id interno e conteggi, mai un token
+    private async removeLateDevices(report: ErasureReport): Promise<string[]> {
+        try {
+            const tokens = await this.push.removeDevicesOf(report.userId);
+            if (tokens.length > 0) {
+                this.logger.warn(
+                    `Rimossi ${tokens.length} device registrati durante la cancellazione dell'account ${report.userId.toHexString()}`,
+                );
+            }
+            return tokens;
+        } catch (error) {
+            this.logger.warn(
+                `Rimozione dei device rimasti dell'account ${report.userId.toHexString()} fallita: ${describeError(error)}`,
+            );
+            return [];
+        }
     }
 
     // un errore qui non deve fermare push, topic e ritratti; le sessioni nate da un login in gara si revocano qui (WR-03)
