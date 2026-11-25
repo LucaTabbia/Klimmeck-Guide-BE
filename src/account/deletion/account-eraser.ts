@@ -5,10 +5,12 @@ import { ClientSession, Model, Types } from 'mongoose';
 import { AccountDeletionException } from 'src/account/deletion/account-deletion.exception';
 import {
     concludedQuestCleanupOf,
+    EMPTIED_OPEN_AID_FILTER,
     EMPTY_MISSION_DRAFT_FILTER,
     erasedCharacterIdsOf,
     laneRequestIdsOf,
     missionDraftCleanupOf,
+    openQuestCleanupOf,
     rescuedCountKeeperOf,
 } from 'src/account/deletion/account-erasure.plan';
 import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
@@ -49,6 +51,7 @@ import {
     MissionDraft,
     MissionDraftRecord,
 } from 'src/quests/guided/mission-draft.model';
+import { releaseRegisteredWithin } from 'src/quests/party/registered-release';
 import { startedQuestsWithFilter } from 'src/quests/party/started-quest-cancel';
 import {
     CancelledStartedQuest,
@@ -95,6 +98,11 @@ function resolvesAsToday(
         wounded.length > 0 &&
         wounded.every((each) => characterIds.some((id) => sameId(each, id)))
     );
+}
+
+interface OpenAid {
+    _id: Types.ObjectId;
+    startedAt?: Date | null;
 }
 
 interface CharacterPortrait {
@@ -155,12 +163,15 @@ export class AccountEraser {
             now,
             session,
         );
-        const released = await this.archiveCurrentOf(
-            userId,
-            user.currentCharacter,
-            now,
-            session,
-        );
+        const released = [
+            ...(await this.archiveCurrentOf(
+                userId,
+                user.currentCharacter,
+                now,
+                session,
+            )),
+            ...(await this.cleanOpenQuestsOf(characterIds, now, session)),
+        ];
         await this.cleanConcludedQuestsOf(characterIds, session);
         await this.deleteLaneRequestsOf(characterIds, session);
         await this.cleanMissionDraftsOf(characterIds, session);
@@ -256,6 +267,82 @@ export class AccountEraser {
             session,
             { userId, characterId, reason: DeletionReason.user_request, now },
         );
+        return released;
+    }
+
+    // dopo l'archivio, le forme stringa che il suo cast non vede (WR-04): il posto non avviato si libera, il ferito esce dalla aid aperta
+    // e la aid rimasta senza feriti si conclude come oggi (quella non avviata libera i soccorritori)
+    private async cleanOpenQuestsOf(
+        characterIds: readonly Types.ObjectId[],
+        now: Date,
+        session: ClientSession,
+    ): Promise<ReleasedRescuers[]> {
+        if (characterIds.length === 0) return [];
+        const { seats, wounded } = openQuestCleanupOf(characterIds);
+        await this.questModel.collection.updateMany(
+            seats.filter,
+            rawUpdateOf(seats.update),
+            { session },
+        );
+        const aids = await this.openAidsMatching(wounded.filter, session);
+        if (aids.length === 0) return [];
+        const aidIds = aids.map(({ _id }) => _id);
+        await this.questModel.collection.updateMany(
+            { _id: { $in: aidIds } },
+            rawUpdateOf(wounded.update),
+            { session },
+        );
+        const emptied = await this.openAidsMatching(
+            { _id: { $in: aidIds }, ...EMPTIED_OPEN_AID_FILTER },
+            session,
+        );
+        if (emptied.length === 0) return [];
+        await this.questModel.collection.updateMany(
+            { _id: { $in: emptied.map(({ _id }) => _id) } },
+            { $set: { concludedAt: now } },
+            { session },
+        );
+        return this.releaseRescuersOf(
+            emptied
+                .filter(({ startedAt }) => startedAt == null)
+                .map(({ _id }) => _id),
+            session,
+        );
+    }
+
+    private openAidsMatching(
+        filter: Record<string, unknown>,
+        session: ClientSession,
+    ): Promise<OpenAid[]> {
+        return this.questModel.collection
+            .find<OpenAid>(filter, {
+                projection: { _id: 1, startedAt: 1 },
+                session,
+            })
+            .toArray();
+    }
+
+    // stessa routine del timeout e dell'archivio: la push la fa il servizio dopo il commit (D-27)
+    private async releaseRescuersOf(
+        aidIds: readonly Types.ObjectId[],
+        session: ClientSession,
+    ): Promise<ReleasedRescuers[]> {
+        const models = {
+            questModel: this.questModel,
+            characterModel: this.characterModel,
+            pendingQuestModel: this.pendingQuestModel,
+        };
+        const released: ReleasedRescuers[] = [];
+        for (const questId of aidIds) {
+            const characterIds = await releaseRegisteredWithin(
+                models,
+                questId,
+                session,
+                this.logger,
+            );
+            if (characterIds.length > 0)
+                released.push({ questId, characterIds });
+        }
         return released;
     }
 

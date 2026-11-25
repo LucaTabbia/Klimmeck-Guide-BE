@@ -92,6 +92,30 @@ export function concludedQuestCleanupOf(
     };
 }
 
+// quest non avviate e aid aperte dopo l'archivio (WR-04): il cast del modello nell'archivio non vede la forma stringa dell'id
+export function openQuestCleanupOf(characterIds: readonly Types.ObjectId[]) {
+    const forms = formsOf(characterIds);
+    return {
+        seats: {
+            filter: {
+                concludedAt: null,
+                startedAt: null,
+                'registeredAdventurers.character': forms,
+            },
+            update: { $pull: { registeredAdventurers: { character: forms } } },
+        },
+        wounded: {
+            filter: { concludedAt: null, 'rescue.characters': forms },
+            update: { $pull: { 'rescue.characters': forms } },
+        },
+    };
+}
+
+export const EMPTIED_OPEN_AID_FILTER: Record<string, unknown> = {
+    concludedAt: null,
+    'rescue.characters': { $size: 0 },
+};
+
 // il foglio altrui conta chi ha salvato: un id anonimo prende il posto del cancellato e il conteggio resta (D-14)
 export function rescuedCountKeeperOf(
     characterIds: readonly Types.ObjectId[],
