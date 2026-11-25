@@ -1189,6 +1189,46 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             await expectNothingLeftOf(world);
             expect(await keptDocumentsOf(world)).toEqual(keptBefore);
         });
+
+        it('leaves nothing behind a started quest whose registrations are stored as strings (D-13, D-26)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.current }],
+            });
+            // registrazioni legacy in forma stringa (04 Pitfall 1): il cast di Mongoose le ridurrebbe a ObjectId
+            const legacy = [world.current, scene.a.characterId];
+            const quest = await rawQuest(scene.questId);
+            await quests.collection.updateOne(
+                { _id: scene.questId },
+                {
+                    $set: {
+                        registeredAdventurers: (
+                            quest?.registeredAdventurers as {
+                                character: Types.ObjectId;
+                            }[]
+                        ).map((seat) =>
+                            legacy.some((id) => id.equals(seat.character))
+                                ? {
+                                      ...seat,
+                                      character: seat.character.toHexString(),
+                                  }
+                                : seat,
+                        ),
+                    },
+                },
+            );
+            const keptBefore = await keptDocumentsOf(world);
+
+            const report = await eraseInTransaction(world.userId);
+
+            await expectSentBack(scene);
+            await expectBackOnTheBoard(scene);
+            expect(
+                (report?.cancelled ?? []).map(({ questId }) => String(questId)),
+            ).toEqual([String(scene.questId)]);
+            await expectNothingLeftOf(world);
+            expect(await keptDocumentsOf(world)).toEqual(keptBefore);
+        });
     });
 
     async function companionsOf(scene: StartedScene) {

@@ -335,6 +335,105 @@ describe('StartedQuestCanceller.cancelStartedQuestWithin (replSet)', () => {
         });
     });
 
+    // registrazioni e collegamenti legacy in forma stringa (04 Pitfall 1): il cast di Mongoose li ridurrebbe a ObjectId
+    async function storeRegistrationsAsStrings(
+        scene: Scene,
+        members: readonly Member[],
+    ): Promise<void> {
+        const quest = await rawQuest(scene.questId);
+        const stringified = (
+            quest?.registeredAdventurers as { character: Types.ObjectId }[]
+        ).map((seat) =>
+            members.some((member) => member.characterId.equals(seat.character))
+                ? { ...seat, character: seat.character.toHexString() }
+                : seat,
+        );
+        await quests.collection.updateOne(
+            { _id: scene.questId },
+            { $set: { registeredAdventurers: stringified } },
+        );
+    }
+
+    async function storeLinksAsStrings(
+        scene: Scene,
+        member: Member,
+    ): Promise<void> {
+        await characters.collection.updateOne(
+            { _id: member.characterId },
+            {
+                $set: {
+                    'quests.pendingQuest': member.pendingQuestId.toHexString(),
+                },
+            },
+        );
+        await pendingQuests.collection.updateOne(
+            { _id: member.pendingQuestId },
+            { $set: { quest: scene.questId.toHexString() } },
+        );
+        await users.collection.updateOne(
+            { _id: member.userId },
+            { $set: { currentCharacter: member.characterId.toHexString() } },
+        );
+    }
+
+    async function expectFullyCancelled(
+        scene: Scene,
+        cancelled: CancelledStartedQuest | null,
+    ): Promise<void> {
+        expect(hexes(cancelled?.characterIds ?? [])).toEqual(
+            hexes([scene.a.characterId, scene.b.characterId]),
+        );
+        for (const member of [scene.a, scene.b]) {
+            const raw = await rawCharacter(member.characterId);
+            expect(raw?.status.location).toEqual(scene.cityMarker);
+            expect(raw?.quests.pendingQuest).toBeNull();
+        }
+        const a = await rawCharacter(scene.a.characterId);
+        expect(a?.assets.ownedItems).toEqual([
+            { itemType: 'LootItem', item: scene.ration, quantity: 3 },
+        ]);
+        expect(a?.status.currentLifePoints).toBe(46);
+        expect((await rawUser(scene.a.userId))?.twitchPoints).toBe(130);
+        expect((await rawUser(scene.b.userId))?.twitchPoints).toBe(110);
+        expect((await rawUser(scene.c.userId))?.twitchPoints).toBe(100);
+        expect(
+            await pendingQuests.collection.countDocuments({
+                _id: {
+                    $in: [scene.a, scene.b, scene.c].map(
+                        ({ pendingQuestId }) => pendingQuestId,
+                    ),
+                },
+            }),
+        ).toBe(0);
+        expect(
+            (await rawCharacter(scene.c.characterId))?.quests.pendingQuest,
+        ).toBeNull();
+        const quest = await rawQuest(scene.questId);
+        expect(quest?.startedAt).toBeNull();
+        expect(quest?.registeredAdventurers).toEqual([]);
+    }
+
+    describe('legacy ids stored as strings', () => {
+        it('cancels a started boss whose registrations are stored as strings (D-13, D-26)', async () => {
+            const scene = await persistScene();
+            await storeRegistrationsAsStrings(scene, [scene.c, scene.a]);
+
+            const cancelled = await cancelInTransaction(scene);
+
+            await expectFullyCancelled(scene, cancelled);
+        });
+
+        it('cancels a started boss whose lanes, requests and owners point by strings (D-13, D-26)', async () => {
+            const scene = await persistScene();
+            await storeLinksAsStrings(scene, scene.a);
+            await storeLinksAsStrings(scene, scene.c);
+
+            const cancelled = await cancelInTransaction(scene);
+
+            await expectFullyCancelled(scene, cancelled);
+        });
+    });
+
     it('cancels a started enemy quest the same way (D-26)', async () => {
         const scene = await persistScene({ type: 'enemy' });
 
