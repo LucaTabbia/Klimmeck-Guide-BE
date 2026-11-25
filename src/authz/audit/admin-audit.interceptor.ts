@@ -44,12 +44,16 @@ export class AdminAuditInterceptor implements NestInterceptor {
     ): Observable<unknown> {
         const entry = this.pendingEntryOf(context);
         if (!entry) return next.handle();
+        const idOfResult = this.declaredRuleOf(context)?.idOfResult;
         // scrittura attesa nella pipeline: test deterministici e nessun record perso allo shutdown;
         // record non lancia mai, quindi l'esito restituito al client non cambia
         return next.handle().pipe(
             concatMap(async (result: unknown) => {
                 await this.auditLog.record({
                     ...entry,
+                    target: idOfResult
+                        ? withTargetId(entry.target, idOfResult(result))
+                        : entry.target,
                     outcome: AUDIT_OUTCOME_OK,
                 });
                 return result;
@@ -58,6 +62,9 @@ export class AdminAuditInterceptor implements NestInterceptor {
                 from(
                     this.auditLog.record({
                         ...entry,
+                        target: idOfResult
+                            ? withTargetId(entry.target, null)
+                            : entry.target,
                         outcome: outcomeCodeOf(error),
                     }),
                 ).pipe(concatMap(() => throwError(() => error))),
@@ -77,6 +84,7 @@ export class AdminAuditInterceptor implements NestInterceptor {
         const onBehalf = this.decisions.onBehalfTargetOf(info);
         if (!onBehalf && !this.isInnkeeperOperation(context)) return null;
         const args = toPlainArgs(gql.getArgs<Record<string, unknown>>());
+        const argsOf = this.declaredRuleOf(context)?.argsOf;
         return {
             actor: {
                 userId: identity.userId,
@@ -89,7 +97,7 @@ export class AdminAuditInterceptor implements NestInterceptor {
                     type: getNamedType(info.returnType).name,
                     id: stringOrNull(args.id),
                 },
-            args,
+            args: argsOf ? toPlainArgs(argsOf(args)) : args,
         };
     }
 
@@ -97,12 +105,18 @@ export class AdminAuditInterceptor implements NestInterceptor {
         context: ExecutionContext,
         args: Record<string, unknown>,
     ): AdminAuditEntry['target'] | null {
-        const declared = this.reflector.get<AuditTargetRule | undefined>(
+        const declared = this.declaredRuleOf(context);
+        if (!declared) return null;
+        return { type: declared.type, id: stringOrNull(declared.idOf(args)) };
+    }
+
+    private declaredRuleOf(
+        context: ExecutionContext,
+    ): AuditTargetRule | undefined {
+        return this.reflector.get<AuditTargetRule | undefined>(
             AUDIT_TARGET_KEY,
             context.getHandler(),
         );
-        if (!declared) return null;
-        return { type: declared.type, id: stringOrNull(declared.idOf(args)) };
     }
 
     private isInnkeeperOperation(context: ExecutionContext): boolean {
@@ -125,6 +139,13 @@ export function outcomeCodeOf(error: unknown): string {
         );
     }
     return FALLBACK_OUTCOME;
+}
+
+function withTargetId(
+    target: AdminAuditEntry['target'],
+    id: unknown,
+): AdminAuditEntry['target'] {
+    return { ...target, id: stringOrNull(id) };
 }
 
 function stringOrNull(value: unknown): string | null {
