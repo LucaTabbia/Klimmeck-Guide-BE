@@ -14,7 +14,6 @@ import {
     rescuedCountKeeperOf,
 } from 'src/account/deletion/account-erasure.plan';
 import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
-import { portraitReferencePatternOf } from 'src/account/deletion/portrait/portrait-public-id';
 import {
     ChannelAccessCheck,
     ChannelAccessCheckDocument,
@@ -452,40 +451,13 @@ export class AccountEraser {
                 .filter((publicId): publicId is string => publicId !== null),
         );
         if (uploaded.size === 0) return;
-        for (const shown of await this.publicIdsStillShown(
-            [...uploaded],
-            characterIds,
+        for (const shown of await this.portraits.publicIdsShown([...uploaded], {
+            excluding: characterIds,
             session,
-        )) {
+        })) {
             uploaded.delete(shown);
         }
         await this.portraits.enqueueWithin(session, [...uploaded], now);
-    }
-
-    // driver nativo: nessun filtro implicito sugli archiviati, la regex vede ogni grafia dell'URL
-    private async publicIdsStillShown(
-        publicIds: readonly string[],
-        characterIds: readonly Types.ObjectId[],
-        session: ClientSession,
-    ): Promise<string[]> {
-        const survivors = await this.characterModel.collection
-            .find<CharacterPortrait>(
-                {
-                    _id: { $nin: [...characterIds] },
-                    'infos.imagePath': {
-                        $regex: portraitReferencePatternOf(publicIds),
-                    },
-                },
-                { projection: { 'infos.imagePath': 1 }, session },
-            )
-            .toArray();
-        const paths = survivors
-            .map(({ infos }) => infos?.imagePath)
-            .filter((path): path is string => typeof path === 'string');
-        return publicIds.filter((publicId) => {
-            const pattern = portraitReferencePatternOf([publicId]);
-            return paths.some((path) => pattern.test(path));
-        });
     }
 
     // i token servono dopo il commit per la disiscrizione dal topic (D-25)

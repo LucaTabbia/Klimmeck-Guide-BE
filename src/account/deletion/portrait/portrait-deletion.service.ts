@@ -2,18 +2,34 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
+import {
+    Character,
+    CharacterDocument,
+} from 'src/models/character/character.model';
 import { describeError } from 'src/mongo/mongo-errors';
 import {
     PortraitDeletion,
     PortraitDeletionDocument,
 } from './portrait-deletion.model';
-import { portraitPublicIdOf } from './portrait-public-id';
+import {
+    portraitPublicIdOf,
+    portraitReferencePatternOf,
+} from './portrait-public-id';
 import { PortraitStore } from './portrait-store';
 
 interface QueuedPortrait {
     _id: Types.ObjectId;
     publicId: string;
     attempts?: number;
+}
+
+interface CharacterPortrait {
+    infos?: { imagePath?: unknown } | null;
+}
+
+export interface ShownPortraitScope {
+    excluding?: readonly Types.ObjectId[];
+    session?: ClientSession;
 }
 
 // tetto e ritmo dei tentativi (WR-02): 1, 2, 4… minuti, al massimo 6 ore fra due tentativi
@@ -36,6 +52,8 @@ export class PortraitDeletionService {
     constructor(
         @InjectModel(PortraitDeletion.name)
         private readonly outbox: Model<PortraitDeletionDocument>,
+        @InjectModel(Character.name)
+        private readonly characters: Model<CharacterDocument>,
         private readonly store: PortraitStore,
         private readonly clock: Clock,
     ) {}
@@ -43,6 +61,33 @@ export class PortraitDeletionService {
     // solo i ritratti del cloud su cui agisce lo store (CR-01)
     publicIdOf(imagePath: unknown): string | null {
         return portraitPublicIdOf(imagePath, this.store.cloudName);
+    }
+
+    // driver nativo: nessun filtro implicito sugli archiviati, la regex vede ogni grafia dell'URL (CR-01);
+    // la usano l'accodamento, nella transazione, e il flush, subito prima di distruggere (U-01)
+    async publicIdsShown(
+        publicIds: readonly string[],
+        { excluding = [], session }: ShownPortraitScope = {},
+    ): Promise<string[]> {
+        if (publicIds.length === 0) return [];
+        const survivors = await this.characters.collection
+            .find<CharacterPortrait>(
+                {
+                    _id: { $nin: [...excluding] },
+                    'infos.imagePath': {
+                        $regex: portraitReferencePatternOf(publicIds),
+                    },
+                },
+                { projection: { 'infos.imagePath': 1 }, session },
+            )
+            .toArray();
+        const paths = survivors
+            .map(({ infos }) => infos?.imagePath)
+            .filter((path): path is string => typeof path === 'string');
+        return publicIds.filter((publicId) => {
+            const pattern = portraitReferencePatternOf([publicId]);
+            return paths.some((path) => pattern.test(path));
+        });
     }
 
     // in serie: una sessione transazionale non regge operazioni concorrenti
@@ -96,9 +141,11 @@ export class PortraitDeletionService {
         }
     }
 
+    // un personaggio nato dopo l'accodamento (upload preso da un altro, riga rimasta in backoff) tiene il ritratto: la riga si chiude senza distruggere (U-01)
     private async closeSafely(row: QueuedPortrait, now: Date): Promise<number> {
         try {
-            await this.store.destroy(row.publicId);
+            const [shown] = await this.publicIdsShown([row.publicId]);
+            if (!shown) await this.store.destroy(row.publicId);
             await this.outbox.deleteOne({ _id: row._id }).exec();
             return 1;
         } catch (error) {
