@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model, Types } from 'mongoose';
 import { AccountDeletionException } from 'src/account/deletion/account-deletion.exception';
@@ -7,6 +7,7 @@ import {
     ErasureReport,
 } from 'src/account/deletion/account-eraser';
 import { DeletedAccount } from 'src/account/deletion/deleted-account.model';
+import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
@@ -17,9 +18,15 @@ import {
 } from 'src/auth/twitch/twitch-user-directory';
 import { User, UserDocument } from 'src/models/user.model';
 import { objectIdFromHex } from 'src/mongo/document-id';
+import { describeError } from 'src/mongo/mongo-errors';
+import { startedQuestCancelled } from 'src/push/push-events';
+import { PushService } from 'src/push/push.service';
+import { notifyQuestCancelled } from 'src/quests/party/registered-release';
 
 @Injectable()
 export class AccountDeletionService {
+    private readonly logger = new Logger(AccountDeletionService.name);
+
     constructor(
         @InjectConnection() private readonly connection: Connection,
         @InjectModel(User.name) private readonly users: Model<UserDocument>,
@@ -27,6 +34,8 @@ export class AccountDeletionService {
         private readonly directory: TwitchUserDirectory,
         private readonly revocation: SessionRevocationService,
         private readonly clock: Clock,
+        private readonly push: PushService,
+        private readonly portraits: PortraitDeletionService,
     ) {}
 
     // identità dal bearer (Phase 26 D-20): l'oste è rifiutato dall'eraser (D-16), un utente sparito è UNAUTHENTICATED
@@ -78,15 +87,58 @@ export class AccountDeletionService {
                 this.clock.now(),
             );
         });
-        if (state.report) this.afterCommit(state.report);
+        if (state.report) await this.afterCommitSafely(state.report);
         return state.report;
     }
 
-    // socket chiusi e registro segnato; push, topic e ritratti arrivano coi piani 11–12
-    private afterCommit(report: ErasureReport): void {
-        this.revocation.closeDeletedAccountSessions(
-            String(report.userId),
-            report.revokedSessionIds,
-        );
+    // la cancellazione è già scritta: nessun errore dei passi esterni risale alla mutation né cambia l'esito del registro (regola dura 5)
+    private async afterCommitSafely(report: ErasureReport): Promise<void> {
+        try {
+            await this.afterCommit(report);
+        } catch (error) {
+            this.logger.warn(
+                `Passi dopo la cancellazione dell'account ${report.userId.toHexString()} interrotti: ${describeError(error)}`,
+            );
+        }
+    }
+
+    // ordine fisso (D-13, D-25, N6): socket, compagni rientrati, soccorritori liberati, topic, ritratti
+    private async afterCommit(report: ErasureReport): Promise<void> {
+        this.closeSessions(report);
+        for (const { questId, characterIds } of report.cancelled) {
+            await notifyQuestCancelled(
+                this.users,
+                this.push,
+                questId,
+                characterIds,
+                this.logger,
+                startedQuestCancelled(questId.toHexString()),
+            );
+        }
+        for (const { questId, characterIds } of report.released) {
+            await notifyQuestCancelled(
+                this.users,
+                this.push,
+                questId,
+                characterIds,
+                this.logger,
+            );
+        }
+        await this.push.unsubscribeFromStreamerLive(report.pushTokens);
+        await this.portraits.flush();
+    }
+
+    // un errore qui non deve fermare push, topic e ritratti
+    private closeSessions(report: ErasureReport): void {
+        try {
+            this.revocation.closeDeletedAccountSessions(
+                String(report.userId),
+                report.revokedSessionIds,
+            );
+        } catch (error) {
+            this.logger.warn(
+                `Chiusura delle sessioni dell'account ${report.userId.toHexString()} fallita: ${describeError(error)}`,
+            );
+        }
     }
 }
