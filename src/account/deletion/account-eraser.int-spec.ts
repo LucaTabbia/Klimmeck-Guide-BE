@@ -883,6 +883,146 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         expect(rescued.map(String)).toContain(world.otherRescued.toHexString());
     });
 
+    // forme legacy dell'id salvate col driver (04 Pitfall 1): il cast del modello nell'archivio non le vede
+    async function storeAsString(
+        questId: Types.ObjectId,
+        path: string,
+        characterId: Types.ObjectId,
+    ): Promise<void> {
+        await quests.collection.updateOne(
+            { _id: questId },
+            { $set: { [path]: characterId.toHexString() } },
+        );
+    }
+
+    describe('open quests with string ids (WR-04)', () => {
+        it('frees an unstarted seat stored as a string (WR-04)', async () => {
+            const world = await persistWorld();
+            await storeAsString(
+                world.openQuest,
+                'registeredAdventurers.0.character',
+                world.current,
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(seatsOf(await rawQuest(world.openQuest))).toEqual([
+                world.kept.character.toHexString(),
+            ]);
+        });
+
+        it('takes a wounded stored as a string off an open aid (WR-04)', async () => {
+            const world = await persistWorld();
+            await storeAsString(
+                world.openAid,
+                'rescue.characters.0',
+                world.current,
+            );
+
+            await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(world.openAid);
+            expect(aid?.rescue?.characters).toEqual([world.otherWounded]);
+            expect(aid?.concludedAt).toBeNull();
+        });
+
+        it('leaves nothing behind string ids on unstarted quests and open aids (D-04, WR-04)', async () => {
+            const world = await persistWorld();
+            await storeAsString(
+                world.openQuest,
+                'registeredAdventurers.0.character',
+                world.current,
+            );
+            await storeAsString(
+                world.openAid,
+                'rescue.characters.0',
+                world.current,
+            );
+            const keptBefore = await keptDocumentsOf(world);
+
+            await eraseInTransaction(world.userId);
+
+            await expectNothingLeftOf(world);
+            expect(await keptDocumentsOf(world)).toEqual(keptBefore);
+        });
+
+        it('concludes as today a started aid whose only wounded is stored as a string (D-13, WR-04)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [],
+                type: 'aid',
+                rescue: {
+                    characters: [world.current],
+                    failedQuest: new Types.ObjectId(),
+                },
+            });
+            await storeAsString(
+                scene.questId,
+                'rescue.characters.0',
+                world.current,
+            );
+            const before = await companionsOf(scene);
+
+            const report = await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(scene.questId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.startedAt).toEqual(STARTED_AT);
+            expect(aid?.rescue.characters).toEqual([]);
+            expect(await companionsOf(scene)).toEqual(before);
+            expect(report?.cancelled).toEqual([]);
+        });
+
+        it('releases the rescuers of an unstarted aid whose only wounded is stored as a string (D-14, WR-04)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [],
+                type: 'aid',
+                rescue: {
+                    characters: [world.current],
+                    failedQuest: new Types.ObjectId(),
+                },
+                startedAt: null,
+            });
+            await pendingQuests.collection.updateMany(
+                {
+                    _id: {
+                        $in: [scene.a.pendingQuestId, scene.b.pendingQuestId],
+                    },
+                },
+                { $set: { startDate: null, arrivedAt: null } },
+            );
+            await storeAsString(
+                scene.questId,
+                'rescue.characters.0',
+                world.current,
+            );
+
+            const report = await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(scene.questId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.registeredAdventurers).toEqual([]);
+            for (const companion of [scene.a, scene.b]) {
+                const raw = await characters.collection.findOne({
+                    _id: companion.characterId,
+                });
+                expect(raw?.quests.pendingQuest).toBeNull();
+                expect(
+                    await pendingQuests.collection.findOne({
+                        _id: companion.pendingQuestId,
+                    }),
+                ).toBeNull();
+            }
+            const released = (report?.released ?? []).find(({ questId }) =>
+                questId.equals(scene.questId),
+            );
+            expect(hexes(released?.characterIds ?? [])).toEqual(
+                hexes([scene.a.characterId, scene.b.characterId]),
+            );
+        });
+    });
+
     it('cleans the concluded quests and aids (D-14)', async () => {
         const world = await persistWorld();
         const untouched = await rawQuest(world.unrelatedQuest);
