@@ -3,6 +3,8 @@ import {
     HttpTwitchUserDirectory,
     twitchUserDirectoryProvider,
 } from 'src/auth/twitch/http-twitch-user-directory';
+import * as loginName from 'src/auth/twitch/twitch-login-name';
+import type { TwitchLogin } from 'src/auth/twitch/twitch-login-name';
 import {
     TwitchUserDirectory,
     TwitchUserLookupError,
@@ -15,7 +17,7 @@ import {
 } from '../../../test/auth/test-auth-config';
 
 const TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
-const USERNAME = 'some_user';
+const USERNAME = 'some_user' as TwitchLogin;
 const CLIENT_SECRET = 'login-client-secret';
 const SECRET_FRAGMENTS = [USERNAME, 'app-token', CLIENT_SECRET];
 
@@ -122,30 +124,20 @@ describe('HttpTwitchUserDirectory', () => {
         expect(calls[0].init.signal).toBeDefined();
     });
 
-    it('normalises the username before asking Twitch (D-15)', async () => {
+    it('asks Twitch for the login exactly as the caller normalised it (IN-03)', async () => {
+        const normalisation = jest.spyOn(loginName, 'normalizedTwitchLoginOf');
         helixResponses.push(usersPage([{ id: '123', login: USERNAME }]));
 
-        await expect(
-            buildDirectory().userIdOfLogin(' @Some_User '),
-        ).resolves.toBe('123');
+        await expect(buildDirectory().userIdOfLogin(USERNAME)).resolves.toBe(
+            '123',
+        );
 
+        expect(normalisation).not.toHaveBeenCalled();
         expect(helixCalls()[0].url).toBe(
             `${HELIX_USERS_URL}?login=${USERNAME}`,
         );
+        normalisation.mockRestore();
     });
-
-    it.each<[string, string]>([
-        ['of the wrong shape', 'user-name'],
-        ['longer than 64 characters', 'a'.repeat(65)],
-    ])(
-        'answers null for a username %s without calling Twitch (D-15)',
-        async (_label, raw) => {
-            await expect(
-                buildDirectory().userIdOfLogin(raw),
-            ).resolves.toBeNull();
-            expect(fetchSpy).not.toHaveBeenCalled();
-        },
-    );
 
     it('answers null for an unknown username (D-15)', async () => {
         helixResponses.push(usersPage([]), jsonResponse(400, {}));
