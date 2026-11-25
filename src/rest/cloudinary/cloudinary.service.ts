@@ -49,6 +49,13 @@ export class CloudinaryService {
         });
     }
 
+    // ogni risposta senza errore chiude la richiesta, anche «not found»: l'asset è già sparito (Phase 26)
+    async destroyPortrait(publicId: string): Promise<void> {
+        await cloudinary.uploader
+            .destroy(publicId, { resource_type: 'image', invalidate: true })
+            .catch(rethrowProviderError);
+    }
+
     async listResources(folder: string) {
         let allUrls: string[] = [];
         let nextCursor: string | undefined = undefined;
