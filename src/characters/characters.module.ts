@@ -12,6 +12,10 @@ import {
     PendingQuest,
     PendingQuestSchema,
 } from 'src/models/pending-quest.model';
+import {
+    EquipmentItem,
+    EquipmentItemSchema,
+} from 'src/models/equipment-item.model';
 import { Pet, PetSchema } from 'src/models/pet.model';
 import { Quest, QuestSchema } from 'src/models/quest/quest.model';
 import { Spell, SpellSchema } from 'src/models/spell.model';
@@ -40,6 +44,7 @@ import { SPELL_RECOVERY_QUEUE } from './spells/spell-recovery-queue';
             { name: PendingQuest.name, schema: PendingQuestSchema },
             { name: Quest.name, schema: QuestSchema },
             { name: Pet.name, schema: PetSchema },
+            { name: EquipmentItem.name, schema: EquipmentItemSchema },
         ]),
         BullModule.registerQueue({ name: SPELL_RECOVERY_QUEUE }),
         AuthzModule,

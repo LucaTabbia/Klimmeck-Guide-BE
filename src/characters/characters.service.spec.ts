@@ -6,6 +6,7 @@ import { Types } from 'mongoose';
 import { Clock } from 'src/auth/clock';
 import { GameRuleException } from 'src/gameRules/game-rule.exception';
 import { Character } from 'src/models/character/character.model';
+import { EquipmentItem } from 'src/models/equipment-item.model';
 import { SlotType } from 'src/models/enums/slot-type.enum';
 import { EquipItemRequest } from 'src/models/request/equip-item-request.model';
 import { Pet } from 'src/models/pet.model';
@@ -46,6 +47,7 @@ const mockCharacterModel = {
 const mockSpellModel = { findById: jest.fn() };
 const missionLock = { assertFree: jest.fn().mockResolvedValue(undefined) };
 const mockPetModel = { find: jest.fn() };
+const mockEquipmentItemModel = { find: jest.fn() };
 const connection = { transaction: jest.fn() };
 const NOW = new Date('2026-10-27T10:00:00.000Z');
 
@@ -90,6 +92,10 @@ describe('CharactersService (unit — spell mutations)', () => {
                     useValue: mockSpellModel,
                 },
                 { provide: getModelToken(Pet.name), useValue: mockPetModel },
+                {
+                    provide: getModelToken(EquipmentItem.name),
+                    useValue: mockEquipmentItemModel,
+                },
                 { provide: getConnectionToken(), useValue: connection },
                 {
                     provide: getQueueToken('spell-recovery'),
@@ -660,7 +666,9 @@ describe('CharactersService (unit — spell mutations)', () => {
         it('equipItem rejects an unowned item with ITEM_NOT_OWNED', async () => {
             const id = new Types.ObjectId();
             mockCharacterModel.updateOne.mockReturnValue(asUpdate(0));
-            mockCharacterModel.exists.mockReturnValue(asQuery({ _id: id }));
+            mockCharacterModel.exists
+                .mockReturnValueOnce(asQuery({ _id: id }))
+                .mockReturnValueOnce(asQuery(null));
 
             await expect(
                 service.equipItem({
