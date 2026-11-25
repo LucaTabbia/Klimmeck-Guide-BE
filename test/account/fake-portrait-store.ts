@@ -9,11 +9,38 @@ export class FakePortraitStore extends PortraitStore {
     readonly destroyed: string[] = [];
     private failuresLeft = 0;
 
+    private held: { started: () => void; released: Promise<void> } | null =
+        null;
+
     failNext(times = 1): void {
         this.failuresLeft = times;
     }
 
-    destroy(publicId: string): Promise<void> {
+    // la prossima destroy resta sospesa finché il test non la rilascia: Cloudinary lento senza attese a tempo
+    holdNext(): { started: Promise<void>; release: () => void } {
+        let release!: () => void;
+        let started!: () => void;
+        const released = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        const startedPromise = new Promise<void>((resolve) => {
+            started = resolve;
+        });
+        this.held = { started, released };
+        return { started: startedPromise, release };
+    }
+
+    async destroy(publicId: string): Promise<void> {
+        const held = this.held;
+        this.held = null;
+        if (held) {
+            held.started();
+            await held.released;
+        }
+        return this.settle(publicId);
+    }
+
+    private settle(publicId: string): Promise<void> {
         if (this.failuresLeft > 0) {
             this.failuresLeft -= 1;
             return Promise.reject(

@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { Model, Schema, Types } from 'mongoose';
 import WebSocket from 'ws';
 import { AccountDeletionModule } from 'src/account/deletion/account-deletion.module';
+import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
 import { PortraitStore } from 'src/account/deletion/portrait/portrait-store';
 import type { AuthSession } from 'src/auth/dto/auth-session.model';
 import { Session, SessionDocument } from 'src/auth/session/session.model';
@@ -80,6 +81,8 @@ const SILENCE_MS = 300;
 const HOUR_MS = 60 * 60 * 1000;
 const STARTED_AT = new Date(NOW.getTime() - 2 * HOUR_MS);
 const ACCESS_TOKEN_TTL_MS = 900 * 1000;
+// tetto dell'attesa di una risposta che non deve dipendere da Cloudinary: scatta solo se la mutation resta appesa
+const ANSWER_GUARD_MS = 2000;
 
 type AnyModel = Model<any>;
 
@@ -921,6 +924,39 @@ describe('deleteMyAccount (wire)', () => {
             return aid._id as Types.ObjectId;
         }
 
+        // i flush partiti dalla mutation non sono attesi dalla risposta (WR-01): il test li aspetta da sé
+        function trackFlushes(): () => Promise<unknown> {
+            const service = harness.app.get(PortraitDeletionService);
+            const flush = service.flush.bind(service);
+            const started: Promise<number>[] = [];
+            jest.spyOn(service, 'flush').mockImplementation(() => {
+                const running = flush();
+                started.push(running);
+                return running;
+            });
+            return () => Promise.all(started);
+        }
+
+        async function answeredWithin<T>(
+            answer: Promise<T>,
+        ): Promise<'answered' | 'still waiting'> {
+            let timer: NodeJS.Timeout | undefined;
+            const guard = new Promise<'still waiting'>((resolve) => {
+                timer = setTimeout(
+                    () => resolve('still waiting'),
+                    ANSWER_GUARD_MS,
+                );
+            });
+            try {
+                return await Promise.race([
+                    answer.then(() => 'answered' as const),
+                    guard,
+                ]);
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
         function queuedPortraits() {
             return harness.connection
                 .collection('portrait_deletions')
@@ -1035,9 +1071,31 @@ describe('deleteMyAccount (wire)', () => {
 
         it('destroys the uploaded portrait right after the commit (portrait default)', async () => {
             const leaving = await leavingPlayer('tw-after-leaving');
+            const flushed = trackFlushes();
 
             await expectDeletedOwnAccount(leaving);
+            await flushed();
 
+            expect(portraits.destroyed).toEqual([PORTRAIT_ID]);
+            expect(await queuedPortraits()).toEqual([]);
+            jest.restoreAllMocks();
+        });
+
+        it('answers without waiting for Cloudinary and destroys the portrait afterwards (WR-01)', async () => {
+            const leaving = await leavingPlayer('tw-after-leaving');
+            const flushed = trackFlushes();
+            const held = portraits.holdNext();
+
+            const answer = call(DELETE_MY_ACCOUNT, leaving.bearer);
+            await held.started;
+            const state = await answeredWithin(answer);
+            held.release();
+            const body = await answer;
+            await flushed();
+            jest.restoreAllMocks();
+
+            expect(state).toBe('answered');
+            expect(body).toEqual({ data: { deleteMyAccount: true } });
             expect(portraits.destroyed).toEqual([PORTRAIT_ID]);
             expect(await queuedPortraits()).toEqual([]);
         });
@@ -1045,8 +1103,11 @@ describe('deleteMyAccount (wire)', () => {
         it('keeps the deletion when Cloudinary fails and leaves the portrait to the sweeper (portrait default)', async () => {
             const leaving = await leavingPlayer('tw-after-leaving');
             portraits.failNext();
+            const flushed = trackFlushes();
 
             await expectDeletedOwnAccount(leaving);
+            await flushed();
+            jest.restoreAllMocks();
 
             expect(portraits.destroyed).toEqual([]);
             expect(await queuedPortraits()).toEqual([
@@ -1065,8 +1126,10 @@ describe('deleteMyAccount (wire)', () => {
             const scene = await startedQuestHeldBy(leaving);
             push.failTopicManagement(new Error('fake topic failure'));
             push.failSends = true;
+            const flushed = trackFlushes();
 
             await expectDeletedOwnAccount(leaving);
+            await flushed();
 
             expect(await rawCharacter(leaving.character?._id)).toBeNull();
             expect(
@@ -1149,10 +1212,13 @@ describe('deleteMyAccount (wire)', () => {
             const leaving = await leavingPlayer('40009');
             const scene = await startedQuestHeldBy(leaving);
             directory.idsByLogin.set('leaving_hero', '40009');
+            const flushed = trackFlushes();
 
             const body = await call(DELETE_BY_LOGIN, innkeeper.bearer, {
                 twitchLogin: 'leaving_hero',
             });
+            await flushed();
+            jest.restoreAllMocks();
 
             expect(body).toEqual({
                 data: { deleteAccountByTwitchLogin: { twitchId: '40009' } },

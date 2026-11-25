@@ -79,6 +79,35 @@ describe('PortraitDeletionSweeper', () => {
         expect(flush).toHaveBeenCalledTimes(1);
     });
 
+    it('kicks a sweep without returning it and logs a failure instead of rejecting (WR-01)', async () => {
+        flush.mockRejectedValue(new Error('outbox down'));
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation();
+        const sweeper = sweeperWith(0);
+
+        expect(sweeper.kick()).toBeUndefined();
+        await flushMicrotasks();
+
+        expect(flush).toHaveBeenCalledTimes(1);
+        expect(error).toHaveBeenCalledTimes(1);
+    });
+
+    it('sweeps once more after the running flush when kicked during it (WR-01)', async () => {
+        const pending = deferred<number>();
+        flush.mockReturnValueOnce(pending.promise);
+        const sweeper = sweeperWith(0);
+        void sweeper.sweep();
+
+        sweeper.kick();
+        sweeper.kick();
+        expect(flush).toHaveBeenCalledTimes(1);
+
+        pending.resolve(0);
+        await flushMicrotasks();
+        expect(flush).toHaveBeenCalledTimes(2);
+    });
+
     it('waits for the running flush on shutdown (portrait default)', async () => {
         const pending = deferred<number>();
         flush.mockReturnValue(pending.promise);
