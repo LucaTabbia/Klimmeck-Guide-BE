@@ -160,7 +160,6 @@ export class AccountEraser {
         const characterIds = await this.characterIdsOf(userId, user, session);
         const cancelled = await this.cancelStartedQuestsOf(
             characterIds,
-            now,
             session,
         );
         const released = [
@@ -221,7 +220,6 @@ export class AccountEraser {
     // prima di ogni rilascio dell'archivio (D-26): la quest cominciata si annulla per tutti e non lascia segnaposto (D-13)
     private async cancelStartedQuestsOf(
         characterIds: readonly Types.ObjectId[],
-        now: Date,
         session: ClientSession,
     ): Promise<CancelledStartedQuest[]> {
         if (characterIds.length === 0) return [];
@@ -247,7 +245,6 @@ export class AccountEraser {
                     session,
                     quest._id,
                     characterIds,
-                    now,
                 );
             if (outcome) cancelled.push(outcome);
         }

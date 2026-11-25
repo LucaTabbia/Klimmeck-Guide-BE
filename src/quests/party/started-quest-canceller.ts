@@ -111,14 +111,12 @@ export class StartedQuestCanceller {
         private readonly wallet: WalletService,
     ) {}
 
-    // dentro la transazione del chiamante, solo dalla cancellazione dell'account (Phase 26 D-13): l'archivio del personaggio non la chiama mai
-    // _now resta per simmetria con archiveWithinReporting (l'eraser passa la stessa ora a ogni passo): nessuna regola riusata qui scrive un istante
+    // dentro la transazione del chiamante, solo dalla cancellazione dell'account (Phase 26 D-13): l'archivio del personaggio non la chiama mai;
+    // nessuna regola riusata qui scrive un istante, quindi nessuna ora in ingresso
     async cancelStartedQuestWithin(
         session: ClientSession,
         questId: Types.ObjectId,
         erasedCharacterIds: readonly Types.ObjectId[],
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _now: Date,
     ): Promise<CancelledStartedQuest | null> {
         // driver nativo in ogni filtro su un riferimento: il cast di Mongoose ridurrebbe la forma stringa dell'id a ObjectId (04 Pitfall 1)
         const quest =
