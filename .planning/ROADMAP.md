@@ -383,7 +383,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
-| 26. Eliminazione account e consenso | v1.1 | 6/14 | In Progress | - |
+| 26. Eliminazione account e consenso | v1.1 | 7/14 | In Progress | - |
 
 ### Phase 26: Eliminazione account e consenso
 
@@ -411,7 +411,7 @@ Plans:
 - [x] 26-04-PLAN.md — Spese del tragitto (cibo e vita persa per fame) annotate sulla `PendingQuest`
 - [x] 26-05-PLAN.md — Annullamento di una quest cominciata: rientro in città, rimborsi, quest di nuovo sul tabellone
 - [x] 26-06-PLAN.md — Codici, eccezione e `AccountEraser` in transazione con l'inventario per collection
-- [ ] 26-07-PLAN.md — Quest cominciate annullate prima dell'archivio dentro la cancellazione
+- [x] 26-07-PLAN.md — Quest cominciate annullate prima dell'archivio dentro la cancellazione
 - [ ] 26-08-PLAN.md — Mutation `deleteMyAccount` e revoca sul filo
 - [ ] 26-09-PLAN.md — Token app Twitch parametrico e `TwitchUserDirectory` (nome utente → Twitch ID)
 - [ ] 26-10-PLAN.md — Mutation `deleteAccountByTwitchLogin` con registro dell'oste oscurato
