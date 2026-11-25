@@ -15,7 +15,7 @@ tech-stack:
   added: []
   patterns:
     - "revoca in transazione del chiamante, fan-out (socket + registro) solo dopo il commit"
-    - "scadenza accorciata con l'operatore $min su expiresAt: mai allungata"
+    - "scadenza accorciata con l'operatore `$min` su `expiresAt`: mai allungata"
 key-files:
   created:
     - src/auth/session/deleted-account.registry.ts
