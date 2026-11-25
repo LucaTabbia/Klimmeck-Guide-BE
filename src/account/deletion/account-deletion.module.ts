@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AccountDeletionResolver } from 'src/account/deletion/account-deletion.resolver';
+import { AccountDeletionService } from 'src/account/deletion/account-deletion.service';
 import { AccountEraser } from 'src/account/deletion/account-eraser';
 import { AuthModule } from 'src/auth/auth.module';
+import { Clock, SystemClock } from 'src/auth/clock';
 import {
     ChannelAccessCheck,
     ChannelAccessCheckSchema,
@@ -50,7 +53,12 @@ import { StartedQuestCancelModule } from 'src/quests/party/started-quest-cancel.
         CharacterArchiveModule,
         AuthModule,
     ],
-    providers: [AccountEraser],
+    providers: [
+        AccountEraser,
+        AccountDeletionService,
+        AccountDeletionResolver,
+        { provide: Clock, useClass: SystemClock },
+    ],
     exports: [AccountEraser],
 })
 export class AccountDeletionModule {}

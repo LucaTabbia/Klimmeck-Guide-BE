@@ -576,6 +576,7 @@ type Mutation {
   completePendingRequest(input: CompletePendingRequestInput!): [QuestResult!]!
   createCharacter(input: CreateCharacterInput!): User!
   deleteCharacter: User!
+  deleteMyAccount: Boolean!
   discardMissionDraft(pendingQuestId: ID!): CommonResponse!
   doTransaction(request: TransactionRequest!): CommonResponse!
   equipItem(request: EquipItemRequest!): CommonResponse!
