@@ -69,6 +69,7 @@ interface World {
     otherResult: Types.ObjectId;
     sessionIds: string[];
     pushTokens: string[];
+    storyQuest: Types.ObjectId;
     kept: {
         userId: Types.ObjectId;
         character: Types.ObjectId;
@@ -454,6 +455,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             otherResult,
             sessionIds,
             pushTokens,
+            storyQuest,
             kept: {
                 userId: kept.userId,
                 character: kept.character,
@@ -821,6 +823,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
     interface StartedScene {
         questId: Types.ObjectId;
         cityMarker: Types.ObjectId;
+        questMarker: Types.ObjectId;
         ration: Types.ObjectId;
         a: Companion;
         b: Companion;
@@ -831,6 +834,7 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         label?: string;
         type?: 'boss' | 'enemy' | 'aid';
         rescue?: { characters: Types.ObjectId[]; failedQuest: Types.ObjectId };
+        startedAt?: Date | null;
     }
 
     interface CompanionSeed {
@@ -919,11 +923,14 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
                 { character: a.characterId, title: 'rookie' },
                 { character: b.characterId, title: 'rookie' },
             ],
-            startedAt: STARTED_AT,
+            startedAt:
+                options.startedAt === undefined
+                    ? STARTED_AT
+                    : options.startedAt,
             concludedAt: null,
             ...(options.rescue ? { rescue: options.rescue } : {}),
         });
-        return { questId, cityMarker, ration, a, b };
+        return { questId, cityMarker, questMarker, ration, a, b };
     }
 
     const hexes = (ids: readonly unknown[]) => ids.map(String).sort();
@@ -1081,6 +1088,162 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
 
             await expectNothingLeftOf(world);
             expect(await keptDocumentsOf(world)).toEqual(keptBefore);
+        });
+    });
+
+    async function companionsOf(scene: StartedScene) {
+        const of = async (companion: Companion) => ({
+            character: await characters.collection.findOne({
+                _id: companion.characterId,
+            }),
+            pendingQuest: await pendingQuests.collection.findOne({
+                _id: companion.pendingQuestId,
+            }),
+            user: await users.collection.findOne({ _id: companion.userId }),
+        });
+        return [await of(scene.a), await of(scene.b)];
+    }
+
+    describe('quests left as today (D-13, D-14)', () => {
+        it('resolves as today a started aid whose only wounded is the deleted character (D-13)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [],
+                type: 'aid',
+                rescue: {
+                    characters: [world.current],
+                    failedQuest: new Types.ObjectId(),
+                },
+            });
+            const before = await companionsOf(scene);
+
+            const report = await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(scene.questId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.startedAt).toEqual(STARTED_AT);
+            expect(aid?.rescue.characters).toEqual([]);
+            expect(await companionsOf(scene)).toEqual(before);
+            expect(report?.cancelled).toEqual([]);
+        });
+
+        it('resolves as today the aid of the deleted only wounded even with an archived rescuer of the account (D-13)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.archived, archivedAt: STARTED_AT }],
+                type: 'aid',
+                rescue: {
+                    characters: [world.current],
+                    failedQuest: new Types.ObjectId(),
+                },
+            });
+            const before = await companionsOf(scene);
+
+            const report = await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(scene.questId);
+            expect(aid?.concludedAt).toEqual(NOW);
+            expect(aid?.startedAt).toEqual(STARTED_AT);
+            expect(seatsOf(aid).sort()).toEqual(
+                hexes([scene.a.characterId, scene.b.characterId]),
+            );
+            expect(await companionsOf(scene)).toEqual(before);
+            expect(report?.cancelled).toEqual([]);
+        });
+
+        it('keeps a started aid going when other wounded remain (D-13)', async () => {
+            const world = await persistWorld();
+            const otherWounded = new Types.ObjectId();
+            const scene = await persistStartedScene({
+                seats: [],
+                type: 'aid',
+                rescue: {
+                    characters: [world.current, otherWounded],
+                    failedQuest: new Types.ObjectId(),
+                },
+            });
+            const before = await companionsOf(scene);
+
+            const report = await eraseInTransaction(world.userId);
+
+            const aid = await rawQuest(scene.questId);
+            expect(aid?.rescue.characters).toEqual([otherWounded]);
+            expect(aid?.startedAt).toEqual(STARTED_AT);
+            expect(aid?.concludedAt ?? null).toBeNull();
+            expect(await companionsOf(scene)).toEqual(before);
+            expect(report?.cancelled).toEqual([]);
+        });
+
+        it('frees only the seat of a quest not started while companions travel (D-13)', async () => {
+            const world = await persistWorld();
+            const scene = await persistStartedScene({
+                seats: [{ character: world.current }],
+                startedAt: null,
+            });
+            // A ancora in viaggio verso il marker, B già arrivato
+            await characters.collection.updateOne(
+                { _id: scene.a.characterId },
+                {
+                    $set: {
+                        'status.location': scene.cityMarker,
+                        'status.activeTravel': {
+                            kind: 'quest',
+                            destination: scene.questMarker,
+                        },
+                    },
+                },
+            );
+            const before = await companionsOf(scene);
+
+            const report = await eraseInTransaction(world.userId);
+
+            const quest = await rawQuest(scene.questId);
+            expect(seatsOf(quest)).toEqual([
+                scene.a.characterId.toHexString(),
+                scene.b.characterId.toHexString(),
+            ]);
+            expect(quest?.startedAt).toBeNull();
+            expect(await companionsOf(scene)).toEqual(before);
+            expect(report?.cancelled).toEqual([]);
+        });
+
+        it('deletes the guided request and cleans the draft of a story without cancelling anything (D-14)', async () => {
+            const world = await persistWorld();
+            await persistQuest(quests, {
+                _id: world.storyQuest,
+                infos: { ...buildQuest().infos, type: 'story' },
+                registeredAdventurers: [
+                    { character: world.current, title: 'rookie' },
+                    { character: world.kept.character, title: 'rookie' },
+                ],
+            });
+
+            const report = await eraseInTransaction(world.userId);
+
+            expect(
+                await pendingQuests.collection.findOne({
+                    _id: world.gmRequest,
+                }),
+            ).toBeNull();
+            const draft = await drafts.collection.findOne({
+                _id: world.sharedDraft,
+            });
+            expect(
+                draft?.participants.map(
+                    (each: { character: unknown }) => each.character,
+                ),
+            ).toEqual([world.kept.character]);
+            const story = await rawQuest(world.storyQuest);
+            expect(seatsOf(story)).toEqual([
+                world.kept.character.toHexString(),
+            ]);
+            expect(story?.startedAt ?? null).toBeNull();
+            expect(
+                await pendingQuests.collection.findOne({
+                    _id: world.kept.storyRequest,
+                }),
+            ).not.toBeNull();
+            expect(report?.cancelled).toEqual([]);
         });
     });
 });
