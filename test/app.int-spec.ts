@@ -169,8 +169,10 @@ const EXPECTED_PUBLIC_HANDLERS = [
     'TwitchAuthController.callback',
     'TwitchAuthController.start',
 ];
-// throttling minimo (D-08): ogni handler limitato deve passare da qui, mai una mutation di gioco
+// throttling minimo (D-08): ogni handler limitato deve passare da qui, mai una mutation di gioco; le due cancellazioni irreversibili dell'account sì (Phase 26 IN-06)
 const EXPECTED_THROTTLED_HANDLERS = [
+    'AccountDeletionResolver.deleteAccountByTwitchLogin',
+    'AccountDeletionResolver.deleteMyAccount',
     'AuthResolver.exchangeLoginTicket',
     'AuthResolver.refreshSession',
     'CloudinaryController.getSubfoldersUrls',
