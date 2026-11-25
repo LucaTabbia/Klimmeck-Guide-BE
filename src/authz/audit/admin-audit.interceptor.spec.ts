@@ -15,11 +15,19 @@ import { AuthorizationDecisions } from 'src/authz/ownership/authorization-decisi
 import { OwnedResource } from 'src/authz/ownership/owned-resource';
 import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import { Roles } from 'src/authz/roles/roles.decorator';
+import { AuditTarget } from 'src/authz/audit/audit-target.decorator';
 import { RoleType } from 'src/models/enums/role-type.enum';
 
 class ProbeHandlers {
     @Roles(RoleType.innkeeper)
     adminMutation(): void {}
+
+    @Roles(RoleType.innkeeper)
+    @AuditTarget('User', () => null, {
+        argsOf: () => ({}),
+        idOfResult: (result) => (result as { twitchId: string }).twitchId,
+    })
+    redactedMutation(): void {}
 
     playerMutation(): void {}
 }
@@ -74,6 +82,10 @@ function httpContext(): ExecutionContext {
 
 function succeeding(): CallHandler {
     return { handle: () => of('result') };
+}
+
+function succeedingWith(result: unknown): CallHandler {
+    return { handle: () => of(result) };
 }
 
 function failing(error: unknown): CallHandler {
@@ -241,6 +253,73 @@ describe('AdminAuditInterceptor', () => {
         expect(Object.getPrototypeOf(entry.args.request)).toBe(
             Object.prototype,
         );
+    });
+
+    it('records the redacted arguments instead of the received ones (D-25)', async () => {
+        const context = graphqlContext(buildInfo(), 'redactedMutation', {
+            twitchLogin: 'x',
+        });
+
+        await lastValueFrom(
+            interceptor.intercept(context, succeedingWith({ twitchId: '1' })),
+        );
+
+        const entry = auditLog.record.mock.calls[0][0] as {
+            args: Record<string, unknown>;
+        };
+        expect(entry.args).toEqual({});
+    });
+
+    it('records the target id taken from the result on success (D-25)', async () => {
+        const context = graphqlContext(buildInfo(), 'redactedMutation', {
+            twitchLogin: 'x',
+        });
+
+        const result = await lastValueFrom(
+            interceptor.intercept(
+                context,
+                succeedingWith({ twitchId: '4242' }),
+            ),
+        );
+
+        expect(result).toEqual({ twitchId: '4242' });
+        expect(auditLog.record).toHaveBeenCalledTimes(1);
+        expect(auditLog.record).toHaveBeenCalledWith({
+            actor: {
+                userId: OSTE.userId,
+                twitchId: OSTE.twitchId,
+                role: 'innkeeper',
+            },
+            action: 'equipItem',
+            target: { type: 'User', id: '4242' },
+            args: {},
+            outcome: 'ok',
+        });
+    });
+
+    it('records a null target id when the handler fails (D-25)', async () => {
+        const error = ResourceNotFoundException.spell();
+        const context = graphqlContext(buildInfo(), 'redactedMutation', {
+            twitchLogin: 'x',
+        });
+
+        const thrown = await rejectionOf(
+            lastValueFrom(interceptor.intercept(context, failing(error))),
+        );
+
+        expect(thrown).toBe(error);
+        expect(auditLog.record).toHaveBeenCalledTimes(1);
+        expect(auditLog.record).toHaveBeenCalledWith({
+            actor: {
+                userId: OSTE.userId,
+                twitchId: OSTE.twitchId,
+                role: 'innkeeper',
+            },
+            action: 'equipItem',
+            target: { type: 'User', id: null },
+            args: {},
+            outcome: 'NOT_FOUND',
+        });
     });
 
     it('does not record when no identity is present on the request', async () => {
