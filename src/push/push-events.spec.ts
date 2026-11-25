@@ -97,6 +97,13 @@ describe('push event catalog', () => {
         expect(message.body).not.toBe(questCancelled(id).body);
     });
 
+    // testo dettato dall'utente nella UAT della FE Phase 25 (2026-11-25), parola per parola
+    it('tells the companions the text the user dictated (UAT FE 25)', () => {
+        expect(startedQuestCancelled('a').body).toBe(
+            'Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.',
+        );
+    });
+
     // ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto dal BE
     it('builds the ambush push with the result id (D-30)', () => {
         expect(
