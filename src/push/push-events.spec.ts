@@ -7,6 +7,7 @@ import {
     questEnd,
     spellResearchFailed,
     spellResearchSucceeded,
+    startedQuestCancelled,
     streamerLive,
     testPushMessage,
     travelEnd,
@@ -80,6 +81,20 @@ describe('push event catalog', () => {
             body: 'Il gruppo non si è formato in tempo: la missione è stata annullata.',
             ttlSeconds: 3600,
         });
+    });
+
+    // quest cominciata annullata dalla cancellazione di un account (Phase 26 D-13, D-26): stesso tipo, testo proprio (provvisorio, vive solo nel builder)
+    it('builds the cancellation of a started quest with the quest id and its own text (D-26)', () => {
+        const id = '64b0000000000000000000e2';
+        const message = startedQuestCancelled(id);
+        expect(message).toEqual({
+            ...questCancelled(id),
+            body: expect.any(String),
+        });
+        expect(message.type).toBe(PushEventType.questCancelled);
+        expect(message.id).toBe(id);
+        expect(message.body.trim()).not.toBe('');
+        expect(message.body).not.toBe(questCancelled(id).body);
     });
 
     // ogni imboscata subita, vinta o persa (D-14, D-30): id = QuestResult dell'imboscata, corpo composto dal BE
@@ -270,6 +285,11 @@ describe('push event catalog', () => {
         [
             'questCancelled',
             questCancelled('a'),
+            ['body', 'id', 'title', 'ttlSeconds', 'type'],
+        ],
+        [
+            'startedQuestCancelled',
+            startedQuestCancelled('a'),
             ['body', 'id', 'title', 'ttlSeconds', 'type'],
         ],
         [
