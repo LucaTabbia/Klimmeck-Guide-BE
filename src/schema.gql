@@ -316,6 +316,21 @@ input EquipSpellRequest {
   usages: Int
 }
 
+enum EquipSubType {
+  axe
+  bow
+  dagger
+  greatsword
+  grimoire
+  longStaff
+  mace
+  shortStaff
+  spear
+  sword
+  wand
+  warHammer
+}
+
 type Equipment {
   arms: EquipmentItem
   chest: EquipmentItem
@@ -334,6 +349,7 @@ type EquipmentItem {
   buyPrice: Coins
   damages: Damages!
   description: String!
+  equipSubType: EquipSubType
   equipType: String!
   id: ID!
   itemType: String!
