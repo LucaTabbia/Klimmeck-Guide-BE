@@ -149,13 +149,16 @@ export class SessionService {
     // dentro la transazione del chiamante (Phase 26 D-18): revoca le attive con accountDeleted e accorcia
     // ogni sessione dell'utente alla vita dell'access token, mai allungandola; un conflitto di scrittura
     // ritenta l'intera transazione, quindi gli id letti sono quelli revocati
+    // la stessa ora di ogni altro passo della cancellazione (IN-05)
     revokeAllForAccountDeletionWithin(
         userId: string,
         session: ClientSession,
+        now: Date,
     ): Promise<string[]> {
         return this.revokeOfDeletedAccount(
             userId,
-            (now) => this.activeFilter(now),
+            now,
+            this.activeFilter(now),
             session,
         );
     }
@@ -163,7 +166,9 @@ export class SessionService {
     // dopo il commit della cancellazione (WR-03): una sessione nata da un login in gara non è nello snapshot della transazione;
     // si revoca con lo stesso motivo e la stessa scadenza accorciata, gli id tornano per chiuderne i socket
     revokeRemainingForAccountDeletion(userId: string): Promise<string[]> {
-        return this.revokeOfDeletedAccount(userId, () => ({ revokedAt: null }));
+        return this.revokeOfDeletedAccount(userId, this.clock.now(), {
+            revokedAt: null,
+        });
     }
 
     // una lettura per connessione WS (D-03): solo revokedAt non nullo chiude, una sessione assente resta accettata
@@ -211,14 +216,14 @@ export class SessionService {
 
     private async revokeOfDeletedAccount(
         userId: string,
-        candidatesAt: (now: Date) => Record<string, unknown>,
+        now: Date,
+        candidates: Record<string, unknown>,
         session?: ClientSession,
     ): Promise<string[]> {
         if (!isObjectIdHex(userId)) return [];
         const owner = new Types.ObjectId(userId);
-        const now = this.clock.now();
         const ids = await this.sessionIdsMatching(
-            { userId: owner, ...candidatesAt(now) },
+            { userId: owner, ...candidates },
             session,
         );
         if (ids.length > 0) {

@@ -1140,7 +1140,11 @@ describe('SessionService (replSet)', () => {
 
         function revokeWithinTransaction(userId: string): Promise<string[]> {
             return SessionModel.db.transaction((session) =>
-                service.revokeAllForAccountDeletionWithin(userId, session),
+                service.revokeAllForAccountDeletionWithin(
+                    userId,
+                    session,
+                    clock.now(),
+                ),
             );
         }
 
@@ -1203,6 +1207,7 @@ describe('SessionService (replSet)', () => {
                     await service.revokeAllForAccountDeletionWithin(
                         USER_ID,
                         session,
+                        clock.now(),
                     );
                     throw new Error('abort the deletion');
                 }),

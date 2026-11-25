@@ -279,7 +279,11 @@ describe('last login wins (wire)', () => {
             const revocation = harness.app.get(SessionRevocationService);
             const userId = String(user._id);
             const revoked = await harness.connection.transaction((session) =>
-                revocation.revokeForAccountDeletionWithin(userId, session),
+                revocation.revokeForAccountDeletionWithin(
+                    userId,
+                    session,
+                    new Date(),
+                ),
             );
             await revocation.closeDeletedAccountSessions(userId, revoked);
         }

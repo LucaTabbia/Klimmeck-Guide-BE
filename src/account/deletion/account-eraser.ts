@@ -183,6 +183,7 @@ export class AccountEraser {
             await this.sessionRevocation.revokeForAccountDeletionWithin(
                 userId.toHexString(),
                 session,
+                now,
             );
         await this.loginTicketModel.deleteMany({ userId }, { session }).exec();
         const pushTokens = await this.deleteDevicesOf(userId, session);

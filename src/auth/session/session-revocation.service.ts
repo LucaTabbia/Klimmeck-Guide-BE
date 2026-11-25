@@ -54,8 +54,13 @@ export class SessionRevocationService {
     revokeForAccountDeletionWithin(
         userId: string,
         session: ClientSession,
+        now: Date,
     ): Promise<string[]> {
-        return this.sessions.revokeAllForAccountDeletionWithin(userId, session);
+        return this.sessions.revokeAllForAccountDeletionWithin(
+            userId,
+            session,
+            now,
+        );
     }
 
     // ...i socket e il registro degli access token ancora vivi solo dopo il commit (D-03, D-18);

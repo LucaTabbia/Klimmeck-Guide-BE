@@ -184,7 +184,11 @@ describe('SessionRevocationService (replSet)', () => {
         const [a, b] = await createSessions(USER_ID, 2);
 
         const revoked = await SessionModel.db.transaction((session) =>
-            revocation.revokeForAccountDeletionWithin(USER_ID, session),
+            revocation.revokeForAccountDeletionWithin(
+                USER_ID,
+                session,
+                new Date(),
+            ),
         );
 
         expect([...revoked].sort()).toEqual([a, b].sort());
@@ -198,7 +202,11 @@ describe('SessionRevocationService (replSet)', () => {
         const [foreign] = await createSessions(OTHER_USER_ID, 1);
         const [a, b] = await createSessions(USER_ID, 2);
         const revoked = await SessionModel.db.transaction((session) =>
-            revocation.revokeForAccountDeletionWithin(USER_ID, session),
+            revocation.revokeForAccountDeletionWithin(
+                USER_ID,
+                session,
+                new Date(),
+            ),
         );
         const [late] = await createSessions(USER_ID, 1);
 
