@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import type { Document as RawDocument, UpdateFilter } from 'mongodb';
 import type { ClientSession, Model, Types } from 'mongoose';
 import {
     activeRegistrantFilterOf,
@@ -9,7 +10,7 @@ import type { InventoryEntry } from 'src/economy/trade/trade-inventory';
 import { WalletService } from 'src/economy/wallet.service';
 import { knowledgeAdditionOf } from 'src/lore/knowledge-addition';
 import { LoreGeographyReader } from 'src/lore/lore-geography.reader';
-import { activeCharacterById } from 'src/models/character/active-character.filter';
+import { ACTIVE_CHARACTER_FILTER } from 'src/models/character/active-character.filter';
 import {
     Character,
     CharacterDocument,
@@ -116,17 +117,21 @@ export class StartedQuestCanceller {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _now: Date,
     ): Promise<CancelledStartedQuest | null> {
-        const quest = await this.questModel
-            .findOne(
+        // driver nativo in ogni filtro su un riferimento: il cast di Mongoose ridurrebbe la forma stringa dell'id a ObjectId (04 Pitfall 1)
+        const quest =
+            await this.questModel.collection.findOne<StartedQuestSnapshot>(
                 {
                     _id: questId,
                     ...startedQuestsWithFilter(erasedCharacterIds),
                 },
-                { 'infos.markerLocation': 1, registeredAdventurers: 1 },
-            )
-            .session(session)
-            .lean<StartedQuestSnapshot | null>()
-            .exec();
+                {
+                    projection: {
+                        'infos.markerLocation': 1,
+                        registeredAdventurers: 1,
+                    },
+                    session,
+                },
+            );
         if (!quest) return null;
         const home = await this.homeOf(questId, quest, session);
         const registered = registeredIdsOf(quest.registeredAdventurers);
@@ -212,14 +217,10 @@ export class StartedQuestCanceller {
         const characterHex = companion._id.toHexString();
         const pendingQuestId = refIdOf(companion.quests?.pendingQuest);
         const spending = pendingQuestId
-            ? await this.pendingQuestModel
-                  .findOne(
-                      { _id: pendingQuestId, quest: { $in: idForms(questId) } },
-                      TRIP_SPENDING_PROJECTION,
-                  )
-                  .session(session)
-                  .lean<TripSpending | null>()
-                  .exec()
+            ? await this.pendingQuestModel.collection.findOne<TripSpending>(
+                  { _id: pendingQuestId, quest: { $in: idForms(questId) } },
+                  { projection: TRIP_SPENDING_PROJECTION, session },
+              )
             : null;
         if (!pendingQuestId || !spending || companion.status.activeTravel) {
             this.logger.warn(
@@ -227,17 +228,16 @@ export class StartedQuestCanceller {
             );
             return false;
         }
-        const updated = await this.characterModel
-            .updateOne(
-                {
-                    ...activeCharacterById(companion._id),
-                    'quests.pendingQuest': { $in: idForms(pendingQuestId) },
-                    'status.activeTravel': null,
-                },
-                this.sendBackUpdateOf(companion, spending, home),
-                { session },
-            )
-            .exec();
+        const updated = await this.characterModel.collection.updateOne(
+            {
+                _id: companion._id,
+                ...ACTIVE_CHARACTER_FILTER,
+                'quests.pendingQuest': { $in: idForms(pendingQuestId) },
+                'status.activeTravel': null,
+            },
+            this.sendBackUpdateOf(companion, spending, home),
+            { session },
+        );
         if (updated.matchedCount !== 1) {
             this.logger.warn(
                 `Compagno ${characterHex} della missione ${questId.toHexString()} non riportato in città: corsia cambiata nella transazione`,
@@ -255,7 +255,7 @@ export class StartedQuestCanceller {
         companion: CompanionSnapshot,
         spending: TripSpending,
         home: Home,
-    ): Record<string, unknown> {
+    ): UpdateFilter<RawDocument> {
         const facts = statusFactsOf(companion);
         const life = refundedLifeOf(
             facts.currentLifePoints,
@@ -286,14 +286,12 @@ export class StartedQuestCanceller {
         session: ClientSession,
     ): Promise<void> {
         if (!isRefundablePoints(pointsSpent)) return;
-        const owner = await this.userModel
-            .findOne(
-                { currentCharacter: { $in: idForms(characterId) } },
-                { _id: 1 },
-            )
-            .session(session)
-            .lean<{ _id: Types.ObjectId } | null>()
-            .exec();
+        const owner = await this.userModel.collection.findOne<{
+            _id: Types.ObjectId;
+        }>(
+            { currentCharacter: { $in: idForms(characterId) } },
+            { projection: { _id: 1 }, session },
+        );
         if (!owner) {
             this.logger.warn(
                 `Punti spesi del compagno ${characterId.toHexString()} non restituiti: nessun utente lo gioca`,
@@ -310,10 +308,9 @@ export class StartedQuestCanceller {
         session: ClientSession,
     ): Promise<void> {
         if (characterIds.length === 0) return;
-        const characterForms = characterIds.flatMap((id) => idForms(id));
         const characters = await this.characterModel
             .find(
-                { _id: { $in: characterForms } },
+                { _id: { $in: [...characterIds] } },
                 { 'quests.pendingQuest': 1 },
             )
             .session(session)
@@ -323,30 +320,28 @@ export class StartedQuestCanceller {
             .map((character) => refIdOf(character.quests?.pendingQuest))
             .filter((id): id is Types.ObjectId => id !== null);
         if (laneIds.length === 0) return;
-        const ofThisQuest = await this.pendingQuestModel
-            .find(
+        const ofThisQuest = await this.pendingQuestModel.collection
+            .find<{
+                _id: Types.ObjectId;
+            }>(
                 { _id: { $in: laneIds }, quest: { $in: idForms(questId) } },
-                { _id: 1 },
+                { projection: { _id: 1 }, session },
             )
-            .session(session)
-            .lean<{ _id: Types.ObjectId }[]>()
-            .exec();
+            .toArray();
         const dropped = ofThisQuest.map(({ _id }) => _id);
         if (dropped.length === 0) return;
         await this.pendingQuestModel
             .deleteMany({ _id: { $in: dropped } }, { session })
             .exec();
-        await this.characterModel
-            .updateMany(
-                {
-                    _id: { $in: characterForms },
-                    'quests.pendingQuest': {
-                        $in: dropped.flatMap((id) => idForms(id)),
-                    },
+        await this.characterModel.collection.updateMany(
+            {
+                _id: { $in: [...characterIds] },
+                'quests.pendingQuest': {
+                    $in: dropped.flatMap((id) => idForms(id)),
                 },
-                { $set: { 'quests.pendingQuest': null } },
-                { session },
-            )
-            .exec();
+            },
+            { $set: { 'quests.pendingQuest': null } },
+            { session },
+        );
     }
 }
