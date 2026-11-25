@@ -1064,6 +1064,26 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
         expect(report?.twitchId).toBe(ERASED_TWITCH_ID);
     });
 
+    it('revokes the sessions at the same instant as every other step (IN-05)', async () => {
+        const world = await persistWorld();
+        const erasedAt = new Date(NOW.getTime() - 60 * 1000);
+
+        await harness.connection.transaction((session) =>
+            eraser.eraseWithin(session, world.userId, erasedAt),
+        );
+
+        const revoked = await sessions.collection
+            .find({ userId: world.userId })
+            .toArray();
+        expect(revoked).toHaveLength(2);
+        for (const session of revoked) {
+            expect(session.revokedAt).toEqual(erasedAt);
+            expect(session.expiresAt).toEqual(
+                new Date(erasedAt.getTime() + ACCESS_TOKEN_TTL_MS),
+            );
+        }
+    });
+
     it('reports the push tokens read before deleting the devices (D-25)', async () => {
         const world = await persistWorld();
 
