@@ -227,12 +227,7 @@ describe('StartedQuestCanceller.cancelStartedQuestWithin (replSet)', () => {
         erased: Types.ObjectId[] = [scene.c.characterId],
     ): Promise<CancelledStartedQuest | null> {
         return harness.connection.transaction((session) =>
-            canceller.cancelStartedQuestWithin(
-                session,
-                scene.questId,
-                erased,
-                NOW,
-            ),
+            canceller.cancelStartedQuestWithin(session, scene.questId, erased),
         );
     }
 
@@ -622,7 +617,6 @@ describe('StartedQuestCanceller.cancelStartedQuestWithin (replSet)', () => {
                     session,
                     scene.questId,
                     [scene.c.characterId],
-                    NOW,
                 );
                 throw new Error('abort');
             }),
