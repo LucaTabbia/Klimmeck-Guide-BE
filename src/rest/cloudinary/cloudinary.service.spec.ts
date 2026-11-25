@@ -95,4 +95,14 @@ describe('CloudinaryService', () => {
         expect(describeError(error)).toBe('CloudinaryError, code 500');
         expect((error as Error).message).toBe('Errore del provider Cloudinary');
     });
+
+    it('exposes the cloud name it is configured with (CR-01)', () => {
+        const configured = new CloudinaryService({
+            get: (key: string) =>
+                key === 'CLOUDINARY_CLOUD_NAME' ? 'app-cloud' : undefined,
+        } as unknown as ConfigService);
+
+        expect(configured.cloudName).toBe('app-cloud');
+        expect(service().cloudName).toBeNull();
+    });
 });

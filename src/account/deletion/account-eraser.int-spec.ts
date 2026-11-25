@@ -656,6 +656,94 @@ describe('AccountEraser.eraseWithin (replSet)', () => {
             expect(await queuedPortraits()).toEqual([]);
         });
 
+        it.each<[string, string]>([
+            ['without the version and with another extension', 'png'],
+            ['with another version and extension', 'webp'],
+            ['under a transformation', 'transformed'],
+            ['under another cloud name', 'foreign'],
+        ])(
+            "queues no public id another player's character shows %s (CR-01)",
+            async (_label, spelling) => {
+                const world = await persistWorld();
+                const spellings: Record<string, string> = {
+                    png: `${UPLOAD_BASE}/characters_profile/victim.png`,
+                    webp: `${UPLOAD_BASE}/v9/characters_profile/victim.webp`,
+                    transformed: `${UPLOAD_BASE}/c_fill,w_200/v3/characters_profile/victim.jpg`,
+                    foreign:
+                        'https://res.cloudinary.com/any-other/image/upload/characters_profile/victim.png',
+                };
+                await portraitOf(
+                    world.current,
+                    `${UPLOAD_BASE}/v1731/characters_profile/victim.jpg`,
+                );
+                await portraitOf(world.kept.character, spellings[spelling]);
+
+                await eraseInTransaction(world.userId);
+
+                expect(await queuedPortraits()).toEqual([]);
+            },
+        );
+
+        it('queues no public id an archived character of another player still shows (CR-01)', async () => {
+            const world = await persistWorld();
+            await persistNamedCharacter({
+                user: world.kept.userId,
+                infos: {
+                    ...buildCharacter().infos,
+                    name: 'Kept Ghost',
+                    imagePath: `${UPLOAD_BASE}/characters_profile/victim.png`,
+                },
+                deletedAt: STARTED_AT,
+                deletionReason: 'user_request',
+            });
+            await portraitOf(
+                world.current,
+                `${UPLOAD_BASE}/v1731/characters_profile/victim.jpg`,
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([]);
+        });
+
+        it('queues no portrait of a cloud other than the configured one (CR-01)', async () => {
+            const world = await persistWorld();
+            await portraitOf(
+                world.current,
+                'https://res.cloudinary.com/any-other/image/upload/v1/characters_profile/victim.jpg',
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([]);
+        });
+
+        it('still queues the exclusive portrait of the account next to a shown one (CR-01)', async () => {
+            const world = await persistWorld();
+            await portraitOf(
+                world.current,
+                `${UPLOAD_BASE}/v1731/characters_profile/victim.jpg`,
+            );
+            await portraitOf(
+                world.archived,
+                `${UPLOAD_BASE}/v2/characters_profile/erased-ghost.png`,
+            );
+            await portraitOf(
+                world.kept.character,
+                `${UPLOAD_BASE}/characters_profile/victim.png`,
+            );
+
+            await eraseInTransaction(world.userId);
+
+            expect(await queuedPortraits()).toEqual([
+                {
+                    publicId: 'characters_profile/erased-ghost',
+                    queuedAt: NOW,
+                    attempts: 0,
+                },
+            ]);
+        });
+
         it('leaves no outbox row when the erasure is refused (D-16)', async () => {
             const world = await persistWorld('innkeeper');
             await portraitOf(
