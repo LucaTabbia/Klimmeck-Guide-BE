@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
+import { Logger } from '@nestjs/common';
 import type { PubSub } from '@graphql-yoga/subscription';
 import type { Model } from 'mongoose';
+import { ResourceNotFoundException } from 'src/authz/resource-not-found.exception';
 import type { User, UserDocument } from 'src/models/user.model';
 import type { PubSubEvents } from 'src/pubsub.module';
 import { UserUpdatesPublisher } from './user-updates.publisher';
@@ -62,6 +64,7 @@ describe('UserUpdatesPublisher', () => {
 
     afterEach(async () => {
         await publisher.onModuleDestroy();
+        jest.restoreAllMocks();
     });
 
     it('coalesces a burst on the same user into at most two reads (D-17a, WR-01)', async () => {
@@ -111,5 +114,32 @@ describe('UserUpdatesPublisher', () => {
             ['userUpdated', { userUpdated: userState(USER_ID, 'one') }],
             ['userUpdated', { userUpdated: userState(OTHER_USER_ID, 'other') }],
         ]);
+    });
+
+    it('stays quiet about a user deleted before the read: no publication, no error (Phase 26)', async () => {
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation(() => undefined);
+        findOne.mockRejectedValueOnce(ResourceNotFoundException.user());
+
+        updateOf(USER_ID);
+        await settle();
+
+        expect(findOne).toHaveBeenCalledTimes(1);
+        expect(publish).not.toHaveBeenCalled();
+        expect(error).not.toHaveBeenCalled();
+    });
+
+    it('still reports any other failure of the read at ERROR', async () => {
+        const error = jest
+            .spyOn(Logger.prototype, 'error')
+            .mockImplementation(() => undefined);
+        findOne.mockRejectedValueOnce(new Error('database down'));
+
+        updateOf(USER_ID);
+        await settle();
+
+        expect(publish).not.toHaveBeenCalled();
+        expect(error).toHaveBeenCalledTimes(1);
     });
 });
