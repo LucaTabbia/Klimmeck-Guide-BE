@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-11-10 all'apertura della v1.1)
 
 Milestone: **v1.1 Cura e modelli** — aperta il 2026-11-10 (Phases 18–22; precedente: v1.0 Core Loop (BE), consegnata il 2026-11-10, tag `v1.0`); Phases 18–20 in `develop`
 Phase: 26 di 26 (Eliminazione account e consenso) — in esecuzione su `feat/26-eliminazione-account-e-consenso`, 14 piani. In precedenza: 25 di 25 (Storie dei partecipanti e ferite dell'oste) — in esecuzione su `feat/25-storie-dei-partecipanti-e-ferite-dell-oste`
-Plan: 01 of 14
-Status: executing — Phase 26 in esecuzione (1/14): piano 01 completato (proprietario del personaggio `Character.user`, indice `character_user`, SDL invariato). In precedenza: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
+Plan: 02 of 14
+Status: executing — Phase 26 in esecuzione (2/14): piani 01 e 02 completati (proprietario del personaggio `Character.user`; consenso al login: `termsVersion` sullo start firmata nello state, versione e data nell'upsert del callback, rifiuto `terms_not_accepted`, SDL invariato). In precedenza: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore
 Last activity: 2026-11-25 -- Phase 26 piano 01 completato (proprietario del personaggio scritto alla creazione)
 Next step: orchestratore: Phase 25 eseguita (14/14): storie dei partecipanti e ferite dell'oste nel ramo; test:cov, verifica e audit, PR verso develop, riavvio dal ramo (nessun migratore), brief della FE e UAT su device (BACKEND-NOTES.md §7) a cura dell'orchestratore; poi merge di BE e FE.
 
