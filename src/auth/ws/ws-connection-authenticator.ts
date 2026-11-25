@@ -3,6 +3,8 @@ import type { Context } from 'graphql-ws';
 import type { Extra } from 'graphql-ws/use/ws';
 import type { AuthIdentity } from 'src/auth/auth-identity';
 import { AuthIdentityResolver } from 'src/auth/auth-identity.resolver';
+import { DeletedAccountRegistry } from 'src/auth/session/deleted-account.registry';
+import { SessionRevokeReason } from 'src/auth/session/session-revoke-reason.enum';
 import { SessionService } from 'src/auth/session/session.service';
 import {
     WS_SESSION_REVOKED_CLOSE_CODE,
@@ -33,9 +35,10 @@ export class WsConnectionAuthenticator {
         private readonly identityResolver: AuthIdentityResolver,
         private readonly sessions: SessionService,
         private readonly registry: WsSessionRegistry,
+        private readonly deletedAccounts: DeletedAccountRegistry,
     ) {}
 
-    // ordine D-03: bearer → socket già chiuso → registrazione → una sola lettura della sessione;
+    // ordine D-03: bearer → socket già chiuso → registrazione → una sola lettura della sessione → registro degli account cancellati;
     // registrare prima di leggere chiude la corsa con un login concorrente: o la revoca trova il socket nel registro, o la lettura vede la revoca
     async onConnect(context: WsConnectionContext): Promise<boolean> {
         try {
@@ -56,6 +59,9 @@ export class WsConnectionAuthenticator {
             }
             // il socket può chiudersi anche durante la lettura della sessione: onClose ha già ripulito, nessun timer va armato
             if (context.extra.closed) return true;
+            if (this.closeIfAccountDeleted(identity, context.extra.socket)) {
+                return false;
+            }
             context.extra.expiryTimer = scheduleExpiryClose(
                 context.extra.socket,
                 identity.expiresAt,
@@ -84,6 +90,19 @@ export class WsConnectionAuthenticator {
         const revoked = await this.sessions.revokeReasonOf(sessionId);
         if (!revoked) return false;
         socket.close(WS_SESSION_REVOKED_CLOSE_CODE, revoked.reason ?? '');
+        return true;
+    }
+
+    // dopo la sessione, che conserva il suo motivo: copre la sessione rimasta attiva se la seconda passata della cancellazione è fallita (Phase 26 U-04)
+    private closeIfAccountDeleted(
+        identity: AuthIdentity,
+        socket: ClosableSocket,
+    ): boolean {
+        if (!this.deletedAccounts.isDeleted(identity.userId)) return false;
+        socket.close(
+            WS_SESSION_REVOKED_CLOSE_CODE,
+            SessionRevokeReason.accountDeleted,
+        );
         return true;
     }
 }
