@@ -383,7 +383,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
-| 26. Eliminazione account e consenso | v1.1 | 14/14 | In Progress | - |
+| 26. Eliminazione account e consenso | v1.1 | 14/14 | Complete | 2026-11-25 |
 
 ### Phase 26: Eliminazione account e consenso
 
@@ -404,6 +404,8 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 **Branch**: `feat/26-eliminazione-account-e-consenso` da `develop`.
 **Plans**: 14 plans
 **Stato (2026-11-25)**: 14/14 piani eseguiti; gate verde; test:cov, verifica e audit, PR verso develop, riavvio del BE dal ramo e UAT su device (BACKEND-NOTES.md §7, da eseguire) a cura dell'orchestratore
+
+**Chiusura (2026-11-25)**: review corretta (`26-REVIEW-FIX.md`), verifica `passed` 7/7 con 11/11 requisiti (`26-VERIFICATION.md`), audit di sicurezza (`26-SECURITY.md`), boot reale dal ramo senza migratori (`BACKEND-NOTES.md` §8) e UAT su device superata insieme alla FE Phase 25 (`BACKEND-NOTES.md` §9): consenso registrato per un utente esistente e per uno nuovo, cancellazione propria e dall'oste, quest cominciata annullata con rimborsi, quest non cominciata col solo posto liberato. Corpo del push dell'annullamento dettato dall'utente (`056995f8`, `8d753909`). Da osservare in produzione: ritratto su Cloudinary, disiscrizione dal topic FCM, finestra del registro dopo un riavvio. PR #53 in draft: da fondere su `develop` **prima** della PR #59 della FE.
 
 Plans:
 - [x] 26-01-PLAN.md — Proprietario del personaggio (`Character.user`) scritto alla creazione

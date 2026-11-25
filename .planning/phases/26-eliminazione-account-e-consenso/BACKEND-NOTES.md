@@ -10,6 +10,7 @@
 - **Fonte:** nomi, percorsi, testi e titoli dei casi copiati da `src/schema.gql`, dal codice e dai SUMMARY 26-01..26-13. **Il codice vince su questo documento.**
 - **Aggiornato dopo la code review (2026-11-25):** correzioni di `26-REVIEW-FIX.md` (CR-01, WR-01..05, IN-02, IN-03, IN-05, IN-06 e il publisher di `userUpdated`) riportate in §2a, §2b, §2c, §2e, §2f, §2g, §6 e §7. SDL invariato (sempre le cinque righe).
 - **Aggiornato dopo l'audit di sicurezza (2026-11-25):** U-01 (elenchi delle immagini senza ritratti caricati, ricontrollo prima della distruzione), U-02 (device registrati in gara) e U-04 (`onConnect` consulta il registro) riportati in §2c, §2f, §2g, §3, §5, §6 e §7; U-03 fra i rischi accettati (§7). SDL invariato.
+- **Aggiornato dopo la UAT su device (2026-11-25):** esito in §9; testo del push dell'annullamento dettato dall'utente (§2e, §4.8); quattro decisioni di §7 mostrate all'utente e non vetate, ora in vigore; ciò che resta da osservare in produzione in §9. SDL invariato.
 
 ---
 
@@ -106,7 +107,7 @@ Dentro la transazione della cancellazione ogni sessione attiva dell'utente ricev
 - **Ordine dei rifiuti allo start:** `twitch_not_configured` → `invalid_request` (challenge) → `terms_not_accepted` (versione assente o malformata).
 - **Ordine al callback:** `twitch_not_configured` → `invalid_state` (state nullo o senza challenge) → `terms_not_accepted` (state senza versione) → `access_denied` → `invalid_request` (codice mancante) → scambio con Twitch.
 - **Rifiuto:** redirect 302 all'URL dell'app (`appAuthRedirectUrl` della config) con `?error=terms_not_accepted`, come gli altri codici del login.
-- **Scrittura (ruling dell'orchestratore, vetabile dall'utente, §7):** versione e data (orologio del BE) si scrivono **alla creazione dell'utente**, nell'upsert del callback (nessun utente nasce senza consenso), e poi **solo quando la versione cambia**: un login con la stessa versione lascia `acceptedTermsVersion` e `termsAcceptedAt` intatti, quindi la data è quella dell'accettazione, non dell'ultimo login. Un utente di sviluppo senza consenso che rifà il login col flusso Twitch lo riceve in quel momento.
+- **Scrittura (ruling dell'orchestratore, mostrato all'utente e non vetato: §9):** versione e data (orologio del BE) si scrivono **alla creazione dell'utente**, nell'upsert del callback (nessun utente nasce senza consenso), e poi **solo quando la versione cambia**: un login con la stessa versione lascia `acceptedTermsVersion` e `termsAcceptedAt` intatti, quindi la data è quella dell'accettazione, non dell'ultimo login. Un utente di sviluppo senza consenso che rifà il login col flusso Twitch lo riceve in quel momento.
 - **Mai sul filo:** `acceptedTermsVersion` e `termsAcceptedAt` sono solo a DB.
 - **Bypass di sviluppo esente:** il token `DEV_AUTH_*` non porta versione, non ne scrive e non è rifiutato; il refresh di una sessione di un utente senza consenso funziona (D-11). Nessuna variabile d'ambiente nuova.
 
@@ -515,6 +516,8 @@ Ogni voce: comportamento, decisione, spec che lo fissa.
 
 ### UAT su device (un passo per messaggio)
 
+**Eseguita il 2026-11-25 insieme alla FE Phase 25, coi passi del piano della FE: esito in §9.** L'elenco qui sotto è la proposta scritta prima della UAT; i passi 7 (aid del solo ferito) e 8 (ritratto caricato) non sono stati eseguiti sul device.
+
 Prerequisiti: BE riavviato dal ramo, build della FE Phase 25 sul device, un secondo telefono (o un secondo account) per i passi 3 e 6.
 
 1. Login con la casella spuntata: a DB `users.acceptedTermsVersion` e `users.termsAcceptedAt` valorizzati; un secondo login con la stessa versione non cambia la data.
@@ -530,13 +533,21 @@ Diagnosi a DB coi soli nomi di collection e campi: `users` (`acceptedTermsVersio
 
 ### Decisioni di disegno vetabili
 
-Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare:
+**In vigore — mostrate all'utente due volte nella UAT del 2026-11-25 e non vetate** (non sono approvazioni esplicite: l'utente le ha viste e non le ha cambiate):
 
-- **Testo del push dell'annullamento** — «Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.»; dettato dall'utente nella UAT della FE Phase 25 (2026-11-25), vive solo in `startedQuestCancelled` (`src/push/push-events.ts`).
 - **Tetto del rimborso del cibo** — il cibo restituito che porterebbe una riga della borsa oltre `MAX_ITEM_QUANTITY` si ferma al tetto (l'eccedenza si perde) invece di far fallire la cancellazione.
+- **Regola della data d'accettazione** — versione e data scritte alla creazione e poi solo quando la versione cambia (la data resta quella dell'accettazione, non dell'ultimo login).
+- **Compagno ancora in viaggio su dati rotti** — rimborsato e liberato dalla corsia, ma non spostato e senza push (§2e, WR-05).
+- **Cancellazione per nome Twitch senza passo di conferma lato BE** — U-03 resta un rischio accettato: la verifica del richiedente è una procedura dell'oste (§Punti aperti).
+
+**Dettato dall'utente:**
+
+- **Testo del push dell'annullamento** — «Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.»; dettato dall'utente nella UAT della FE Phase 25 (2026-11-25), vive solo in `startedQuestCancelled` (`src/push/push-events.ts`); commit `056995f8` (test), `8d753909` (fix), `9321434a` (note).
+
+**Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare** (non portati alla UAT):
+
 - **Id anonimo nei `rescuedCharacters` altrui** — al posto del cancellato invece di toglierlo: il foglio altrui conserva «avete salvato N» senza riferire il cancellato.
 - **Nome utente oltre 64 caratteri** — risponde `TWITCH_USER_NOT_FOUND`, nessun `BAD_USER_INPUT` (la D-20 elenca quattro codici).
-- **Regola della data d'accettazione** — versione e data scritte alla creazione e poi solo quando la versione cambia (la data resta quella dell'accettazione, non dell'ultimo login).
 - **Vita rimborsata entro il massimo** — mai oltre `maxLifePoints`, mai sotto la vita attuale.
 - **Bersaglio del registro nullo nei rifiuti** della via dell'oste (il Twitch ID risolto c'è solo alla riuscita).
 - **Registro in memoria perso al riavvio** e finestra dipendente dal monitor TTL di Mongo (§2c).
@@ -574,4 +585,53 @@ Default tecnici o ruling dell'orchestratore che l'utente può ancora cambiare:
 - **Dati di sviluppo senza proprietario (D-24):** su ordine dell'utente («Cancellali tutti») i 5 personaggi non puntati da nessun utente (4 archiviati e 1 attivo) e i loro 10 esiti sono stati cancellati, dopo una copia EJSON in `~/Downloads/klimmeck-backup-2026-11-25-orphan-characters/`. Restano 2 personaggi, entrambi `currentCharacter` di un utente: la cancellazione dell'account li raggiunge anche senza il campo `user`.
 - **Indici nati al boot:** `character_user` su `characters`; `publicId_1` e `queuedAt_1` su `portrait_deletions` (collection creata, 0 righe).
 - **Sonda:** `deleteMyAccount` senza token risponde `UNAUTHENTICATED`.
-- **Ancora da provare sull'ambiente vero:** Cloudinary, topic FCM e suo permesso IAM, Helix con le credenziali del login, scadenza TTL delle sessioni revocate; tutto nella UAT su device della FE Phase 25.
+- **Ancora da provare sull'ambiente vero:** Cloudinary, topic FCM e suo permesso IAM, Helix con le credenziali del login, scadenza TTL delle sessioni revocate; tutto nella UAT su device della FE Phase 25. **Dopo la UAT:** ciò che è stato provato e ciò che resta da osservare in produzione sono in §9.
+
+---
+
+## 9. UAT outcome (FE Phase 25 device UAT, 2026-11-25)
+
+Eseguita dall'utente su un solo telefono (Samsung via USB) con la FE Phase 25 (`feat/25-account-deletion-and-legal-consent`, login Twitch **vero**), BE avviato dall'orchestratore da questo ramo sulla porta 3001 (riavviato alle 14:28 locali dopo che il processo del mattino aveva perso Mongo; **0 righe ERROR** in tutta la sessione). Identità, scambiate uscendo e rientrando: l'oste (account Twitch dell'utente), un account Twitch **nuovo e vero** creato dall'utente per la prova (giocatore A, ricreato quattro volte) e l'avventuriero di sviluppo (mai cancellato). I passi sono quelli del piano UAT della FE; l'utente ha risposto «pass» a ogni passo salvo dove indicato. Registro completo dei passi e delle correzioni dell'app nel repo FE.
+
+### Esito per passo (parte BE)
+
+| Passo FE | Esito | Cosa hanno mostrato DB e log |
+|----------|-------|------------------------------|
+| 3 — consenso registrato | pass | **Utente esistente** (l'oste): versione `2026-11-24` e data d'accettazione scritte a questo login. **Utente nuovo** (l'account Twitch nuovo): nato con versione e data. L'orchestratore ha letto entrambi a DB. Utente: «pass» |
+| 7 — quest cominciata annullata | pass, in variante | Eseguito dall'**oste** che cancella il giocatore A (il compagno) per nome Twitch, col telefono sul compagno rimasto. Quest boss cominciata seminata con entrambi sul luogo; sul compagno rimasto 30 punti, 2 oggetti di cibo e 500 di vita annotati come spesi. A DB dopo: punti +30, vita +500, oggetto +2, compagno sul marker della città, `pendingQuest` nullo; quest di nuovo con 0 registrazioni e `startedAt` nullo; account e personaggio del cancellato spariti; **voce del registro dell'oste senza il nome digitato**. Utente: «pass», e poi «confermo la notifica» (il push è arrivato) |
+| 7 — metà «cancellazione propria» | pass | Il giocatore A cancella il proprio account dalle Impostazioni: approdo sul login con «Il tuo account è stato eliminato.». Log del BE: 1 personaggio, **1 sessione revocata, 1 device**. Utente: «pass» |
+| 8 — da zero | pass | Il giocatore A è rientrato quattro volte con lo stesso account Twitch: creazione personaggio ogni volta, saldo 0. Utente: «pass» / «pronto» |
+| 9 — rifiuti della via dell'oste | pass dopo una correzione dell'app | Nessun difetto del BE: la correzione ha riguardato la finestra dell'oste nell'app (tastiera in orizzontale). Utente, dopo la correzione: «pass» |
+| 10 — giocatore online cancellato dall'oste | pass, col lato dell'oste giocato dall'orchestratore | Un solo telefono: giocatore A online sulla mappa, `deleteAccountByTwitchLogin` chiamata dall'orchestratore come oste. **Quattro secondi dopo** il telefono era sul login con «Il tuo account è stato eliminato.», senza alcun tocco (screenshot dell'orchestratore). BE: 1 sessione revocata, 1 device. Il codice di chiusura del socket non è stato letto direttamente: l'uscita senza tocco in pochi secondi è l'effetto atteso del close 4409 `accountDeleted` (§2c) |
+| 11 — quest non cominciata | pass | Boss da 3 seminato con il compagno e il giocatore A registrati e sul luogo (2/3, non avviata). L'oste cancella A dal telefono. A DB: quest ancora non avviata con 1 registrazione, il compagno ancora lì con la sua richiesta, punti e vita invariati (**nessun rimborso**: solo il posto liberato). Per contratto nessun push (§2e); il registro della UAT non ne riporta. Utente: «…per il resto è tutto pass» |
+
+Non eseguiti sul device: un secondo telefono fisico (passo 10 simulato come sopra). I passi 1, 2, 4, 5 e 6 del piano della FE riguardano solo l'app (tutti «pass»).
+
+**Via dell'oste su Twitch vero:** nei passi 7, 10 e 11 il nome di un account Twitch vero è stato risolto e l'account cancellato, quindi la risoluzione con Helix dalle credenziali del login ha funzionato sull'ambiente reale (sola riuscita; `TWITCH_UNAVAILABLE` non provocato).
+
+### Testo del push dettato dall'utente
+
+Corpo del push della quest cominciata annullata, cambiato dall'utente nella UAT: **«Un membro del party ha lasciato il mondo: Missione annullata, ciò che hai consumato è stato rimborsato.»** (titolo «Missione annullata» invariato). Commit: `056995f8` (test), `8d753909` (fix), `9321434a` (note). L'arrivo sul telefono è stato confermato dall'utente («confermo la notifica»).
+
+### Decisioni mostrate all'utente e non vetate
+
+Mostrate all'utente due volte durante la UAT; non le ha vetate, quindi restano in vigore (non sono approvazioni esplicite):
+
+- il rimborso del cibo si ferma al massimo dell'inventario (`MAX_ITEM_QUANTITY`);
+- la data d'accettazione si scrive alla creazione dell'utente e poi solo quando la versione cambia;
+- un compagno ancora in viaggio su dati rotti è rimborsato e liberato, ma non spostato e senza push;
+- nessun passo di conferma lato BE per la cancellazione per nome Twitch.
+
+### Non esercitato su servizi veri in questa UAT (da osservare in produzione)
+
+- **Cancellazione del ritratto su Cloudinary:** nessun ritratto caricato era coinvolto; outbox e sweeper restano provati solo dai test.
+- **Disiscrizione dal topic FCM `streamer-live`:** non osservata direttamente (il log riporta i device tolti, non l'esito sul topic; il permesso IAM del compito 5 di §7 resta da verificare).
+- **Finestra di 15 minuti del registro dopo un riavvio del BE** (§2c): non provata; nemmeno il passaggio a `SESSION_EXPIRED` alla scadenza del TTL è stato osservato.
+- Già detto sopra: `TWITCH_UNAVAILABLE` reale, aid del solo ferito e secondo telefono fisico.
+
+### Note della sessione
+
+- **Errore dell'orchestratore, non un difetto del prodotto:** la prima semina del passo 7 aveva la scadenza nel passato, quindi il BE ha risolto il boss da sé in 12 s. Stato ripristinato dal backup, i due esiti spuri tolti, semina rifatta con le date giuste; a fine UAT il personaggio dell'oste, il suo saldo e la quest sono stati ripristinati dal backup (`~/Downloads/klimmeck-backup-2026-11-25-uat25`).
+- **Righe di privacy (D-22):** pubblicate dall'orchestratore su via libera dell'utente («Via su tutto»), repo legale commit `0659dc4` (versione e data accettate, memoria dell'accettazione sul device, percorso Impostazioni → «Azioni irreversibili» → «Elimina account»).
+- **Gate del BE dopo il cambio del testo:** unit 326 suite / 4880 test, `account-deletion.resolver.int-spec` 32 test, `tsc` pulito. Ramo pushato, PR #53 in draft.
+- **Ordine di merge:** PR #53 del BE su `develop` **prima** della PR #59 della FE; dopo la merge la FE rifà il controllo dello schema su `develop` (finora fatto su `origin/feat/26-eliminazione-account-e-consenso`).
