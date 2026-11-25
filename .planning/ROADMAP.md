@@ -383,7 +383,7 @@ La tabella della v1.0 è in [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP
 | 23. Sconfitta, riposo e recupero dei compagni | v1.1 | 18/18 | In Progress | - |
 | 24. Origini delle magie, quest void e shamanic | v1.1 | 18/18 | In Progress | - |
 | 25. Storie dei partecipanti e ferite dell'oste | v1.1 | 14/14 | In Progress | - |
-| 26. Eliminazione account e consenso | v1.1 | 12/14 | In Progress | - |
+| 26. Eliminazione account e consenso | v1.1 | 13/14 | In Progress | - |
 
 ### Phase 26: Eliminazione account e consenso
 
@@ -417,7 +417,7 @@ Plans:
 - [x] 26-10-PLAN.md — Mutation `deleteAccountByTwitchLogin` con registro dell'oste oscurato
 - [x] 26-11-PLAN.md — Ritratti: id Cloudinary, porta `PortraitStore`, outbox e sweeper
 - [x] 26-12-PLAN.md — Effetti dopo il commit: outbox nella transazione, topic FCM, push e pubblicazioni
-- [ ] 26-13-PLAN.md — Gate della fase
+- [x] 26-13-PLAN.md — Gate della fase
 - [ ] 26-14-PLAN.md — Handoff `BACKEND-NOTES.md` e chiusura
 
 ---

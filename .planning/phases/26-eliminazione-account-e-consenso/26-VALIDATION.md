@@ -74,9 +74,9 @@ created: 2026-11-24
 | 26-12-01 | 12 | 12 | BE-DEL-08 | T-26-47, T-26-49 | outbox in transazione, guardia dei sopravvissuti, topic | unit + integration | `npx jest src/push/push.service.spec.ts --selectProjects unit` ; `npx jest src/account/deletion/account-eraser.int-spec.ts src/account/deletion/account-deletion.resolver.int-spec.ts src/characters/deletion/character-deletion.resolver.int-spec.ts src/quests/party/party-timeout.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 26-12-02 | 12 | 12 | BE-DEL-08, BE-DEL-03 | T-26-48, T-26-50, T-26-51 | effetti dopo il commit, isolati dagli errori | integration | `npx jest src/account/deletion/account-deletion.resolver.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
 | 26-12-03 | 12 | 12 | BE-DEL-08 | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
-| 26-13-01 | 13 | 13 | tutti | T-26-54 | flusso completo sul filo | integration | `npx jest test/account/account-deletion-flow.int-spec.ts --selectProjects integration --runInBand` | ❌ W0 | ⬜ pending |
-| 26-13-02 | 13 | 13 | tutti | T-26-52..T-26-55 | gate: tsc, suite, SDL +5, inventario, coverage, invarianti | gate | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit` + blocchi integration + `npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ⬜ pending |
-| 26-13-03 | 13 | 13 | tutti | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
+| 26-13-01 | 13 | 13 | tutti | T-26-54 | flusso completo sul filo | integration | `npx jest test/account/account-deletion-flow.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 26-13-02 | 13 | 13 | tutti | T-26-52..T-26-55 | gate: tsc, suite, SDL +5, inventario, coverage, invarianti | gate | `npx tsc --noEmit -p tsconfig.json && npx jest --selectProjects unit` + blocchi integration + `npx jest test/app.int-spec.ts test/authz/authorization-matrix.int-spec.ts --selectProjects integration --runInBand` | ✅ | ✅ green |
+| 26-13-03 | 13 | 13 | tutti | — | N/A | bookkeeping | grep + `git status --short` (bookkeeping) | — | ✅ green |
 | 26-14-01 | 14 | 14 | BE-DEL-09 | T-26-56, T-26-57 | handoff senza segreti né id reali | doc | grep di struttura e segreti su `BACKEND-NOTES.md` | ❌ W0 | ⬜ pending |
 | 26-14-02 | 14 | 14 | tutti | T-26-58 | requisiti chiusi solo dopo il gate | bookkeeping | grep + `git status --short` (bookkeeping) | — | ⬜ pending |
 
