@@ -7,7 +7,7 @@ import {
     ErasureReport,
 } from 'src/account/deletion/account-eraser';
 import { DeletedAccount } from 'src/account/deletion/deleted-account.model';
-import { PortraitDeletionService } from 'src/account/deletion/portrait/portrait-deletion.service';
+import { PortraitDeletionSweeper } from 'src/account/deletion/portrait/portrait-deletion.sweeper';
 import { AuthException } from 'src/auth/auth.exception';
 import { Clock } from 'src/auth/clock';
 import { SessionRevocationService } from 'src/auth/session/session-revocation.service';
@@ -35,7 +35,7 @@ export class AccountDeletionService {
         private readonly revocation: SessionRevocationService,
         private readonly clock: Clock,
         private readonly push: PushService,
-        private readonly portraits: PortraitDeletionService,
+        private readonly portraitSweeper: PortraitDeletionSweeper,
     ) {}
 
     // identità dal bearer (Phase 26 D-20): l'oste è rifiutato dall'eraser (D-16), un utente sparito è UNAUTHENTICATED
@@ -102,7 +102,7 @@ export class AccountDeletionService {
         }
     }
 
-    // ordine fisso (D-13, D-25, N6): socket, compagni rientrati, soccorritori liberati, topic, ritratti
+    // ordine fisso (D-13, D-25, N6): socket, compagni rientrati, soccorritori liberati, topic, spinta ai ritratti
     private async afterCommit(report: ErasureReport): Promise<void> {
         await this.closeSessions(report);
         for (const { questId, characterIds } of report.cancelled) {
@@ -125,7 +125,8 @@ export class AccountDeletionService {
             );
         }
         await this.push.unsubscribeFromStreamerLive(report.pushTokens);
-        await this.portraits.flush();
+        // la risposta non aspetta Cloudinary (WR-01): lo sweeper consegna, gli errori li registra lui
+        this.portraitSweeper.kick();
     }
 
     // un errore qui non deve fermare push, topic e ritratti; le sessioni nate da un login in gara si revocano qui (WR-03)

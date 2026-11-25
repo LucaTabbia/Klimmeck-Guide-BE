@@ -18,6 +18,8 @@ export class PortraitDeletionSweeper
     private readonly logger = new Logger(PortraitDeletionSweeper.name);
     private timer: NodeJS.Timeout | null = null;
     private inFlight: Promise<number> | null = null;
+    private rerunRequested = false;
+    private stopped = false;
 
     constructor(
         @Inject(QUEST_CONFIG) private readonly config: QuestConfig,
@@ -37,17 +39,34 @@ export class PortraitDeletionSweeper
 
     // il flush in corso finisce prima che Mongoose chiuda
     async onModuleDestroy(): Promise<void> {
+        this.stopped = true;
         if (this.timer) clearInterval(this.timer);
         this.timer = null;
         await this.inFlight?.catch(() => undefined);
+    }
+
+    // spinta dopo una cancellazione, mai attesa dalla mutation (WR-01): un giro già in corso può aver letto l'outbox prima del commit, quindi se ne fa un altro alla fine
+    kick(): void {
+        if (this.inFlight) {
+            this.rerunRequested = true;
+            return;
+        }
+        void this.sweepSafely();
     }
 
     // single-flight: un tick saltato è recuperato dal successivo
     sweep(): Promise<number> {
         this.inFlight ??= this.deletions.flush().finally(() => {
             this.inFlight = null;
+            this.rerunIfRequested();
         });
         return this.inFlight;
+    }
+
+    private rerunIfRequested(): void {
+        if (!this.rerunRequested || this.stopped) return;
+        this.rerunRequested = false;
+        void this.sweepSafely();
     }
 
     private sweepSafely(): Promise<void> {
