@@ -19,8 +19,8 @@ export const RACE_TRAITS: Readonly<Record<RaceType, AgeRange>> = Object.freeze({
     [RaceType.gnome]: { minAge: 16, maxAge: 60 },
     [RaceType.halfling]: { minAge: 16, maxAge: 70 },
     [RaceType.dragonborn]: { minAge: 16, maxAge: 180 },
-    [RaceType.tiefling]: { minAge: 16, maxAge: 120 },
-    [RaceType.aarakocra]: { minAge: 3, maxAge: 40 },
+    [RaceType.infernal]: { minAge: 16, maxAge: 120 },
+    [RaceType.volucri]: { minAge: 3, maxAge: 40 },
 });
 
 type RaceHomeCityTypes = Readonly<Record<RaceType, readonly CityType[]>>;
@@ -37,9 +37,9 @@ export const RACE_HOME_CITY_TYPES: RaceHomeCityTypes = Object.freeze({
     [RaceType.elf]: [CityType.elfCapital],
     [RaceType.gnome]: [CityType.motherCapital],
     [RaceType.dwarf]: [CityType.motherCapital],
-    [RaceType.tiefling]: [CityType.motherCapital],
+    [RaceType.infernal]: [CityType.motherCapital],
     [RaceType.halfling]: [CityType.liberiaCapital],
-    [RaceType.aarakocra]: [CityType.aarakocraCapital],
+    [RaceType.volucri]: [CityType.volucriCapital],
     [RaceType.dragonborn]: [CityType.dragonbornCapital],
     [RaceType.human]: HUMAN_HOME_CITY_TYPES,
     [RaceType.halfelf]: HUMAN_HOME_CITY_TYPES,

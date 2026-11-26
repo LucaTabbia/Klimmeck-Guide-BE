@@ -617,7 +617,7 @@ describe('AppModule (real boot without Twitch credentials)', () => {
         const schema = readFileSync(SCHEMA_FILE, 'utf8');
         const cityTypes = schema.match(/enum CityType \{[^}]*\}/)?.[0];
 
-        expect(cityTypes).toContain('  aarakocraCapital\n  aarakocraVillage\n');
+        expect(cityTypes).toContain('  volucriCapital\n  volucriVillage\n');
         expect(cityTypes).toContain(
             '  dragonbornCapital\n  dragonbornVillage\n',
         );

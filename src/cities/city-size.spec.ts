@@ -39,7 +39,7 @@ describe('citySizeOf', () => {
     });
 
     it('sizes the two new capitals as capitals and the dragonborn village as a village (D-15, D-16)', () => {
-        expect(citySizeOf('aarakocraCapital' as CityType)).toBe(
+        expect(citySizeOf('volucriCapital' as CityType)).toBe(
             CitySize.capital,
         );
         expect(citySizeOf('dragonbornCapital' as CityType)).toBe(
@@ -51,7 +51,7 @@ describe('citySizeOf', () => {
     });
 
     it('recognises the three new city types (D-15)', () => {
-        expect(isCityType('aarakocraCapital')).toBe(true);
+        expect(isCityType('volucriCapital')).toBe(true);
         expect(isCityType('dragonbornCapital')).toBe(true);
         expect(isCityType('dragonbornVillage')).toBe(true);
     });

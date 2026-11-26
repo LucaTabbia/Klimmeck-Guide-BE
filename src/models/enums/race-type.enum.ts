@@ -8,8 +8,8 @@ export enum RaceType {
     halfelf = "halfelf",
     human = "human",
     dwarf = "dwarf",
-    tiefling = "tiefling",
-    aarakocra = "aarakocra",
+    infernal = "infernal",
+    volucri = "volucri",
 }
 
 registerEnumType(RaceType, { name: 'RaceType' });

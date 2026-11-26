@@ -17,8 +17,8 @@ describe('race traits', () => {
             gnome: { minAge: 16, maxAge: 60 },
             halfling: { minAge: 16, maxAge: 70 },
             dragonborn: { minAge: 16, maxAge: 180 },
-            tiefling: { minAge: 16, maxAge: 120 },
-            aarakocra: { minAge: 3, maxAge: 40 },
+            infernal: { minAge: 16, maxAge: 120 },
+            volucri: { minAge: 3, maxAge: 40 },
         });
     });
 
@@ -34,9 +34,9 @@ describe('race traits', () => {
             elf: ['elfCapital'],
             gnome: ['motherCapital'],
             dwarf: ['motherCapital'],
-            tiefling: ['motherCapital'],
+            infernal: ['motherCapital'],
             halfling: ['liberiaCapital'],
-            aarakocra: ['aarakocraCapital'],
+            volucri: ['volucriCapital'],
             dragonborn: ['dragonbornCapital'],
             human: [
                 'drusteaCapital',
@@ -72,8 +72,8 @@ describe('race traits', () => {
             { race: 'halfelf', minAge: 16, maxAge: 130 },
             { race: 'human', minAge: 16, maxAge: 200 },
             { race: 'dwarf', minAge: 40, maxAge: 140 },
-            { race: 'tiefling', minAge: 16, maxAge: 120 },
-            { race: 'aarakocra', minAge: 3, maxAge: 40 },
+            { race: 'infernal', minAge: 16, maxAge: 120 },
+            { race: 'volucri', minAge: 3, maxAge: 40 },
         ]);
     });
 
