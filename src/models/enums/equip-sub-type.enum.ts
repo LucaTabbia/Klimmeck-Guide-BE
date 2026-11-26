@@ -6,6 +6,7 @@ export enum EquipSubType {
     greatsword = 'greatsword',
     dagger = 'dagger',
     axe = 'axe',
+    greatAxe = 'greatAxe',
     mace = 'mace',
     warHammer = 'warHammer',
     spear = 'spear',
@@ -20,6 +21,7 @@ registerEnumType(EquipSubType, { name: 'EquipSubType' });
 
 const TWO_HANDED: ReadonlySet<EquipSubType> = new Set([
     EquipSubType.greatsword,
+    EquipSubType.greatAxe,
     EquipSubType.warHammer,
     EquipSubType.spear,
     EquipSubType.bow,
