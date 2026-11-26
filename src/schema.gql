@@ -320,6 +320,7 @@ enum EquipSubType {
   axe
   bow
   dagger
+  greatAxe
   greatsword
   grimoire
   longStaff

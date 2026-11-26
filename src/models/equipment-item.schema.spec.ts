@@ -11,6 +11,7 @@ describe('equipment item sub type', () => {
             'greatsword',
             'dagger',
             'axe',
+            'greatAxe',
             'mace',
             'warHammer',
             'spear',
@@ -25,6 +26,7 @@ describe('equipment item sub type', () => {
     it('holds the two-handed families in both hands', () => {
         expect(Object.values(EquipSubType).filter(isTwoHanded)).toEqual([
             'greatsword',
+            'greatAxe',
             'warHammer',
             'spear',
             'bow',
